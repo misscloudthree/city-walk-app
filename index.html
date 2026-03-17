@@ -1,57 +1,59 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>我的可愛 City Walk</title>
+    <title>City Walk 隨性漫步</title>
     <style>
-        body { margin: 0; font-family: "Segoe UI", "Apple Color Emoji", sans-serif; background: #fffaf0; }
-        #map { height: 75vh; width: 100%; border-bottom: 5px solid #ffedda; }
+        /* 文青配色：米白底、炭黑字、莫蘭迪色調 */
+        body { margin: 0; font-family: "PingFang TC", "STHeiti", sans-serif; background: #F4F1EA; color: #333; }
+        #map { height: 75vh; width: 100%; filter: grayscale(20%); }
         
         .status-bar { 
-            padding: 12px; 
+            padding: 18px; 
             text-align: center; 
-            font-size: 14px; 
-            color: #ff9a9e; /* 粉色字體 */
-            background: #fff;
-            font-weight: bold;
-            letter-spacing: 2px;
+            font-size: 13px; 
+            color: #666; 
+            background: #F4F1EA;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
         }
 
         .controls { 
-            padding: 25px 20px; 
+            padding: 30px 25px; 
             text-align: center; 
             background: #fff; 
             position: relative; 
             z-index: 10; 
-            border-radius: 30px 30px 0 0; 
-            margin-top: -30px; 
-            box-shadow: 0 -10px 20px rgba(255, 154, 158, 0.1); 
+            border-radius: 25px 25px 0 0; 
+            margin-top: -25px; 
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.03); 
         }
 
-        .summary { display: none; padding: 20px; background: #fff5f5; border-radius: 20px; margin-top: 15px; text-align: left; line-height: 1.8; border: 2px dashed #ffc0cb; }
+        .summary { display: none; padding: 20px; background: #FAFAFA; border-radius: 15px; margin-top: 20px; text-align: left; line-height: 2; border: 1px solid #EEE; }
         
         button { 
             padding: 16px 30px; 
-            font-size: 16px; 
+            font-size: 15px; 
             cursor: pointer; 
-            border: none; 
-            border-radius: 50px; 
-            transition: 0.3s; 
-            font-weight: 800; 
+            border: 1px solid #333; 
+            border-radius: 4px; 
+            transition: 0.4s; 
+            font-weight: 500; 
             width: 100%; 
-            max-width: 300px; 
-            box-shadow: 0 6px 15px rgba(255, 182, 193, 0.4);
+            max-width: 280px;
+            letter-spacing: 0.1em;
         }
-        .btn-start { background: linear-gradient(120deg, #ff9a9e 0%, #fecfef 100%); color: #fff; }
-        .btn-stop { background: #ff6b6b; color: #fff; }
+        /* 文青風按鈕：黑白簡約 */
+        .btn-start { background: #333; color: #FFF; }
+        .btn-stop { background: #FFF; color: #333; }
         
-        .stay-list { margin-top: 10px; color: #d4a5a5; font-style: italic; }
+        .stay-list { margin-top: 12px; color: #888; font-size: 13px; border-left: 2px solid #DDD; padding-left: 10px; }
     </style>
 </head>
 <body>
-    <div class="status-bar" id="statusText">今天也要可愛地散步 🌸</div>
+    <div class="status-bar" id="statusText">記錄一段隨性的城市漫遊</div>
     <div id="map"></div>
     <div class="controls">
-        <button id="mainBtn" class="btn-start" onclick="toggleTracking()">開始我的 City Walk 🐾</button>
+        <button id="mainBtn" class="btn-start" onclick="toggleTracking()">開始記錄行走 ◓</button>
         <div id="summary" class="summary"></div>
     </div>
 
@@ -62,15 +64,22 @@
         let startTime, lastPos, lastMoveTime;
         let detectedStores = [];
 
-        // 可愛粉彩地圖樣式
-        const cuteStyle = [
-            { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#e9eaed" }, { "lightness": 17 }] },
-            { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#f5f5f5" }, { "lightness": 20 }] },
-            { "featureType": "road.highway", "elementType": "geometry.fill", "stylers": [{ "color": "#ffffff" }, { "lightness": 17 }] },
-            { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#f5f5f5" }, { "lightness": 21 }] },
-            { "featureType": "all", "elementType": "labels.text.stroke", "stylers": [{ "visibility": "on" }, { "color": "#ffffff" }, { "lightness": 16 }] },
-            { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "saturation": 36 }, { "color": "#333333" }, { "lightness": 40 }] },
-            { "featureType": "all", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] }
+        // 文青風格地圖樣式：僅保留餐廳與咖啡廳
+        const indieStyle = [
+            { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#7c7c7c" }] },
+            { "featureType": "all", "elementType": "labels.text.stroke", "stylers": [{ "visibility": "off" }] },
+            { "featureType": "landscape", "stylers": [{ "color": "#f1eee8" }] },
+            { "featureType": "poi.business", "stylers": [{ "visibility": "off" }] }, // 隱藏一般商業
+            { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#dfebd3" }] },
+            { "featureType": "poi.government", "stylers": [{ "visibility": "off" }] },
+            { "featureType": "poi.school", "stylers": [{ "visibility": "off" }] },
+            { "featureType": "poi.medical", "stylers": [{ "visibility": "off" }] },
+            { "featureType": "poi.attraction", "stylers": [{ "visibility": "on" }] },
+            { "featureType": "poi.place_of_worship", "stylers": [{ "visibility": "off" }] },
+            { "featureType": "road", "stylers": [{ "color": "#ffffff" }] },
+            { "featureType": "water", "stylers": [{ "color": "#d2d2d2" }] },
+            // 關鍵：保留餐廳與咖啡廳
+            { "featureType": "poi.food_and_drink", "stylers": [{ "visibility": "on" }] }
         ];
 
         function initMap() {
@@ -78,30 +87,26 @@
                 zoom: 17,
                 center: { lat: 25.0478, lng: 121.5170 },
                 disableDefaultUI: true,
-                styles: cuteStyle // 套用可愛樣式
+                styles: indieStyle
             });
 
-            // 自定義可愛標記 (藍色腳印)
             marker = new google.maps.Marker({ 
                 map: map, 
-                label: { text: "🐾", fontSize: "24px" },
-                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 } // 隱藏原本的紅針
+                label: { text: "●", color: "#333", fontSize: "18px" },
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 } 
             });
 
             pathLine = new google.maps.Polyline({ 
                 map: map, 
-                strokeColor: "#FFB6C1", // 奶油粉紅線
-                strokeWeight: 6, 
-                strokeOpacity: 0.8 
+                strokeColor: "#333", 
+                strokeWeight: 2, 
+                strokeOpacity: 0.6 
             });
             service = new google.maps.places.PlacesService(map);
         }
 
-        // ... (以下 toggleTracking, startTracking, updatePosition, stopTracking 等邏輯保持不變) ...
-        // 為節省篇幅，請確保將原本 updatePosition 到最後的 script 邏輯原封不動接在後面即可
-        
         function toggleTracking() {
-            if (!isTracking) { startTracking(); } else { stopTracking(); }
+            if (!isTracking) startTracking(); else stopTracking();
         }
 
         function startTracking() {
@@ -110,10 +115,12 @@
             lastMoveTime = new Date();
             walkCoordinates = [];
             detectedStores = [];
-            document.getElementById("mainBtn").innerText = "結束今日份可愛散步 ✨";
+            
+            document.getElementById("mainBtn").innerText = "結束這次漫遊 ◒";
             document.getElementById("mainBtn").className = "btn-stop";
-            document.getElementById("statusText").innerText = "正在找尋您的足跡...";
+            document.getElementById("statusText").innerText = "正在感應您的位置...";
             document.getElementById("summary").style.display = "none";
+
             if (navigator.geolocation) {
                 watchId = navigator.geolocation.watchPosition(updatePosition, null, { enableHighAccuracy: true });
             }
@@ -122,20 +129,30 @@
         function updatePosition(position) {
             const newPos = { lat: position.coords.latitude, lng: position.coords.longitude };
             const statusEl = document.getElementById("statusText");
+            
+            // Bug 修復：只要拿到第一個位置，就算沒動也更新狀態
+            if (!lastPos) {
+                statusEl.innerText = "已就緒，享受這片風景吧 ☕";
+            }
+
             if (lastPos) {
                 const dist = google.maps.geometry.spherical.computeDistanceBetween(
                     new google.maps.LatLng(lastPos.lat, lastPos.lng),
                     new google.maps.LatLng(newPos.lat, newPos.lng)
                 );
-                if (dist > 5) {
-                    statusEl.innerText = "正在開心移動中 👟";
+
+                if (dist > 7) { // 稍微放寬一點點防止雜訊
+                    statusEl.innerText = "漫步在城市節奏中 —";
                     lastMoveTime = new Date();
                 } else {
                     const idleSeconds = (new Date() - lastMoveTime) / 1000;
-                    if (idleSeconds > 10) statusEl.innerText = "暫停一下，享受這美景吧 🧁";
+                    if (idleSeconds > 15) {
+                        statusEl.innerText = "暫停一下，享受這片風景吧 ☕";
+                    }
                     if (idleSeconds > 300) findNearbyStore(newPos);
                 }
             }
+
             lastPos = newPos;
             walkCoordinates.push(newPos);
             pathLine.setPath(walkCoordinates);
@@ -144,7 +161,7 @@
         }
 
         function findNearbyStore(pos) {
-            const request = { location: pos, radius: '20', type: ['store', 'cafe', 'restaurant'] };
+            const request = { location: pos, radius: '25', type: ['cafe', 'restaurant'] };
             service.nearbySearch(request, (results, status) => {
                 if (status === google.maps.places.PlacesServiceStatus.OK && results[0]) {
                     const storeName = results[0].name;
@@ -156,9 +173,9 @@
         function stopTracking() {
             navigator.geolocation.clearWatch(watchId);
             isTracking = false;
-            document.getElementById("mainBtn").innerText = "再開始一場 City Walk 🐾";
+            document.getElementById("mainBtn").innerText = "開始記錄行走 ◓";
             document.getElementById("mainBtn").className = "btn-start";
-            document.getElementById("statusText").innerText = "今日份回憶已收錄";
+            document.getElementById("statusText").innerText = "今日足跡已完整";
             showFinalReport();
         }
 
@@ -168,11 +185,11 @@
             const summaryBox = document.getElementById("summary");
             summaryBox.style.display = "block";
             summaryBox.innerHTML = `
-                <strong>🎀 散步成果紀錄</strong><br>
-                🍦 總里程：${totalDist.toFixed(2)} km<br>
-                🕒 總耗時：${duration} min<br>
-                🏪 踩點清單：<br>
-                <div class="stay-list">${detectedStores.length > 0 ? detectedStores.join(' → ') : '漫步中，沒有特別停留'}</div>
+                <strong>〔 漫遊摘要 〕</strong><br>
+                ◍ 總里程：${totalDist.toFixed(2)} KM<br>
+                ◍ 總耗時：${duration} MIN<br>
+                ◍ 經過的地標：<br>
+                <div class="stay-list">${detectedStores.length > 0 ? detectedStores.join(' / ') : '純粹的行走'}</div>
             `;
         }
     </script>
