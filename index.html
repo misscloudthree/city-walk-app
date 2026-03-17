@@ -3,7 +3,6 @@
 <head>
     <title>City Walk 隨性漫步</title>
     <style>
-        /* 文青配色：米白底、炭黑字、莫蘭迪色調 */
         body { margin: 0; font-family: "PingFang TC", "STHeiti", sans-serif; background: #F4F1EA; color: #333; }
         #map { height: 75vh; width: 100%; filter: grayscale(20%); }
         
@@ -62,14 +61,19 @@
         let isTracking = false;
         let startTime, lastPos, lastMoveTime;
         let detectedStores = [];
-        let placedMarkers = []; // 用來追蹤地圖上已經畫上去的小店標籤
+        let placedMarkers = []; 
 
         const indieStyle = [
             { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#7c7c7c" }] },
             { "featureType": "landscape", "stylers": [{ "color": "#f1eee8" }] },
-            { "featureType": "poi", "stylers": [{ "visibility": "off" }] }, 
             { "featureType": "road", "stylers": [{ "color": "#ffffff" }] },
-            { "featureType": "water", "stylers": [{ "color": "#d2d2d2" }] }
+            { "featureType": "water", "stylers": [{ "color": "#d2d2d2" }] },
+            // 隱藏所有不需要的地標
+            { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
+            { "featureType": "transit", "stylers": [{ "visibility": "off" }] }, // 隱藏捷運、公車站
+            { "featureType": "administrative", "stylers": [{ "visibility": "off" }] },
+            // 僅開啟餐廳與咖啡廳標籤
+            { "featureType": "poi.food_and_drink", "stylers": [{ "visibility": "on" }] }
         ];
 
         function initMap() {
@@ -80,9 +84,10 @@
                 styles: indieStyle
             });
 
+            // 將定位點改為「👣」
             marker = new google.maps.Marker({ 
                 map: map, 
-                label: { text: "●", color: "#333", fontSize: "18px" },
+                label: { text: "👣", fontSize: "24px" },
                 icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
                 zIndex: 999 
             });
@@ -90,40 +95,14 @@
             pathLine = new google.maps.Polyline({ 
                 map: map, 
                 strokeColor: "#333", 
-                strokeWeight: 2, 
-                strokeOpacity: 0.6 
+                strokeWeight: 3, 
+                strokeOpacity: 0.5 
             });
             service = new google.maps.places.PlacesService(map);
         }
 
-        // 在地圖上標註可愛小店
-        function markNearbyShops(pos) {
-            const request = {
-                location: pos,
-                radius: '200',
-                type: ['cafe', 'restaurant']
-            };
-
-            service.nearbySearch(request, (results, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK) {
-                    results.forEach(place => {
-                        if (!placedMarkers.includes(place.place_id)) {
-                            new google.maps.Marker({
-                                position: place.geometry.location,
-                                map: map,
-                                label: {
-                                    text: place.types.includes('cafe') ? '☕' : '🏠',
-                                    fontSize: '16px'
-                                },
-                                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-                                title: place.name
-                            });
-                            placedMarkers.push(place.place_id);
-                        }
-                    });
-                }
-            });
-        }
+        // 修改：此版本我們暫時移除主動 markNearbyShops，先依賴樣式表顯示 Google 原生商店標籤
+        // 這樣地圖會更乾淨，且不會有 Emoji 和原生標籤重疊的問題
 
         function toggleTracking() {
             if (!isTracking) startTracking(); else stopTracking();
@@ -135,7 +114,6 @@
             lastMoveTime = new Date();
             walkCoordinates = [];
             detectedStores = [];
-            placedMarkers = []; 
             
             document.getElementById("mainBtn").innerText = "結束這次漫遊 ◒";
             document.getElementById("mainBtn").className = "btn-stop";
@@ -153,7 +131,6 @@
             
             if (!lastPos) {
                 statusEl.innerText = "已就緒，享受這片風景吧 ☕";
-                markNearbyShops(newPos);
             }
 
             if (lastPos) {
@@ -165,7 +142,6 @@
                 if (dist > 7) {
                     statusEl.innerText = "漫步在城市節奏中 —";
                     lastMoveTime = new Date();
-                    if (dist > 50) markNearbyShops(newPos);
                 } else {
                     const idleSeconds = (new Date() - lastMoveTime) / 1000;
                     if (idleSeconds > 15) {
