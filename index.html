@@ -192,7 +192,160 @@
                 <div class="stay-list">${detectedStores.length > 0 ? detectedStores.join(' / ') : '純粹的行走'}</div>
             `;
         }
-    </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=geometry,places" async defer></script>
-</body>
-</html>
+   <script>
+    let map, marker, pathLine, watchId, service;
+    let walkCoordinates = [];
+    let isTracking = false;
+    let startTime, lastPos, lastMoveTime;
+    let detectedStores = [];
+    let placedMarkers = []; // 用來追蹤地圖上已經畫上去的小店標籤
+
+    const indieStyle = [
+        { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#7c7c7c" }] },
+        { "featureType": "landscape", "stylers": [{ "color": "#f1eee8" }] },
+        { "featureType": "poi", "stylers": [{ "visibility": "off" }] }, // 先關閉所有預設地標
+        { "featureType": "road", "stylers": [{ "color": "#ffffff" }] },
+        { "featureType": "water", "stylers": [{ "color": "#d2d2d2" }] }
+    ];
+
+    function initMap() {
+        map = new google.maps.Map(document.getElementById("map"), {
+            zoom: 17,
+            center: { lat: 25.0478, lng: 121.5170 },
+            disableDefaultUI: true,
+            styles: indieStyle
+        });
+
+        marker = new google.maps.Marker({ 
+            map: map, 
+            label: { text: "●", color: "#333", fontSize: "18px" },
+            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+            zIndex: 999 // 確保自己的位置在最上面
+        });
+
+        pathLine = new google.maps.Polyline({ 
+            map: map, 
+            strokeColor: "#333", 
+            strokeWeight: 2, 
+            strokeOpacity: 0.6 
+        });
+        service = new google.maps.places.PlacesService(map);
+    }
+
+    // 新增：在地圖上標註可愛小店的功能
+    function markNearbyShops(pos) {
+        const request = {
+            location: pos,
+            radius: '200', // 搜尋周圍 200 公尺
+            type: ['cafe', 'restaurant']
+        };
+
+        service.nearbySearch(request, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK) {
+                results.forEach(place => {
+                    // 如果這個店還沒被標註過
+                    if (!placedMarkers.includes(place.place_id)) {
+                        new google.maps.Marker({
+                            position: place.geometry.location,
+                            map: map,
+                            label: {
+                                text: place.types.includes('cafe') ? '☕' : '🏠',
+                                fontSize: '16px'
+                            },
+                            icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, // 隱藏原本紅針
+                            title: place.name
+                        });
+                        placedMarkers.push(place.place_id);
+                    }
+                });
+            }
+        });
+    }
+
+    function toggleTracking() {
+        if (!isTracking) startTracking(); else stopTracking();
+    }
+
+    function startTracking() {
+        isTracking = true;
+        startTime = new Date();
+        lastMoveTime = new Date();
+        walkCoordinates = [];
+        detectedStores = [];
+        placedMarkers = []; 
+        
+        document.getElementById("mainBtn").innerText = "結束這次漫遊 ◒";
+        document.getElementById("mainBtn").className = "btn-stop";
+        document.getElementById("statusText").innerText = "正在感應您的位置...";
+
+        if (navigator.geolocation) {
+            watchId = navigator.geolocation.watchPosition(updatePosition, null, { enableHighAccuracy: true });
+        }
+    }
+
+    function updatePosition(position) {
+        const newPos = { lat: position.coords.latitude, lng: position.coords.longitude };
+        const statusEl = document.getElementById("statusText");
+        
+        if (!lastPos) {
+            statusEl.innerText = "已就緒，享受這片風景吧 ☕";
+            markNearbyShops(newPos); // 第一次定位成功就先標註附近小店
+        }
+
+        if (lastPos) {
+            const dist = google.maps.geometry.spherical.computeDistanceBetween(
+                new google.maps.LatLng(lastPos.lat, lastPos.lng),
+                new google.maps.LatLng(newPos.lat, newPos.lng)
+            );
+
+            if (dist > 7) {
+                statusEl.innerText = "漫步在城市節奏中 —";
+                lastMoveTime = new Date();
+                // 移動一段距離後，再次搜尋新區域的小店
+                if (dist > 50) markNearbyShops(newPos);
+            } else {
+                const idleSeconds = (new Date() - lastMoveTime) / 1000;
+                if (idleSeconds > 15) statusEl.innerText = "暫停一下，享受這片風景吧 ☕";
+                if (idleSeconds > 300) findNearbyStore(newPos);
+            }
+        }
+
+        lastPos = newPos;
+        walkCoordinates.push(newPos);
+        pathLine.setPath(walkCoordinates);
+        marker.setPosition(newPos);
+        map.panTo(newPos);
+    }
+
+    function findNearbyStore(pos) {
+        const request = { location: pos, radius: '25', type: ['cafe', 'restaurant'] };
+        service.nearbySearch(request, (results, status) => {
+            if (status === google.maps.places.PlacesServiceStatus.OK && results[0]) {
+                const storeName = results[0].name;
+                if (!detectedStores.includes(storeName)) detectedStores.push(storeName);
+            }
+        });
+    }
+
+    function stopTracking() {
+        navigator.geolocation.clearWatch(watchId);
+        isTracking = false;
+        document.getElementById("mainBtn").innerText = "開始記錄行走 ◓";
+        document.getElementById("mainBtn").className = "btn-start";
+        showFinalReport();
+    }
+
+    function showFinalReport() {
+        const totalDist = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
+        const duration = Math.round((new Date() - startTime) / 60000);
+        const summaryBox = document.getElementById("summary");
+        summaryBox.style.display = "block";
+        summaryBox.innerHTML = `
+            <strong>〔 漫遊摘要 〕</strong><br>
+            ◍ 總里程：${totalDist.toFixed(2)} KM<br>
+            ◍ 總耗時：${duration} MIN<br>
+            ◍ 經過的地標：<br>
+            <div class="stay-list">${detectedStores.length > 0 ? detectedStores.join(' / ') : '純粹的行走'}</div>
+        `;
+    }
+</script>
