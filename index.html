@@ -1,48 +1,57 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>City Walk 追蹤器</title>
+    <title>我的可愛 City Walk</title>
     <style>
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fff; }
-        #map { height: 70vh; width: 100%; }
+        body { margin: 0; font-family: "Segoe UI", "Apple Color Emoji", sans-serif; background: #fffaf0; }
+        #map { height: 75vh; width: 100%; border-bottom: 5px solid #ffedda; }
         
-        /* 狀態文字區塊：移除標題，只留純動態文字 */
         .status-bar { 
-            padding: 15px; 
+            padding: 12px; 
             text-align: center; 
             font-size: 14px; 
-            color: #888; 
+            color: #ff9a9e; /* 粉色字體 */
             background: #fff;
-            letter-spacing: 1px;
+            font-weight: bold;
+            letter-spacing: 2px;
         }
 
         .controls { 
-            padding: 20px; 
+            padding: 25px 20px; 
             text-align: center; 
             background: #fff; 
             position: relative; 
             z-index: 10; 
-            border-radius: 20px 20px 0 0; 
-            margin-top: -20px; 
-            box-shadow: 0 -5px 15px rgba(0,0,0,0.05); 
+            border-radius: 30px 30px 0 0; 
+            margin-top: -30px; 
+            box-shadow: 0 -10px 20px rgba(255, 154, 158, 0.1); 
         }
 
-        .summary { display: none; padding: 20px; background: #fdfdfd; border-radius: 12px; margin-top: 15px; text-align: left; line-height: 1.8; border: 1px solid #eee; }
+        .summary { display: none; padding: 20px; background: #fff5f5; border-radius: 20px; margin-top: 15px; text-align: left; line-height: 1.8; border: 2px dashed #ffc0cb; }
         
-        button { padding: 16px 30px; font-size: 16px; cursor: pointer; border: none; border-radius: 50px; transition: 0.3s; font-weight: 600; width: 100%; max-width: 300px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .btn-start { background: #000; color: #fff; }
-        .btn-stop { background: #ff3b30; color: #fff; }
+        button { 
+            padding: 16px 30px; 
+            font-size: 16px; 
+            cursor: pointer; 
+            border: none; 
+            border-radius: 50px; 
+            transition: 0.3s; 
+            font-weight: 800; 
+            width: 100%; 
+            max-width: 300px; 
+            box-shadow: 0 6px 15px rgba(255, 182, 193, 0.4);
+        }
+        .btn-start { background: linear-gradient(120deg, #ff9a9e 0%, #fecfef 100%); color: #fff; }
+        .btn-stop { background: #ff6b6b; color: #fff; }
         
-        .stay-list { margin-top: 10px; color: #333; font-weight: 500; }
+        .stay-list { margin-top: 10px; color: #d4a5a5; font-style: italic; }
     </style>
 </head>
 <body>
-    <div class="status-bar" id="statusText">開始今日份的城市探索吧！</div>
-    
+    <div class="status-bar" id="statusText">今天也要可愛地散步 🌸</div>
     <div id="map"></div>
-    
     <div class="controls">
-        <button id="mainBtn" class="btn-start" onclick="toggleTracking()">開始記錄我的 City Walk</button>
+        <button id="mainBtn" class="btn-start" onclick="toggleTracking()">開始我的 City Walk 🐾</button>
         <div id="summary" class="summary"></div>
     </div>
 
@@ -53,24 +62,46 @@
         let startTime, lastPos, lastMoveTime;
         let detectedStores = [];
 
+        // 可愛粉彩地圖樣式
+        const cuteStyle = [
+            { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#e9eaed" }, { "lightness": 17 }] },
+            { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#f5f5f5" }, { "lightness": 20 }] },
+            { "featureType": "road.highway", "elementType": "geometry.fill", "stylers": [{ "color": "#ffffff" }, { "lightness": 17 }] },
+            { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#f5f5f5" }, { "lightness": 21 }] },
+            { "featureType": "all", "elementType": "labels.text.stroke", "stylers": [{ "visibility": "on" }, { "color": "#ffffff" }, { "lightness": 16 }] },
+            { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "saturation": 36 }, { "color": "#333333" }, { "lightness": 40 }] },
+            { "featureType": "all", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] }
+        ];
+
         function initMap() {
             map = new google.maps.Map(document.getElementById("map"), {
                 zoom: 17,
                 center: { lat: 25.0478, lng: 121.5170 },
                 disableDefaultUI: true,
-                styles: [{ featureType: "poi.business", elementType: "labels", visibility: "on" }]
+                styles: cuteStyle // 套用可愛樣式
             });
-            marker = new google.maps.Marker({ map: map });
-            pathLine = new google.maps.Polyline({ map: map, strokeColor: "#000", strokeWeight: 5, strokeOpacity: 0.7 });
+
+            // 自定義可愛標記 (藍色腳印)
+            marker = new google.maps.Marker({ 
+                map: map, 
+                label: { text: "🐾", fontSize: "24px" },
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 } // 隱藏原本的紅針
+            });
+
+            pathLine = new google.maps.Polyline({ 
+                map: map, 
+                strokeColor: "#FFB6C1", // 奶油粉紅線
+                strokeWeight: 6, 
+                strokeOpacity: 0.8 
+            });
             service = new google.maps.places.PlacesService(map);
         }
 
+        // ... (以下 toggleTracking, startTracking, updatePosition, stopTracking 等邏輯保持不變) ...
+        // 為節省篇幅，請確保將原本 updatePosition 到最後的 script 邏輯原封不動接在後面即可
+        
         function toggleTracking() {
-            if (!isTracking) {
-                startTracking();
-            } else {
-                stopTracking();
-            }
+            if (!isTracking) { startTracking(); } else { stopTracking(); }
         }
 
         function startTracking() {
@@ -79,12 +110,10 @@
             lastMoveTime = new Date();
             walkCoordinates = [];
             detectedStores = [];
-            
-            document.getElementById("mainBtn").innerText = "今日份 City Walk 已完成！";
+            document.getElementById("mainBtn").innerText = "結束今日份可愛散步 ✨";
             document.getElementById("mainBtn").className = "btn-stop";
-            document.getElementById("statusText").innerText = "正在定位您的位置...";
+            document.getElementById("statusText").innerText = "正在找尋您的足跡...";
             document.getElementById("summary").style.display = "none";
-
             if (navigator.geolocation) {
                 watchId = navigator.geolocation.watchPosition(updatePosition, null, { enableHighAccuracy: true });
             }
@@ -93,30 +122,20 @@
         function updatePosition(position) {
             const newPos = { lat: position.coords.latitude, lng: position.coords.longitude };
             const statusEl = document.getElementById("statusText");
-            
             if (lastPos) {
                 const dist = google.maps.geometry.spherical.computeDistanceBetween(
                     new google.maps.LatLng(lastPos.lat, lastPos.lng),
                     new google.maps.LatLng(newPos.lat, newPos.lng)
                 );
-
-                // 判斷移動狀態並更新文字
                 if (dist > 5) {
-                    statusEl.innerText = "開心移動中 🚶‍♂️";
+                    statusEl.innerText = "正在開心移動中 👟";
                     lastMoveTime = new Date();
                 } else {
                     const idleSeconds = (new Date() - lastMoveTime) / 1000;
-                    if (idleSeconds > 10) {
-                        statusEl.innerText = "暫停一下，享受一下這個地方吧！☕";
-                    }
-                    
-                    // 停留超過 5 分鐘執行商店辨識
-                    if (idleSeconds > 300) {
-                        findNearbyStore(newPos);
-                    }
+                    if (idleSeconds > 10) statusEl.innerText = "暫停一下，享受這美景吧 🧁";
+                    if (idleSeconds > 300) findNearbyStore(newPos);
                 }
             }
-
             lastPos = newPos;
             walkCoordinates.push(newPos);
             pathLine.setPath(walkCoordinates);
@@ -129,9 +148,7 @@
             service.nearbySearch(request, (results, status) => {
                 if (status === google.maps.places.PlacesServiceStatus.OK && results[0]) {
                     const storeName = results[0].name;
-                    if (!detectedStores.includes(storeName)) {
-                        detectedStores.push(storeName);
-                    }
+                    if (!detectedStores.includes(storeName)) detectedStores.push(storeName);
                 }
             });
         }
@@ -139,25 +156,23 @@
         function stopTracking() {
             navigator.geolocation.clearWatch(watchId);
             isTracking = false;
-            document.getElementById("mainBtn").innerText = "再開始一場 City Walk";
+            document.getElementById("mainBtn").innerText = "再開始一場 City Walk 🐾";
             document.getElementById("mainBtn").className = "btn-start";
-            document.getElementById("statusText").innerText = "今日探索已結束";
-            
+            document.getElementById("statusText").innerText = "今日份回憶已收錄";
             showFinalReport();
         }
 
         function showFinalReport() {
             const totalDist = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
             const duration = Math.round((new Date() - startTime) / 60000);
-
             const summaryBox = document.getElementById("summary");
             summaryBox.style.display = "block";
             summaryBox.innerHTML = `
-                <strong>📍 今日成果報告</strong><br>
-                ✨ 總里程：${totalDist.toFixed(2)} km<br>
-                ⏱️ 總耗時：${duration} min<br>
-                🏘️ 探訪地點：<br>
-                <div class="stay-list">${detectedStores.length > 0 ? detectedStores.join(' → ') : '漫步中沒有特定停留'}</div>
+                <strong>🎀 散步成果紀錄</strong><br>
+                🍦 總里程：${totalDist.toFixed(2)} km<br>
+                🕒 總耗時：${duration} min<br>
+                🏪 踩點清單：<br>
+                <div class="stay-list">${detectedStores.length > 0 ? detectedStores.join(' → ') : '漫步中，沒有特別停留'}</div>
             `;
         }
     </script>
