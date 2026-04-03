@@ -1,82 +1,171 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
-    <title>City Walk 隨性漫步</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>City Walker - 隨性漫步</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; font-family: "PingFang TC", "STHeiti", sans-serif; background: #F4F1EA; color: #333; }
-        #map { height: 75vh; width: 100%; filter: grayscale(20%); }
-        
-        .status-bar { 
-            padding: 18px; 
-            text-align: center; 
-            font-size: 13px; 
-            color: #666; 
-            background: #F4F1EA;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
+        :root {
+            --bg-warm: #F9F7F2;
+            --text-main: #333333;
+            --text-soft: #7D7D7D;
+            --accent-positive: #8FB9A8;
+            --accent-warm: #FEAD89;
+            --border-light: #EEEEEE;
+            --white: #FFFFFF;
         }
 
-        .controls { 
-            padding: 30px 25px; 
-            text-align: center; 
-            background: #fff; 
-            position: relative; 
-            z-index: 10; 
-            border-radius: 25px 25px 0 0; 
-            margin-top: -25px; 
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.03); 
+        body { 
+            margin: 0; padding: 0;
+            font-family: 'Poly', 'Microsoft JhengHei', sans-serif; 
+            background: var(--bg-warm); 
+            color: var(--text-main);
+            overflow: hidden; 
         }
 
-        .summary { display: none; padding: 20px; background: #FAFAFA; border-radius: 15px; margin-top: 20px; text-align: left; line-height: 2; border: 1px solid #EEE; }
-        
-        button { 
-            padding: 16px 30px; 
-            font-size: 15px; 
-            cursor: pointer; 
-            border: 1px solid #333; 
-            border-radius: 4px; 
-            transition: 0.4s; 
-            font-weight: 500; 
-            width: 100%; 
-            max-width: 280px;
-            letter-spacing: 0.1em;
+        /* 頂部狀態列 */
+        #statusBar {
+            position: fixed;
+            top: 0; width: 100%; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; letter-spacing: 1.5px;
+            background: rgba(249, 247, 242, 0.9);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
         }
-        .btn-start { background: #333; color: #FFF; }
-        .btn-stop { background: #FFF; color: #333; }
+        .status-searching { color: var(--text-soft); }
+        .status-walking { color: var(--accent-positive); }
+        .status-pausing { color: var(--accent-warm); }
+
+        /* 地圖區域 */
+        #map { height: 100vh; width: 100%; z-index: 1; background: #e5e3df; }
+
+        /* Google Maps InfoWindow 樣式優化：隱藏叉叉 */
+        .gm-ui-hover-effect { display: none !important; }
+        .gm-style-iw-c { border-radius: 12px !important; padding: 10px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important; }
+        .gm-style-iw-d { overflow: hidden !important; }
+
+        /* 功能區塊 */
+        #functionPanel {
+            position: fixed;
+            bottom: 90px;
+            left: 50%; transform: translateX(-50%);
+            width: 85%; max-width: 400px;
+            background: var(--white);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            z-index: 500;
+            text-align: center;
+        }
+
+        .btn-base {
+            padding: 16px 24px; font-size: 15px; font-weight: bold;
+            border: none; border-radius: 14px; cursor: pointer;
+            transition: 0.3s; width: 100%; margin: 6px 0;
+            outline: none;
+        }
+        .btn-main { background: var(--text-main); color: var(--white); }
+        .btn-event { background: var(--accent-positive); color: var(--white); }
         
-        .stay-list { margin-top: 12px; color: #888; font-size: 13px; border-left: 2px solid #DDD; padding-left: 10px; }
+        .btn-plus { 
+            width: 56px; height: 56px; border-radius: 50%; 
+            font-size: 24px; background: var(--white); 
+            border: 2px solid var(--text-main); color: var(--text-main);
+            display: inline-flex; align-items: center; justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        /* 底部導覽列 */
+        #navBar {
+            position: fixed;
+            bottom: 0; width: 100%; height: 75px;
+            background: var(--white);
+            display: flex; border-top: 1px solid var(--border-light);
+            z-index: 1000;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            font-size: 11px; color: var(--text-soft);
+            cursor: pointer;
+        }
+        .nav-item.active { color: var(--text-main); font-weight: bold; }
+        .nav-icon { font-size: 22px; margin-bottom: 4px; }
+
+        #summaryBox { display: none; margin-top: 15px; text-align: left; font-size: 14px; border-top: 1px solid var(--border-light); padding-top: 15px; line-height: 1.8; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div class="status-bar" id="statusText">記錄一段隨性的城市漫遊</div>
-    <div id="map"></div>
-    <div class="controls">
-        <button id="mainBtn" class="btn-start" onclick="toggleTracking()">開始記錄行走 ◓</button>
-        <div id="summary" class="summary"></div>
+
+    <div id="statusBar" class="status-searching">等待開啟 City Walk...</div>
+
+    <div id="page-main">
+        <div id="map"></div>
+        <div id="functionPanel">
+            <div id="state-init">
+                <button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button>
+            </div>
+            <div id="state-recording" class="hidden">
+                <button class="btn-base btn-event" onclick="openEventCanvas()">紀錄事件！</button>
+                <button class="btn-base" style="background:#f5f5f5; color:#666;" onclick="endWalk()">結束本次漫遊</button>
+            </div>
+            <div id="state-finished" class="hidden">
+                <button id="btnCreateList" class="btn-plus" onclick="confirmSave()">+</button>
+                <div id="summaryBox"></div>
+                <button class="btn-base btn-main" style="margin-top:15px;" onclick="location.reload()">開始新路線</button>
+            </div>
+        </div>
     </div>
 
+    <div id="page-query" class="hidden" style="padding:100px 20px; text-align:center;">
+        <h3>City Routes Query</h3>
+        <p>探索別人的漫遊路線 (開發中)</p>
+    </div>
+    <div id="page-list" class="hidden" style="padding:100px 20px; text-align:center;">
+        <h3>My Lists</h3>
+        <p>您的專屬漫遊紀錄 (開發中)</p>
+    </div>
+
+    <nav id="navBar">
+        <div class="nav-item active" onclick="switchPage('main')">
+            <span class="nav-icon">📍</span><span>漫遊</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('query')">
+            <span class="nav-icon">🌍</span><span>發現</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('list')">
+            <span class="nav-icon">📜</span><span>紀錄</span>
+        </div>
+    </nav>
+
     <script>
-        let map, marker, pathLine, watchId, service;
+        let map, marker, pathLine, watchId, infoWindow;
         let walkCoordinates = [];
         let isTracking = false;
-        let startTime, lastPos, lastMoveTime;
-        let detectedStores = [];
-        let placedMarkers = []; 
+        let lastPos = null;
+        let lastMoveTime = new Date();
 
-        const indieStyle = [
-            { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#7c7c7c" }] },
-            { "featureType": "landscape", "stylers": [{ "color": "#f1eee8" }] },
-            { "featureType": "road", "stylers": [{ "color": "#ffffff" }] },
-            { "featureType": "water", "stylers": [{ "color": "#d2d2d2" }] },
-            // 隱藏所有不需要的地標
-            { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
-            { "featureType": "transit", "stylers": [{ "visibility": "off" }] }, // 隱藏捷運、公車站
-            { "featureType": "administrative", "stylers": [{ "visibility": "off" }] },
-            // 僅開啟餐廳與咖啡廳標籤
-            { "featureType": "poi.food_and_drink", "stylers": [{ "visibility": "on" }] }
-        ];
+        function switchPage(pageId) {
+            document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.remove('hidden');
+            if(event) event.currentTarget.classList.add('active');
+        }
 
+        // 初始化地圖
         function initMap() {
+            const indieStyle = [
+                { "featureType": "all", "elementType": "labels.text.fill", "stylers": [{ "color": "#7c7c7c" }] },
+                { "featureType": "landscape", "stylers": [{ "color": "#f1eee8" }] },
+                { "featureType": "poi", "stylers": [{ "visibility": "off" }] },
+                { "featureType": "transit", "stylers": [{ "visibility": "off" }] },
+                { "featureType": "poi.food_and_drink", "stylers": [{ "visibility": "on" }] }
+            ];
+
             map = new google.maps.Map(document.getElementById("map"), {
                 zoom: 17,
                 center: { lat: 25.0478, lng: 121.5170 },
@@ -84,7 +173,6 @@
                 styles: indieStyle
             });
 
-            // 將定位點改為「👣」
             marker = new google.maps.Marker({ 
                 map: map, 
                 label: { text: "👣", fontSize: "24px" },
@@ -95,59 +183,60 @@
             pathLine = new google.maps.Polyline({ 
                 map: map, 
                 strokeColor: "#333", 
-                strokeWeight: 3, 
-                strokeOpacity: 0.5 
+                strokeWeight: 5, 
+                strokeOpacity: 0.4 
             });
-            service = new google.maps.places.PlacesService(map);
+
+            infoWindow = new google.maps.InfoWindow({
+                content: '<div style="color:#8FB9A8; font-weight:bold; font-family:sans-serif; padding:2px 5px;">I’m Here! ✨</div>'
+            });
+
+            // 點擊腳印顯示
+            marker.addListener("click", () => {
+                infoWindow.open(map, marker);
+            });
+
+            // 點擊地圖任何地方隱藏 InfoWindow
+            map.addListener("click", () => {
+                infoWindow.close();
+            });
         }
 
-        // 修改：此版本我們暫時移除主動 markNearbyShops，先依賴樣式表顯示 Google 原生商店標籤
-        // 這樣地圖會更乾淨，且不會有 Emoji 和原生標籤重疊的問題
-
-        function toggleTracking() {
-            if (!isTracking) startTracking(); else stopTracking();
-        }
-
-        function startTracking() {
+        function startWalk() {
+            if (!navigator.geolocation) { alert("瀏覽器不支援定位"); return; }
             isTracking = true;
-            startTime = new Date();
-            lastMoveTime = new Date();
-            walkCoordinates = [];
-            detectedStores = [];
+            document.getElementById('state-init').classList.add('hidden');
+            document.getElementById('state-recording').classList.remove('hidden');
+            updateStatus("取得定位狀態中", "searching");
             
-            document.getElementById("mainBtn").innerText = "結束這次漫遊 ◒";
-            document.getElementById("mainBtn").className = "btn-stop";
-            document.getElementById("statusText").innerText = "正在感應您的位置...";
-            document.getElementById("summary").style.display = "none";
-
-            if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition(updatePosition, null, { enableHighAccuracy: true });
-            }
+            watchId = navigator.geolocation.watchPosition(updatePosition, (err) => {
+                updateStatus("請確認定位狀態", "searching");
+            }, { enableHighAccuracy: true });
         }
 
         function updatePosition(position) {
             const newPos = { lat: position.coords.latitude, lng: position.coords.longitude };
-            const statusEl = document.getElementById("statusText");
             
+            // 初次定位顯示
             if (!lastPos) {
-                statusEl.innerText = "已就緒，享受這片風景吧 ☕";
+                updateStatus("已就緒，享受這片風景吧", "pausing");
+                infoWindow.open(map, marker);
+                // 3秒後自動關閉，或點地圖關閉
+                setTimeout(() => infoWindow.close(), 3000);
             }
 
+            // 移動判定
             if (lastPos) {
                 const dist = google.maps.geometry.spherical.computeDistanceBetween(
                     new google.maps.LatLng(lastPos.lat, lastPos.lng),
                     new google.maps.LatLng(newPos.lat, newPos.lng)
                 );
-
                 if (dist > 7) {
-                    statusEl.innerText = "漫步在城市節奏中 —";
+                    updateStatus("漫步中 —", "walking");
                     lastMoveTime = new Date();
-                } else {
-                    const idleSeconds = (new Date() - lastMoveTime) / 1000;
-                    if (idleSeconds > 15) {
-                        statusEl.innerText = "暫停一下，享受這片風景吧 ☕";
-                    }
-                    if (idleSeconds > 300) findNearbyStore(newPos);
+                    infoWindow.close(); // 移動時自動收起標籤
+                } else if ((new Date() - lastMoveTime) / 1000 > 15) {
+                    updateStatus("暫停一下...", "pausing");
                 }
             }
 
@@ -158,39 +247,29 @@
             map.panTo(newPos);
         }
 
-        function findNearbyStore(pos) {
-            const request = { location: pos, radius: '25', type: ['cafe', 'restaurant'] };
-            service.nearbySearch(request, (results, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK && results[0]) {
-                    const storeName = results[0].name;
-                    if (!detectedStores.includes(storeName)) detectedStores.push(storeName);
-                }
-            });
-        }
-
-        function stopTracking() {
+        function endWalk() {
             navigator.geolocation.clearWatch(watchId);
             isTracking = false;
-            document.getElementById("mainBtn").innerText = "開始記錄行走 ◓";
-            document.getElementById("mainBtn").className = "btn-start";
-            document.getElementById("statusText").innerText = "今日足跡已完整";
-            showFinalReport();
+            document.getElementById('state-recording').classList.add('hidden');
+            document.getElementById('state-finished').classList.remove('hidden');
+            document.getElementById('summaryBox').style.display = "block";
+            const dist = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
+            document.getElementById('summaryBox').innerHTML = `
+                <div style="font-size:12px; color:#999; margin-bottom:8px;">「每一秒的漫步，都是對生活的深情告白。」</div>
+                ◍ 總里程：${dist.toFixed(2)} KM
+            `;
+            updateStatus("記錄已暫存", "searching");
         }
 
-        function showFinalReport() {
-            const totalDist = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
-            const duration = Math.round((new Date() - startTime) / 60000);
-            const summaryBox = document.getElementById("summary");
-            summaryBox.style.display = "block";
-            summaryBox.innerHTML = `
-                <strong>〔 漫遊摘要 〕</strong><br>
-                ◍ 總里程：${totalDist.toFixed(2)} KM<br>
-                ◍ 總耗時：${duration} MIN<br>
-                ◍ 經過的地標：<br>
-                <div class="stay-list">${detectedStores.length > 0 ? detectedStores.join(' / ') : '純粹的行走'}</div>
-            `;
+        function updateStatus(text, type) {
+            const el = document.getElementById('statusBar');
+            el.innerText = text;
+            el.className = `status-${type}`;
         }
+
+        function openEventCanvas() { alert("下一階段：開啟事件紀錄畫布"); }
+        function confirmSave() { confirm("是否存入清單？"); }
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=geometry,places" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=Google map	AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=geometry,places" async defer></script>
 </body>
 </html>
