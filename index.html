@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>City Walker - v1.0.7</title>
+    <title>City Walker - v1.0.8</title>
     <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
     <style>
         :root { --bg-warm: #F9F7F2; --text-main: #333333; --text-soft: #7D7D7D; --accent-positive: #8FB9A8; --accent-warm: #FEAD89; --border-light: #EEEEEE; --white: #FFFFFF; --accent-pin: #FFD700; }
@@ -20,17 +20,25 @@
         .map-controls { position: fixed; right: 20px; bottom: 210px; display: flex; flex-direction: column; gap: 12px; z-index: 1200; }
         .map-btn { width: 50px; height: 50px; background: var(--white); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; border: none; }
         #functionPanel { position: fixed; bottom: 95px; left: 50%; transform: translateX(-50%); width: 85%; max-width: 400px; background: var(--white); border-radius: 24px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); z-index: 1500; text-align: center; }
+        
+        /* 紀錄卡片樣式 */
         #recordsContainer { width: 92%; max-width: 450px; margin: 0 auto; }
         .record-card { background: var(--white); margin: 15px 0; padding: 22px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; border-left: 6px solid var(--accent-positive); cursor: pointer; box-sizing: border-box; display: block; }
         .record-card.is-pinned { border-left-color: var(--accent-pin); background: #FFFDF5; }
         .pin-icon { position: absolute; top: 18px; right: 18px; cursor: pointer; font-size: 22px; opacity: 0.3; }
         .delete-btn { position: absolute; bottom: 18px; right: 18px; cursor: pointer; font-size: 18px; opacity: 0.3; }
-        .tag-container { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; min-height: 40px; }
-        .tag-item { font-size: 11px; background: #F0F0F0; padding: 6px 12px; border-radius: 15px; cursor: pointer; color: #666; }
-        .tag-item.selected { background: var(--accent-positive); color: white; }
+        .record-city { font-size: 11px; background: #F2F2F2; padding: 3px 10px; border-radius: 12px; color: var(--text-soft); display: inline-block; margin-bottom: 8px; }
+        .record-name { font-weight: bold; font-size: 17px; margin-bottom: 8px; display: block; color: var(--text-main); }
+        .record-stats { display: flex; gap: 15px; font-size: 12px; color: var(--text-soft); border-top: 1px solid #F9F9F9; padding-top: 10px; }
+
         #navBar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--white); display: flex; border-top: 1px solid var(--border-light); z-index: 2000; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--text-soft); cursor: pointer; }
         .nav-item.active { color: var(--text-main); font-weight: bold; }
+        
+        /* InfoWindow 樣式調整 */
+        .gm-style-iw { padding: 10px !important; border-radius: 12px !important; }
+        .iw-content { font-size: 14px; color: var(--text-main); line-height: 1.5; text-align: center; }
+
         .btn-base { padding: 16px 24px; font-size: 15px; font-weight: bold; border: none; border-radius: 14px; cursor: pointer; width: 100%; outline: none; }
         .btn-main { background: var(--text-main); color: var(--white); }
         .btn-event { background: var(--accent-positive); color: var(--white); }
@@ -72,8 +80,6 @@
         <div class="modal-content">
             <div style="font-weight:bold; font-size:18px; text-align:center;">紀錄這一刻</div>
             <textarea id="eventText" placeholder="寫下心情..." maxlength="100" style="width:100%; height:80px; border:1px solid #EEE; padding:12px; border-radius:12px; margin:15px 0; box-sizing:border-box; outline:none; resize:none;"></textarea>
-            <div style="font-size: 11px; color: #999; margin-top: 5px;">📍 附近地標：</div>
-            <div class="tag-container" id="poiTags"></div>
             <div class="icon-selector">
                 <div class="icon-item selected" onclick="selectIcon(this, '📸')">📸</div>
                 <div class="icon-item" onclick="selectIcon(this, '☕')">☕</div>
@@ -128,19 +134,16 @@
     </nav>
 
     <script>
-        let map, marker, pathLine, watchId, geocoder, placesService;
+        let map, marker, pathLine, watchId, geocoder, infoWindow;
         let walkPath = [], eventsData = [], totalDistance = 0, startTime, durationStr, cityName = "未知城市", selectedIcon = '📸';
-        let lastMoveTime = new Date(), historyMarkers = [], currentSelectedPoi = "";
+        let lastMoveTime = new Date(), historyMarkers = [];
 
         function initMap() {
             map = new google.maps.Map(document.getElementById("map"), { zoom: 17, center: { lat: 25.0478, lng: 121.5170 }, disableDefaultUI: true, styles: [{ "featureType": "poi", "stylers": [{ "visibility": "off" }] }] });
             marker = new google.maps.Marker({ map, label: { text: "👣", fontSize: "30px" }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999 });
             pathLine = new google.maps.Polyline({ map, strokeColor: "#333", strokeWeight: 6, strokeOpacity: 0.4 });
             geocoder = new google.maps.Geocoder();
-            try { 
-                // 初始化 Places Service
-                placesService = new google.maps.places.PlacesService(map); 
-            } catch(e) { console.error("Places API 載入失敗", e); }
+            infoWindow = new google.maps.InfoWindow();
         }
 
         function focusOnMe() { if(marker && marker.getPosition()) map.panTo(marker.getPosition()); }
@@ -174,62 +177,35 @@
             }, 5000);
         }
 
-        function openEventCanvas() { 
-            document.getElementById('eventModal').style.display = 'flex'; 
-            fetchNearbyPOIs(); 
-        }
+        function openEventCanvas() { document.getElementById('eventModal').style.display = 'flex'; }
 
-        // --- 核心修復：非同步安全抓取地標 ---
-        async function fetchNearbyPOIs() {
-            const tagContainer = document.getElementById('poiTags');
-            tagContainer.innerHTML = "正在連線 Google 地標...";
-            currentSelectedPoi = "";
+        // --- 新增：建立地圖 Marker 並綁定點擊事件 ---
+        function createEventMarker(pos, icon, text) {
+            const m = new google.maps.Marker({
+                position: pos,
+                map: map,
+                label: { text: icon, fontSize: "26px" },
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }
+            });
 
-            if (!placesService) {
-                tagContainer.innerHTML = "<span style='color:red;'>地標功能暫不可用</span>";
-                return;
-            }
+            m.addListener("click", () => {
+                infoWindow.setContent(`<div class="iw-content"><h3>${icon}</h3><p>${text || "這一刻沒有留下文字..."}</p></div>`);
+                infoWindow.open(map, m);
+            });
 
-            const request = {
-                location: marker.getPosition(),
-                radius: 200,
-                type: ['point_of_interest', 'establishment', 'food', 'park', 'store']
-            };
-
-            // 使用安全回調處理
-            try {
-                placesService.nearbySearch(request, (results, status) => {
-                    if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-                        tagContainer.innerHTML = "";
-                        results.slice(0, 5).forEach(place => {
-                            const tag = document.createElement('div');
-                            tag.className = 'tag-item';
-                            tag.innerText = `#${place.name}`;
-                            tag.onclick = function() {
-                                document.querySelectorAll('.tag-item').forEach(t => t.classList.remove('selected'));
-                                this.classList.add('selected');
-                                currentSelectedPoi = place.name;
-                            };
-                            tagContainer.appendChild(tag);
-                        });
-                    } else {
-                        let err = (status === "REQUEST_DENIED") ? "❌ 權限遭拒：請檢查帳單" : `⚠️ 無地標 (${status})`;
-                        tagContainer.innerHTML = `<span style='color:#CC6666; font-size:11px;'>${err}</span>`;
-                    }
-                });
-            } catch (e) {
-                tagContainer.innerHTML = "地標抓取發生錯誤";
-                console.error(e);
-            }
+            return m;
         }
 
         function saveEvent() {
             const text = document.getElementById('eventText').value;
-            const fullText = currentSelectedPoi ? `【${currentSelectedPoi}】${text}` : text;
             const pos = marker.getPosition().toJSON();
-            eventsData.push({ text: fullText, icon: selectedIcon, pos });
-            new google.maps.Marker({ position: pos, map, label: { text: selectedIcon, fontSize: "26px" }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 } });
-            document.getElementById('eventText').value = ""; document.getElementById('eventModal').style.display = 'none';
+            eventsData.push({ text, icon: selectedIcon, pos });
+            
+            // 使用新函式建立 Marker
+            createEventMarker(pos, selectedIcon, text);
+
+            document.getElementById('eventText').value = ""; 
+            document.getElementById('eventModal').style.display = 'none';
         }
 
         function endWalk() {
@@ -284,9 +260,11 @@
             switchPage('main'); pathLine.setPath([]); historyMarkers.forEach(m => m.setMap(null)); historyMarkers = [];
             const pts = data.path.map(p => ({lat: p.lat, lng: p.lng}));
             pathLine.setPath(pts); pathLine.setOptions({ strokeColor: "#FEAD89", strokeOpacity: 0.8, strokeWeight: 8 });
+            
+            // 重繪舊事件並綁定點擊彈窗
             if(data.events) {
                 data.events.forEach(ev => {
-                    const m = new google.maps.Marker({ position: ev.pos, map, label: { text: ev.icon, fontSize: "26px" }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 } });
+                    const m = createEventMarker(ev.pos, ev.icon, ev.text);
                     historyMarkers.push(m);
                 });
             }
@@ -312,7 +290,6 @@
         function openSaveModal() { document.getElementById('saveModal').style.display = 'flex'; }
 
         window.onload = initMap;
-        // 掛載全域函數
         window.focusOnMe = focusOnMe;
         window.focusOnRouteStart = focusOnRouteStart;
         window.openEventCanvas = openEventCanvas;
@@ -322,6 +299,6 @@
         window.executeCloudSave = executeCloudSave;
         window.switchPage = switchPage;
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=geometry,places" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=geometry" async defer></script>
 </body>
 </html>
