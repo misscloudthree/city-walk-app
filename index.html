@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>City Walker - v1.0.2 修正版</title>
+    <title>City Walker - v1.0.3</title>
     <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
     <style>
         :root { --bg-warm: #F9F7F2; --text-main: #333333; --text-soft: #7D7D7D; --accent-positive: #8FB9A8; --accent-warm: #FEAD89; --border-light: #EEEEEE; --white: #FFFFFF; --accent-pin: #FFD700; }
@@ -11,21 +11,25 @@
         .hidden { display: none !important; }
         .page { height: 100vh; width: 100%; position: absolute; top: 0; left: 0; overflow-y: auto; padding-bottom: 120px; box-sizing: border-box; z-index: 10; }
         
-        #page-main { z-index: 20; overflow: hidden; }
-        #page-list { z-index: 20; background: var(--bg-warm); }
+        /* 狀態列文字邏輯 */
+        #statusBar { position: fixed; top: 0; width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 13px; background: rgba(249, 247, 242, 0.95); backdrop-filter: blur(5px); z-index: 1000; border-bottom: 1px solid var(--border-light); transition: 0.3s; }
+        .status-default { color: var(--text-soft); letter-spacing: 2px; }
+        .status-walking { color: var(--accent-positive); font-weight: bold; }
+        .status-pausing { color: var(--accent-warm); font-style: italic; }
 
-        #statusBar { position: fixed; top: 0; width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 13px; background: rgba(249, 247, 242, 0.9); backdrop-filter: blur(5px); z-index: 1000; color: var(--text-soft); border-bottom: 1px solid var(--border-light); }
         #map { height: 100vh; width: 100%; background: #e5e3df; }
-        
         #functionPanel { position: fixed; bottom: 95px; left: 50%; transform: translateX(-50%); width: 85%; max-width: 400px; background: var(--white); border-radius: 24px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); z-index: 1500; text-align: center; }
 
-        /* 紀錄卡片樣式 */
-        .record-card { background: var(--white); margin: 15px; padding: 20px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative; border-left: 5px solid var(--accent-positive); cursor: pointer; }
-        .record-card.is-pinned { border-left-color: var(--accent-pin); background: #FFFDF5; }
-        .pin-icon { position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 22px; opacity: 0.3; }
-        .delete-btn { position: absolute; bottom: 15px; right: 15px; cursor: pointer; font-size: 20px; opacity: 0.3; }
-        .record-city { font-size: 11px; background: #F0F0F0; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-bottom: 5px; }
-        .record-name { font-weight: bold; font-size: 16px; margin-bottom: 10px; display: block; }
+        /* Summary Box 樣式 */
+        #summaryBox { background: #FCFAF7; border-radius: 16px; padding: 15px; margin: 15px 0; text-align: left; font-size: 14px; line-height: 1.8; border: 1px dashed var(--accent-positive); }
+
+        /* 彈窗樣式 */
+        #eventModal, #saveModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-content { background: var(--white); width: 90%; max-width: 380px; border-radius: 28px; padding: 25px; box-sizing: border-box; }
+        
+        .icon-selector { display: flex; justify-content: space-around; margin: 15px 0; font-size: 28px; }
+        .icon-item { cursor: pointer; padding: 8px; border-radius: 12px; border: 2px solid transparent; }
+        .icon-item.selected { background: var(--bg-warm); border-color: var(--accent-positive); }
 
         #navBar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--white); display: flex; border-top: 1px solid var(--border-light); z-index: 2000; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--text-soft); }
@@ -34,16 +38,6 @@
         .btn-base { padding: 16px 24px; font-size: 15px; font-weight: bold; border: none; border-radius: 14px; cursor: pointer; width: 100%; outline: none; }
         .btn-main { background: var(--text-main); color: var(--white); }
         .btn-event { background: var(--accent-positive); color: var(--white); }
-        .btn-base:disabled { background: #CCC; cursor: not-allowed; }
-
-        /* 彈窗樣式加固 */
-        #eventModal, #saveModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 3000; }
-        .modal-content { background: var(--white); width: 90%; max-width: 380px; border-radius: 28px; padding: 25px; box-sizing: border-box; }
-        
-        /* Icon 選擇器 */
-        .icon-selector { display: flex; justify-content: space-around; margin: 15px 0; font-size: 28px; }
-        .icon-item { cursor: pointer; padding: 8px; border-radius: 12px; border: 2px solid transparent; line-height: 1; }
-        .icon-item.selected { background: var(--bg-warm); border-color: var(--accent-positive); }
     </style>
 
     <script type="module">
@@ -66,7 +60,7 @@
 </head>
 <body>
 
-    <div id="statusBar">City Walker</div>
+    <div id="statusBar" class="status-default">City Walker</div>
 
     <div id="eventModal">
         <div class="modal-content">
@@ -90,7 +84,6 @@
         <div class="modal-content">
             <div style="font-weight:bold; font-size:18px; text-align:center;">保存這趟漫遊</div>
             <input type="text" id="routeName" placeholder="為這條路線命名..." style="width:100%; border:1px solid #EEE; padding:12px; border-radius:12px; margin:15px 0; box-sizing:border-box;">
-            <div id="saveInfo" style="font-size: 12px; color: var(--text-soft); margin-bottom: 15px; line-height:1.5;"></div>
             <div style="display:flex; gap:12px;">
                 <button class="btn-base" style="background:#EEE; color:#666;" onclick="document.getElementById('saveModal').style.display='none'">取消</button>
                 <button class="btn-base btn-main" id="btnConfirmSave" onclick="executeCloudSave()">確認加入</button>
@@ -109,13 +102,13 @@
                 <button class="btn-base" style="background:#f5f5f5; color:#666; margin-top:10px;" onclick="endWalk()">結束本次漫遊</button>
             </div>
             <div id="state-finished" class="hidden">
-                <button class="btn-base btn-event" onclick="openSaveModal()">加入我的路線清單</button>
+                <div id="summaryBox"></div> <button class="btn-base btn-event" onclick="openSaveModal()">加入我的路線清單</button>
                 <button class="btn-base btn-main" style="margin-top:10px;" onclick="location.reload()">重新開始</button>
             </div>
         </div>
     </div>
 
-    <div id="page-list" class="page hidden" style="padding-top: 60px;">
+    <div id="page-list" class="page hidden" style="padding-top: 60px; background: var(--bg-warm);">
         <h2 style="text-align: center; letter-spacing: 2px; margin-bottom:20px;">MY JOURNEYS</h2>
         <div id="recordsContainer"></div>
     </div>
@@ -128,7 +121,7 @@
     <script>
         let map, marker, pathLine, watchId, geocoder;
         let walkPath = [], eventsData = [], totalDistance = 0, startTime, durationStr, cityName = "未知城市", selectedIcon = '📸';
-        let historyMarkers = [];
+        let lastMoveTime = new Date();
 
         function initMap() {
             map = new google.maps.Map(document.getElementById("map"), { 
@@ -136,7 +129,6 @@
                 disableDefaultUI: true, 
                 styles: [{ "featureType": "poi", "stylers": [{ "visibility": "off" }] }] 
             });
-            // 👣 放大 1.2 倍
             marker = new google.maps.Marker({ 
                 map, label: { text: "👣", fontSize: "30px" }, 
                 icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999 
@@ -145,33 +137,95 @@
             geocoder = new google.maps.Geocoder();
         }
 
+        // --- (1) 狀態更新邏輯 ---
+        function updateStatus(text, type) {
+            const el = document.getElementById('statusBar');
+            el.innerText = text;
+            el.className = `status-${type}`;
+        }
+
         function startWalk() {
             startTime = new Date();
-            pathLine.setPath([]); historyMarkers.forEach(m => m.setMap(null));
-            walkPath = []; eventsData = [];
+            lastMoveTime = new Date();
+            updateStatus("探索城市中", "walking");
+            
             document.getElementById('state-init').classList.add('hidden');
             document.getElementById('state-recording').classList.remove('hidden');
+            
             watchId = navigator.geolocation.watchPosition((pos) => {
                 const p = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                walkPath.push(p); pathLine.setPath(walkPath); marker.setPosition(p); map.panTo(p);
+                
+                // 判斷移動
+                if (walkPath.length > 0) {
+                    const lastP = walkPath[walkPath.length - 1];
+                    const dist = google.maps.geometry.spherical.computeDistanceBetween(
+                        new google.maps.LatLng(lastP.lat, lastP.lng),
+                        new google.maps.LatLng(p.lat, p.lng)
+                    );
+                    if (dist > 5) {
+                        updateStatus("探索城市中", "walking");
+                        lastMoveTime = new Date();
+                    }
+                }
+
+                walkPath.push(p);
+                pathLine.setPath(walkPath);
+                marker.setPosition(p);
+                map.panTo(p);
             }, null, { enableHighAccuracy: true });
+
+            // 暫停偵測定時器
+            setInterval(() => {
+                const now = new Date();
+                if (document.getElementById('state-recording').classList.contains('hidden') === false) {
+                    if ((now - lastMoveTime) > 15000) { // 15秒沒動
+                        updateStatus("暫停一下，休息是為了走更長遠的路", "pausing");
+                    }
+                }
+            }, 5000);
         }
 
-        // --- 事件紀錄邏輯 ---
-        function openEventCanvas() { 
-            document.getElementById('eventModal').style.display = 'flex'; 
+        function endWalk() {
+            navigator.geolocation.clearWatch(watchId);
+            updateStatus("City Walker", "default");
+            
+            document.getElementById('state-recording').classList.add('hidden');
+            document.getElementById('state-finished').classList.remove('hidden');
+            
+            // --- (2) 重新找回 Summary 邏輯 ---
+            totalDistance = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
+            const diff = Math.abs(new Date() - startTime);
+            durationStr = Math.floor(diff / 60000) + " 分鐘";
+
+            // 抓城市
+            if(walkPath.length > 0) {
+                geocoder.geocode({ location: walkPath[walkPath.length-1] }, (results, status) => {
+                    if (status === "OK" && results[0]) {
+                        const cityObj = results[0].address_components.find(c => c.types.includes("administrative_area_level_1") || c.types.includes("locality"));
+                        cityName = cityObj ? cityObj.long_name : "未知城市";
+                        
+                        document.getElementById('summaryBox').innerHTML = `
+                            <strong>漫遊結算</strong><br>
+                            🏙️ 城市：${cityName}<br>
+                            👣 里程：${totalDistance.toFixed(2)} KM<br>
+                            ⏱️ 時長：${durationStr}<br>
+                            📸 事件：${eventsData.length} 個
+                        `;
+                    }
+                });
+            }
         }
 
+        // --- 事件與儲存邏輯 ---
+        function openEventCanvas() { document.getElementById('eventModal').style.display = 'flex'; }
         function selectIcon(el, icon) {
             document.querySelectorAll('.icon-item').forEach(i => i.classList.remove('selected'));
             el.classList.add('selected'); selectedIcon = icon;
         }
-
         function saveEvent() {
             const text = document.getElementById('eventText').value;
             const pos = marker.getPosition().toJSON();
             eventsData.push({ text, icon: selectedIcon, pos });
-            // 地圖標記放大 1.2 倍
             new google.maps.Marker({ 
                 position: pos, map, 
                 label: { text: selectedIcon, fontSize: "26px" }, 
@@ -180,31 +234,8 @@
             document.getElementById('eventText').value = "";
             document.getElementById('eventModal').style.display = 'none';
         }
-
-        function endWalk() {
-            navigator.geolocation.clearWatch(watchId);
-            document.getElementById('state-recording').classList.add('hidden');
-            document.getElementById('state-finished').classList.remove('hidden');
-            totalDistance = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
-            durationStr = Math.floor(Math.abs(new Date() - startTime) / 60000) + " 分鐘";
-        }
-
-        async function openSaveModal() {
-            document.getElementById('saveModal').style.display = 'flex';
-            if(walkPath.length > 0) {
-                geocoder.geocode({ location: walkPath[walkPath.length-1] }, (results, status) => {
-                    if (status === "OK" && results[0]) {
-                        const cityObj = results[0].address_components.find(c => c.types.includes("administrative_area_level_1") || c.types.includes("locality"));
-                        cityName = cityObj ? cityObj.long_name : "未知城市";
-                        document.getElementById('saveInfo').innerHTML = `🏙️ 城市：${cityName}<br>👣 里程：${totalDistance.toFixed(2)} KM<br>⏱️ 時長：${durationStr}`;
-                    }
-                });
-            }
-        }
-
+        function openSaveModal() { document.getElementById('saveModal').style.display = 'flex'; }
         async function executeCloudSave() {
-            const btn = document.getElementById('btnConfirmSave');
-            btn.disabled = true;
             const name = document.getElementById('routeName').value || "未命名漫遊";
             try {
                 await window.api.addDoc(window.api.collection(window.db, "walk_records"), { 
@@ -212,56 +243,7 @@
                     path: walkPath, events: eventsData, isPinned: false, createdAt: window.api.serverTimestamp() 
                 });
                 location.reload();
-            } catch (e) { alert("儲存失敗"); btn.disabled = false; }
-        }
-
-        async function fetchRecords() {
-            const container = document.getElementById('recordsContainer');
-            container.innerHTML = '<p style="text-align:center; padding:20px;">載入中...</p>';
-            try {
-                const snap = await window.api.getDocs(window.api.collection(window.db, "walk_records"));
-                window.currentDocs = [];
-                snap.forEach(d => window.currentDocs.push({ id: d.id, ...d.data() }));
-                window.currentDocs.sort((a, b) => (b.isPinned - a.isPinned) || (b.createdAt?.seconds - a.createdAt?.seconds));
-                container.innerHTML = "";
-                window.currentDocs.forEach(data => {
-                    const card = document.createElement('div');
-                    card.className = `record-card ${data.isPinned ? 'is-pinned' : ''}`;
-                    card.onclick = () => loadSavedRoute(data.id);
-                    card.innerHTML = `<div class="pin-icon" onclick="togglePin('${data.id}', ${data.isPinned})">📌</div><div class="delete-btn" onclick="deleteRecord('${data.id}')">🗑️</div><div class="record-city">${data.city}</div><span class="record-name">${data.name}</span><div style="font-size:12px; color:#777;">👣 ${data.distance.toFixed(2)} km | ⏱️ ${data.duration}</div>`;
-                    container.appendChild(card);
-                });
-            } catch (e) { console.error(e); }
-        }
-
-        function loadSavedRoute(id) {
-            const data = window.currentDocs.find(d => d.id === id);
-            if(!data) return;
-            switchPage('main');
-            pathLine.setPath([]); historyMarkers.forEach(m => m.setMap(null)); historyMarkers = [];
-            const pts = data.path.map(p => ({lat: p.lat, lng: p.lng}));
-            pathLine.setPath(pts);
-            pathLine.setOptions({ strokeColor: "#FEAD89", strokeOpacity: 0.8, strokeWeight: 8 });
-            if(data.events) {
-                data.events.forEach(ev => {
-                    const m = new google.maps.Marker({ position: ev.pos, map, label: { text: ev.icon, fontSize: "26px" }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 } });
-                    historyMarkers.push(m);
-                });
-            }
-            map.panTo(pts[0]);
-        }
-
-        async function deleteRecord(id) {
-            event.stopPropagation();
-            if(!confirm("確定要刪除嗎？")) return;
-            await window.api.deleteDoc(window.api.doc(window.db, "walk_records", id));
-            fetchRecords();
-        }
-
-        async function togglePin(id, status) {
-            event.stopPropagation();
-            await window.api.updateDoc(window.api.doc(window.db, "walk_records", id), { isPinned: !status });
-            fetchRecords();
+            } catch (e) { alert("儲存失敗"); }
         }
 
         function switchPage(p) {
@@ -272,11 +254,29 @@
             if(p === 'list') fetchRecords();
         }
 
+        async function fetchRecords() {
+            const container = document.getElementById('recordsContainer');
+            container.innerHTML = '<p style="text-align:center; padding:20px;">載入中...</p>';
+            try {
+                const snap = await window.api.getDocs(window.api.collection(window.db, "walk_records"));
+                let docs = []; snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+                docs.sort((a, b) => (b.isPinned - a.isPinned) || (b.createdAt?.seconds - a.createdAt?.seconds));
+                container.innerHTML = "";
+                docs.forEach(data => {
+                    const card = document.createElement('div');
+                    card.className = `record-card ${data.isPinned ? 'is-pinned' : ''}`;
+                    card.innerHTML = `<div class="record-name">${data.name}</div><div style="font-size:12px; color:#777;">🏙️ ${data.city} | 👣 ${data.distance.toFixed(2)} km</div>`;
+                    container.appendChild(card);
+                });
+            } catch (e) { console.error(e); }
+        }
+
         window.onload = initMap;
-        // 全域掛載以便 HTML 呼叫
         window.openEventCanvas = openEventCanvas;
         window.saveEvent = saveEvent;
         window.selectIcon = selectIcon;
+        window.openSaveModal = openSaveModal;
+        window.executeCloudSave = executeCloudSave;
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=geometry" async defer></script>
 </body>
