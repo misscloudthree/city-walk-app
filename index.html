@@ -188,23 +188,57 @@
             }
         }
 
-        async function fetchRecords() {
-            const container = document.getElementById('recordsContainer');
-            container.innerHTML = '<p style="text-align:center; padding:20px;">載入中...</p>';
-            try {
-                const q = window.api.query(window.api.collection(window.db, "walk_records"), window.api.orderBy("createdAt", "desc"));
-                const snap = await window.api.getDocs(q);
-                let docs = []; snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
-                docs.sort((a, b) => (b.isPinned - a.isPinned) || a.city.localeCompare(b.city));
-                container.innerHTML = "";
-                docs.forEach(data => {
-                    const card = document.createElement('div');
-                    card.className = `record-card ${data.isPinned ? 'is-pinned' : ''}`;
-                    card.innerHTML = `<div class="pin-icon" onclick="togglePin('${data.id}', ${data.isPinned})">📌</div><div class="record-city">${data.city}</div><div class="record-name">${data.name}</div><div class="record-stats"><span>👣 ${data.distance.toFixed(2)} km</span><span>⏱️ ${data.duration}</span></div>`;
-                    container.appendChild(card);
-                });
-            } catch (e) { console.error(e); }
+async function fetchRecords() {
+    const container = document.getElementById('recordsContainer');
+    container.innerHTML = '<p style="text-align:center; padding:20px;">載入中...</p>';
+    
+    try {
+        // 核心修正：移除 orderBy，使用最基礎的抓取，繞過索引限制
+        const q = window.api.collection(window.db, "walk_records");
+        const snap = await window.api.getDocs(q);
+        
+        if (snap.empty) {
+            container.innerHTML = '<p style="text-align:center; padding:20px;">尚無紀錄，開始一趟漫遊吧！</p>';
+            return;
         }
+
+        let docs = []; 
+        snap.forEach(d => {
+            const data = d.data();
+            docs.push({ id: d.id, ...data });
+        });
+        
+        // --- 前端排序邏輯 ---
+        // 1. 優先排釘選 (isPinned)
+        // 2. 其次排時間 (createdAt) 從新到舊
+        docs.sort((a, b) => {
+            if (b.isPinned !== a.isPinned) return b.isPinned - a.isPinned;
+            const timeA = a.createdAt ? a.createdAt.seconds : 0;
+            const timeB = b.createdAt ? b.createdAt.seconds : 0;
+            return timeB - timeA;
+        });
+
+        container.innerHTML = "";
+        docs.forEach(data => {
+            const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleDateString() : "未知日期";
+            const card = document.createElement('div');
+            card.className = `record-card ${data.isPinned ? 'is-pinned' : ''}`;
+            card.innerHTML = `
+                <div class="pin-icon" onclick="togglePin('${data.id}', ${data.isPinned})">📌</div>
+                <div class="record-city">${data.city || '未知城市'}</div>
+                <div class="record-name">${data.name || '未命名漫遊'}</div>
+                <div class="record-date">${dateStr}</div>
+                <div class="record-stats">
+                    <span>👣 ${(data.distance || 0).toFixed(2)} km</span>
+                    <span>⏱️ ${data.duration || '--'}</span>
+                </div>`;
+            container.appendChild(card);
+        });
+    } catch (e) { 
+        console.error("抓取失敗原因：", e);
+        container.innerHTML = `<p style="color:red; text-align:center;">載入失敗，請檢查網路</p>`;
+    }
+}
 
         function switchPage(p) {
             document.querySelectorAll('.page').forEach(page => page.classList.add('hidden'));
