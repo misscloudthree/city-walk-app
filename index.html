@@ -139,10 +139,21 @@
         let lastMoveTime = new Date(), historyMarkers = [];
 
         function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), { zoom: 17, center: { lat: 25.0478, lng: 121.5170 }, disableDefaultUI: true, styles: [{ "featureType": "poi", "stylers": [{ "visibility": "off" }] }] });
-            marker = new google.maps.Marker({ map, label: { text: "👣", fontSize: "30px" }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999 });
-            pathLine = new google.maps.Polyline({ map, strokeColor: "#333", strokeWeight: 6, strokeOpacity: 0.4 });
+            map = new google.maps.Map(document.getElementById("map"), { 
+                zoom: 17, 
+                center: { lat: 25.0478, lng: 121.5170 }, 
+                disableDefaultUI: true, 
+                styles: [{ "featureType": "poi", "stylers": [{ "visibility": "off" }] }] 
+            });
+            marker = new google.maps.Marker({ 
+                map, label: { text: "👣", fontSize: "30px" }, 
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999 
+            });
+            pathLine = new google.maps.Polyline({ 
+                map, strokeColor: "#333", strokeWeight: 6, strokeOpacity: 0.4 
+            });
             geocoder = new google.maps.Geocoder();
+            // 核心修復：初始化全域彈窗物件
             infoWindow = new google.maps.InfoWindow();
         }
 
@@ -256,18 +267,29 @@
         }
 
         function loadSavedRoute(id) {
-            const data = window.currentDocs.find(d => d.id === id); if(!data) return;
-            switchPage('main'); pathLine.setPath([]); historyMarkers.forEach(m => m.setMap(null)); historyMarkers = [];
-            const pts = data.path.map(p => ({lat: p.lat, lng: p.lng}));
-            pathLine.setPath(pts); pathLine.setOptions({ strokeColor: "#FEAD89", strokeOpacity: 0.8, strokeWeight: 8 });
+            const data = window.currentDocs.find(d => d.id === id); 
+            if(!data) return;
+
+            switchPage('main');
             
-            // 重繪舊事件並綁定點擊彈窗
-            if(data.events) {
+            // 1. 清除地圖上舊的標記與路線
+            if (pathLine) pathLine.setPath([]);
+            historyMarkers.forEach(m => m.setMap(null));
+            historyMarkers = [];
+
+            // 2. 繪製歷史路徑
+            const pts = data.path.map(p => ({lat: p.lat, lng: p.lng}));
+            pathLine.setPath(pts);
+            pathLine.setOptions({ strokeColor: "#FEAD89", strokeOpacity: 0.8, strokeWeight: 8 });
+
+            // 3. 核心修復：重繪舊事件並呼叫 createEventMarker 綁定彈窗
+            if(data.events && data.events.length > 0) {
                 data.events.forEach(ev => {
                     const m = createEventMarker(ev.pos, ev.icon, ev.text);
                     historyMarkers.push(m);
                 });
             }
+            
             map.panTo(pts[0]);
             const btn = document.getElementById('btnFocusRoute');
             if(btn) btn.classList.remove('hidden');
