@@ -3,37 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>City Walker - 回憶重現版</title>
+    <title>City Walker - v1.0.1 穩定版</title>
     <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
     <style>
         :root { --bg-warm: #F9F7F2; --text-main: #333333; --text-soft: #7D7D7D; --accent-positive: #8FB9A8; --accent-warm: #FEAD89; --border-light: #EEEEEE; --white: #FFFFFF; --accent-pin: #FFD700; }
         body { margin: 0; padding: 0; font-family: 'Poly', 'Microsoft JhengHei', sans-serif; background: var(--bg-warm); color: var(--text-main); overflow: hidden; }
         .hidden { display: none !important; }
-        .page { height: 100vh; width: 100%; position: absolute; top: 0; left: 0; overflow-y: auto; padding-bottom: 120px; box-sizing: border-box; }
+        .page { height: 100vh; width: 100%; position: absolute; top: 0; left: 0; overflow-y: auto; padding-bottom: 120px; box-sizing: border-box; z-index: 10; }
+        
+        /* 頁面層級修正 */
+        #page-main { z-index: 20; overflow: hidden; }
+        #page-list { z-index: 20; background: var(--bg-warm); }
+
         #statusBar { position: fixed; top: 0; width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 13px; background: rgba(249, 247, 242, 0.9); backdrop-filter: blur(5px); z-index: 1000; color: var(--text-soft); border-bottom: 1px solid var(--border-light); }
         #map { height: 100vh; width: 100%; background: #e5e3df; }
-        #functionPanel { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%); width: 85%; max-width: 400px; background: var(--white); border-radius: 24px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); z-index: 500; text-align: center; }
-
-        /* 彈窗樣式 */
-        #eventModal, #saveModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 3000; }
-        .modal-content { background: var(--white); width: 90%; max-width: 380px; border-radius: 28px; padding: 25px; box-sizing: border-box; }
-        textarea, input[type="text"] { width: 100%; border: 1px solid var(--border-light); border-radius: 14px; padding: 15px; font-size: 15px; box-sizing: border-box; background: #FAFAFA; outline: none; margin: 10px 0; }
         
-        /* 紀錄卡片與按鈕 */
+        /* 選單面板加固 */
+        #functionPanel { 
+            position: fixed; bottom: 95px; left: 50%; transform: translateX(-50%); 
+            width: 85%; max-width: 400px; background: var(--white); 
+            border-radius: 24px; padding: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+            z-index: 1500; text-align: center; display: block !important;
+        }
+
+        /* 紀錄卡片 */
         .record-card { background: var(--white); margin: 15px; padding: 20px; border-radius: 18px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative; border-left: 5px solid var(--accent-positive); cursor: pointer; }
         .record-card.is-pinned { border-left-color: var(--accent-pin); background: #FFFDF5; }
-        .pin-icon { position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 20px; opacity: 0.3; }
-        .delete-btn { position: absolute; bottom: 15px; right: 15px; cursor: pointer; font-size: 18px; opacity: 0.4; padding: 5px; }
-        .delete-btn:hover { opacity: 1; }
+        .pin-icon { position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 22px; opacity: 0.3; }
+        .delete-btn { position: absolute; bottom: 15px; right: 15px; cursor: pointer; font-size: 20px; opacity: 0.3; padding: 5px; }
         .record-city { font-size: 11px; background: #F0F0F0; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-bottom: 5px; }
-        .record-name { font-weight: bold; font-size: 16px; margin-bottom: 10px; }
+        .record-name { font-weight: bold; font-size: 16px; margin-bottom: 10px; display: block; }
 
-        #navBar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--white); display: flex; border-top: 1px solid var(--border-light); z-index: 1000; }
+        #navBar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--white); display: flex; border-top: 1px solid var(--border-light); z-index: 2000; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--text-soft); }
         .nav-item.active { color: var(--text-main); font-weight: bold; }
-        .btn-base { padding: 16px 24px; font-size: 15px; font-weight: bold; border: none; border-radius: 14px; cursor: pointer; width: 100%; }
+
+        .btn-base { padding: 16px 24px; font-size: 15px; font-weight: bold; border: none; border-radius: 14px; cursor: pointer; width: 100%; outline: none; }
         .btn-main { background: var(--text-main); color: var(--white); }
         .btn-event { background: var(--accent-positive); color: var(--white); }
+        .btn-base:disabled { background: #CCC; cursor: not-allowed; }
+
+        /* 彈窗樣式加固 */
+        #eventModal, #saveModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 3000; }
+        .modal-content { background: var(--white); width: 90%; max-width: 380px; border-radius: 28px; padding: 25px; box-sizing: border-box; }
     </style>
 
     <script type="module">
@@ -52,7 +65,6 @@
         const db = getFirestore(app);
         window.db = db;
         window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, query, orderBy, serverTimestamp };
-        console.log("Firebase 系統初始化成功");
     </script>
 </head>
 <body>
@@ -62,11 +74,11 @@
     <div id="saveModal">
         <div class="modal-content">
             <div style="font-weight:bold; font-size:18px; text-align:center;">保存這趟漫遊</div>
-            <input type="text" id="routeName" placeholder="為這條路線命名...">
-            <div id="saveInfo" style="font-size: 12px; color: var(--text-soft); margin: 15px 0;">正在確認地理數據...</div>
+            <input type="text" id="routeName" placeholder="為這條路線命名..." style="width:100%; border:1px solid #EEE; padding:12px; border-radius:12px; margin:15px 0; box-sizing:border-box;">
+            <div id="saveInfo" style="font-size: 12px; color: var(--text-soft); margin-bottom: 15px; line-height:1.5;"></div>
             <div style="display:flex; gap:12px;">
-                <button class="btn-base" style="background:#EEE;" onclick="document.getElementById('saveModal').style.display='none'">取消</button>
-                <button class="btn-base btn-main" onclick="executeCloudSave()">加入我的清單</button>
+                <button class="btn-base" style="background:#EEE; color:#666;" onclick="document.getElementById('saveModal').style.display='none'">取消</button>
+                <button class="btn-base btn-main" id="btnConfirmSave" onclick="executeCloudSave()">確認加入</button>
             </div>
         </div>
     </div>
@@ -88,8 +100,8 @@
         </div>
     </div>
 
-    <div id="page-list" class="page hidden" style="background: var(--bg-warm); padding-top: 60px;">
-        <h2 style="text-align: center; letter-spacing: 2px;">MY JOURNEYS</h2>
+    <div id="page-list" class="page hidden" style="padding-top: 60px;">
+        <h2 style="text-align: center; letter-spacing: 2px; margin-bottom:20px;">MY JOURNEYS</h2>
         <div id="recordsContainer"></div>
     </div>
 
@@ -101,22 +113,28 @@
     <script>
         let map, marker, pathLine, watchId, geocoder;
         let walkPath = [], eventsData = [], totalDistance = 0, startTime, durationStr, cityName = "未知城市";
-        let historyMarkers = []; // 存儲載入舊路線時的 Icon
+        let historyMarkers = [];
 
         function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), { zoom: 17, center: { lat: 25.0478, lng: 121.5170 }, disableDefaultUI: true, styles: [{ "featureType": "poi", "stylers": [{ "visibility": "off" }] }] });
-            marker = new google.maps.Marker({ map, label: "👣", icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999 });
-            pathLine = new google.maps.Polyline({ map, strokeColor: "#333", strokeWeight: 5, strokeOpacity: 0.4 });
+            map = new google.maps.Map(document.getElementById("map"), { 
+                zoom: 17, center: { lat: 25.0478, lng: 121.5170 }, 
+                disableDefaultUI: true, 
+                styles: [{ "featureType": "poi", "stylers": [{ "visibility": "off" }] }] 
+            });
+            // 放大 1.2 倍腳印 (fontSize 24px -> 30px)
+            marker = new google.maps.Marker({ 
+                map, label: { text: "👣", fontSize: "30px" }, 
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999 
+            });
+            pathLine = new google.maps.Polyline({ map, strokeColor: "#333", strokeWeight: 6, strokeOpacity: 0.4 });
             geocoder = new google.maps.Geocoder();
         }
 
         function startWalk() {
             startTime = new Date();
-            // 重置地圖狀態，避免舊路線干擾
             pathLine.setPath([]); 
             historyMarkers.forEach(m => m.setMap(null));
             walkPath = []; eventsData = [];
-            
             document.getElementById('state-init').classList.add('hidden');
             document.getElementById('state-recording').classList.remove('hidden');
             watchId = navigator.geolocation.watchPosition((pos) => {
@@ -140,20 +158,26 @@
                     if (status === "OK" && results[0]) {
                         const cityObj = results[0].address_components.find(c => c.types.includes("administrative_area_level_1") || c.types.includes("locality"));
                         cityName = cityObj ? cityObj.long_name : "未知城市";
-                        document.getElementById('saveInfo').innerHTML = `城市：${cityName}<br>里程：${totalDistance.toFixed(2)} KM<br>時長：${durationStr}`;
+                        document.getElementById('saveInfo').innerHTML = `🏙️ 城市：${cityName}<br>👣 里程：${totalDistance.toFixed(2)} KM<br>⏱️ 時長：${durationStr}`;
                     }
                 });
             }
         }
 
         async function executeCloudSave() {
+            const btn = document.getElementById('btnConfirmSave');
+            btn.disabled = true; // 防止重複點擊
             const name = document.getElementById('routeName').value || "未命名漫遊";
             try {
-                if(!window.api) throw new Error("Firebase 未載入");
-                await window.api.addDoc(window.api.collection(window.db, "walk_records"), { name, city: cityName, distance: totalDistance, duration: durationStr, path: walkPath, events: eventsData, isPinned: false, createdAt: window.api.serverTimestamp() });
-                alert("已存入清單！");
+                await window.api.addDoc(window.api.collection(window.db, "walk_records"), { 
+                    name, city: cityName, distance: totalDistance, duration: durationStr, 
+                    path: walkPath, events: eventsData, isPinned: false, createdAt: window.api.serverTimestamp() 
+                });
                 location.reload();
-            } catch (e) { alert("儲存失敗: " + e.message); }
+            } catch (e) { 
+                alert("儲存失敗"); 
+                btn.disabled = false;
+            }
         }
 
         async function fetchRecords() {
@@ -164,9 +188,10 @@
                 const snap = await window.api.getDocs(q);
                 window.currentDocs = [];
                 snap.forEach(d => window.currentDocs.push({ id: d.id, ...d.data() }));
+                // 排序：釘選 > 時間
                 window.currentDocs.sort((a, b) => (b.isPinned - a.isPinned) || (b.createdAt?.seconds - a.createdAt?.seconds));
                 
-                container.innerHTML = "";
+                container.innerHTML = ""; // 確保渲染前清空
                 window.currentDocs.forEach(data => {
                     const card = document.createElement('div');
                     card.className = `record-card ${data.isPinned ? 'is-pinned' : ''}`;
@@ -175,7 +200,7 @@
                         <div class="pin-icon" onclick="togglePin('${data.id}', ${data.isPinned})">📌</div>
                         <div class="delete-btn" onclick="deleteRecord('${data.id}')">🗑️</div>
                         <div class="record-city">${data.city}</div>
-                        <div class="record-name">${data.name}</div>
+                        <span class="record-name">${data.name}</span>
                         <div style="font-size:12px; color:#777;">👣 ${data.distance.toFixed(2)} km | ⏱️ ${data.duration}</div>
                     `;
                     container.appendChild(card);
@@ -187,30 +212,31 @@
             const data = window.currentDocs.find(d => d.id === id);
             if(!data) return;
             switchPage('main');
-            
-            // 清除現有路線
             pathLine.setPath([]);
             historyMarkers.forEach(m => m.setMap(null));
             historyMarkers = [];
 
-            // 畫出舊路線 (換成暖橘色區分)
             const pts = data.path.map(p => ({lat: p.lat, lng: p.lng}));
             pathLine.setPath(pts);
-            pathLine.setOptions({ strokeColor: "#FEAD89", strokeOpacity: 0.8 });
+            pathLine.setOptions({ strokeColor: "#FEAD89", strokeOpacity: 0.8, strokeWeight: 8 });
             
-            // 標註舊事件
-            data.events.forEach(ev => {
-                const m = new google.maps.Marker({ position: ev.pos, map, label: ev.icon, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 } });
-                historyMarkers.push(m);
-            });
-            
+            // 放大 1.2 倍事件 Icon (fontSize 20px -> 26px)
+            if(data.events) {
+                data.events.forEach(ev => {
+                    const m = new google.maps.Marker({ 
+                        position: ev.pos, map, 
+                        label: { text: ev.icon, fontSize: "26px" }, 
+                        icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 } 
+                    });
+                    historyMarkers.push(m);
+                });
+            }
             map.panTo(pts[0]);
-            alert("正在查看回憶：" + data.name);
         }
 
         async function deleteRecord(id) {
             event.stopPropagation();
-            if(!confirm("確定要刪除這段紀錄嗎？")) return;
+            if(!confirm("確定要刪除嗎？")) return;
             await window.api.deleteDoc(window.api.doc(window.db, "walk_records", id));
             fetchRecords();
         }
@@ -228,7 +254,10 @@
             document.getElementById(`nav-${p}`).classList.add('active');
             if(p === 'list') fetchRecords();
         }
+
         window.onload = initMap;
+        // 確保重整後選單面板是可見的
+        document.getElementById('functionPanel').style.display = 'block';
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=geometry" async defer></script>
 </body>
