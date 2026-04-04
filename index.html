@@ -146,6 +146,7 @@
             infoWindow = new google.maps.InfoWindow(); // 全域唯一的彈窗
         }
 
+      // --- v1.0.9.2 核心修復：座標定位法 ---
         function createEventMarker(pos, icon, text) {
             console.log("建立 Marker:", icon, text);
             const m = new google.maps.Marker({
@@ -153,19 +154,27 @@
                 map: map,
                 label: { text: icon, fontSize: "26px" },
                 icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-                zIndex: 1000
+                zIndex: 2000
             });
 
-            // 核心修正：綁定點擊彈窗
+            // 核心修正：點擊時不使用 anchor，直接使用座標 (Position)
             google.maps.event.addListener(m, 'click', function() {
-                console.log("Marker 被點擊:", text);
-                infoWindow.setContent(`
-                    <div style="padding:10px; text-align:center;">
+                console.log("Marker 點擊確認，位置:", pos);
+                
+                const content = `
+                    <div style="padding:10px; text-align:center; min-width:120px; font-family:sans-serif;">
                         <div style="font-size:24px; margin-bottom:5px;">${icon}</div>
-                        <div style="font-size:14px; color:#333;">${text || "漫遊回憶"}</div>
-                    </div>
-                `);
-                infoWindow.open(map, m);
+                        <div style="font-size:14px; color:#333; line-height:1.4;">${text || "漫遊回憶"}</div>
+                    </div>`;
+                
+                infoWindow.close(); // 先關閉舊的
+                infoWindow.setContent(content);
+                infoWindow.setPosition(pos); // 核心：強制設定跟 Marker 一樣的座標
+                
+                // 增加一個微小的偏移量 (PixelOffset)，讓彈窗出現在 Icon 上方一點
+                infoWindow.setOptions({ pixelOffset: new google.maps.Size(0, -30) });
+                
+                infoWindow.open(map); // 直接在地圖上開啟，不傳入 m
             });
             return m;
         }
