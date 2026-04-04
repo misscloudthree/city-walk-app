@@ -30,12 +30,29 @@
         .btn-base { padding: 16px 24px; font-size: 15px; font-weight: bold; border: none; border-radius: 14px; cursor: pointer; width: 100%; }
         .btn-main { background: var(--text-main); color: var(--white); }
         .btn-event { background: var(--accent-positive); color: var(--white); }
+        /* 刪除按鈕樣式 */
+        .delete-btn {position: absolute;bottom: 15px;right: 15px;font-size: 18px; opacity: 0.4;padding: 5px;transition: 0.2s;cursor: pointer; }
+        .delete-btn:hover {opacity: 1;transform: scale(1.2); }
+
+/* 強化卡片點擊感 */
+.record-card {
+    cursor: pointer;
+    transition: transform 0.1s, background 0.2s;
+}
+.record-card:active {
+    transform: scale(0.98);
+    background: #fdfdfd;
+}
     </style>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // 記得同步更新 window.api
+        window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, query, orderBy, serverTimestamp };
+       
         const firebaseConfig = {
             apiKey: "AIzaSyDc460QtdfTv32gEPNPLVCMOxPz0hCWxbQ",
             authDomain: "city-walk-project.firebaseapp.com",
@@ -187,58 +204,107 @@
                 alert("儲存失敗: " + e.message); 
             }
         }
+// --- 1. 載入舊路線功能 ---
+function loadSavedRoute(dataId) {
+    // 從我們暫存的陣列或直接從 DOM 資料中獲取路徑（這裡建議 fetchRecords 時先存入全域變數）
+    const record = window.currentDocs.find(d => d.id === dataId);
+    if (!record || !record.path || record.path.length === 0) {
+        alert("找不到路線座標數據");
+        return;
+    }
 
+    // 切換到地圖分頁
+    switchPage('main');
+
+    // 清除舊線條與標記
+    if (pathLine) pathLine.setPath([]);
+    
+    // 繪製新路線
+    const newPath = record.path.map(p => ({ lat: p.lat, lng: p.lng }));
+    pathLine.setPath(newPath);
+    pathLine.setOptions({ strokeColor: "#FEAD89", strokeOpacity: 1.0, strokeWeight: 6 }); // 變更顏色區分回顧模式
+
+    // 將地圖中心移至起點
+    map.panTo(newPath[0]);
+    map.setZoom(16);
+
+    // 顯示事件點 (Icon)
+    if (record.events) {
+        record.events.forEach(ev => {
+            new google.maps.Marker({
+                position: ev.pos,
+                map: map,
+                label: ev.icon,
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }
+            });
+        });
+    }
+    
+    alert(`正在重溫：${record.name}`);
+}
+
+// --- 2. 刪除紀錄功能 ---
+async function deleteRecord(id) {
+    event.stopPropagation(); // 防止觸發點擊卡片載入路線
+    if (!confirm("確定要刪除這段回憶嗎？此操作無法還原。")) return;
+
+    try {
+        await window.api.deleteDoc(window.api.doc(window.db, "walk_records", id));
+        alert("紀錄已刪除");
+        fetchRecords(); // 重新整理清單
+    } catch (e) {
+        console.error(e);
+        alert("刪除失敗");
+    }
+}
+
+// --- 修正後的清單抓取函數 ---
 async function fetchRecords() {
     const container = document.getElementById('recordsContainer');
     container.innerHTML = '<p style="text-align:center; padding:20px;">載入中...</p>';
     
     try {
-        // 核心修正：移除 orderBy，使用最基礎的抓取，繞過索引限制
         const q = window.api.collection(window.db, "walk_records");
         const snap = await window.api.getDocs(q);
         
         if (snap.empty) {
-            container.innerHTML = '<p style="text-align:center; padding:20px;">尚無紀錄，開始一趟漫遊吧！</p>';
+            container.innerHTML = '<p style="text-align:center; padding:20px;">尚無紀錄</p>';
             return;
         }
 
-        let docs = []; 
-        snap.forEach(d => {
-            const data = d.data();
-            docs.push({ id: d.id, ...data });
-        });
+        window.currentDocs = []; // 暫存到全域變數方便點擊載入
+        snap.forEach(d => window.currentDocs.push({ id: d.id, ...d.data() }));
         
-        // --- 前端排序邏輯 ---
-        // 1. 優先排釘選 (isPinned)
-        // 2. 其次排時間 (createdAt) 從新到舊
-        docs.sort((a, b) => {
+        // 排序：釘選優先，日期其次
+        window.currentDocs.sort((a, b) => {
             if (b.isPinned !== a.isPinned) return b.isPinned - a.isPinned;
-            const timeA = a.createdAt ? a.createdAt.seconds : 0;
-            const timeB = b.createdAt ? b.createdAt.seconds : 0;
-            return timeB - timeA;
+            return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
         });
 
         container.innerHTML = "";
-        docs.forEach(data => {
-            const dateStr = data.createdAt ? data.createdAt.toDate().toLocaleDateString() : "未知日期";
+        window.currentDocs.forEach(data => {
             const card = document.createElement('div');
             card.className = `record-card ${data.isPinned ? 'is-pinned' : ''}`;
+            // 點擊卡片觸發載入
+            card.onclick = () => loadSavedRoute(data.id);
+            
             card.innerHTML = `
                 <div class="pin-icon" onclick="togglePin('${data.id}', ${data.isPinned})">📌</div>
-                <div class="record-city">${data.city || '未知城市'}</div>
-                <div class="record-name">${data.name || '未命名漫遊'}</div>
-                <div class="record-date">${dateStr}</div>
+                <div class="delete-btn" onclick="deleteRecord('${data.id}')">🗑️</div>
+                <div class="record-city">${data.city || '城市漫遊'}</div>
+                <div class="record-name">${data.name}</div>
                 <div class="record-stats">
                     <span>👣 ${(data.distance || 0).toFixed(2)} km</span>
                     <span>⏱️ ${data.duration || '--'}</span>
-                </div>`;
+                </div>
+            `;
             container.appendChild(card);
         });
-    } catch (e) { 
-        console.error("抓取失敗原因：", e);
-        container.innerHTML = `<p style="color:red; text-align:center;">載入失敗，請檢查網路</p>`;
+    } catch (e) {
+        container.innerHTML = `<p style="color:red; text-align:center;">載入失敗</p>`;
     }
 }
+        
 
         function switchPage(p) {
             document.querySelectorAll('.page').forEach(page => page.classList.add('hidden'));
