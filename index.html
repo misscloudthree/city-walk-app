@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>City Walker - v1.0.8</title>
+    <title>City Walker - v1.0.8.3</title>
     <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
     <style>
         :root { --bg-warm: #F9F7F2; --text-main: #333333; --text-soft: #7D7D7D; --accent-positive: #8FB9A8; --accent-warm: #FEAD89; --border-light: #EEEEEE; --white: #FFFFFF; --accent-pin: #FFD700; }
@@ -20,24 +20,22 @@
         .map-controls { position: fixed; right: 20px; bottom: 210px; display: flex; flex-direction: column; gap: 12px; z-index: 1200; }
         .map-btn { width: 50px; height: 50px; background: var(--white); border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; border: none; }
         #functionPanel { position: fixed; bottom: 95px; left: 50%; transform: translateX(-50%); width: 85%; max-width: 400px; background: var(--white); border-radius: 24px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); z-index: 1500; text-align: center; }
-        
-        /* 紀錄卡片樣式 */
         #recordsContainer { width: 92%; max-width: 450px; margin: 0 auto; }
-        .record-card { background: var(--white); margin: 15px 0; padding: 22px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; border-left: 6px solid var(--accent-positive); cursor: pointer; box-sizing: border-box; display: block; }
+        .record-card { background: var(--white); margin: 15px 0; padding: 22px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); position: relative; border-left: 6px solid var(--accent-positive); cursor: pointer; display: block; box-sizing: border-box; }
         .record-card.is-pinned { border-left-color: var(--accent-pin); background: #FFFDF5; }
         .pin-icon { position: absolute; top: 18px; right: 18px; cursor: pointer; font-size: 22px; opacity: 0.3; }
         .delete-btn { position: absolute; bottom: 18px; right: 18px; cursor: pointer; font-size: 18px; opacity: 0.3; }
         .record-city { font-size: 11px; background: #F2F2F2; padding: 3px 10px; border-radius: 12px; color: var(--text-soft); display: inline-block; margin-bottom: 8px; }
         .record-name { font-weight: bold; font-size: 17px; margin-bottom: 8px; display: block; color: var(--text-main); }
         .record-stats { display: flex; gap: 15px; font-size: 12px; color: var(--text-soft); border-top: 1px solid #F9F9F9; padding-top: 10px; }
-
         #navBar { position: fixed; bottom: 0; width: 100%; height: 75px; background: var(--white); display: flex; border-top: 1px solid var(--border-light); z-index: 2000; padding-bottom: env(safe-area-inset-bottom); }
         .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; color: var(--text-soft); cursor: pointer; }
         .nav-item.active { color: var(--text-main); font-weight: bold; }
         
-        /* InfoWindow 樣式調整 */
-        .gm-style-iw { padding: 10px !important; border-radius: 12px !important; }
-        .iw-content { font-size: 14px; color: var(--text-main); line-height: 1.5; text-align: center; }
+        /* InfoWindow 視覺修正 */
+        .iw-box { padding: 5px; text-align: center; font-family: 'Microsoft JhengHei', sans-serif; }
+        .iw-title { font-size: 22px; margin-bottom: 4px; }
+        .iw-text { font-size: 14px; color: #333; }
 
         .btn-base { padding: 16px 24px; font-size: 15px; font-weight: bold; border: none; border-radius: 14px; cursor: pointer; width: 100%; outline: none; }
         .btn-main { background: var(--text-main); color: var(--white); }
@@ -69,7 +67,7 @@
 </head>
 <body>
 
-    <div id="statusBar">City Walker</div>
+    <div id="statusBar" class="status-default">City Walker</div>
 
     <div class="map-controls">
         <button class="map-btn" onclick="focusOnMe()">📍</button>
@@ -139,21 +137,11 @@
         let lastMoveTime = new Date(), historyMarkers = [];
 
         function initMap() {
-            map = new google.maps.Map(document.getElementById("map"), { 
-                zoom: 17, 
-                center: { lat: 25.0478, lng: 121.5170 }, 
-                disableDefaultUI: true, 
-                styles: [{ "featureType": "poi", "stylers": [{ "visibility": "off" }] }] 
-            });
-            marker = new google.maps.Marker({ 
-                map, label: { text: "👣", fontSize: "30px" }, 
-                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999 
-            });
-            pathLine = new google.maps.Polyline({ 
-                map, strokeColor: "#333", strokeWeight: 6, strokeOpacity: 0.4 
-            });
+            map = new google.maps.Map(document.getElementById("map"), { zoom: 17, center: { lat: 25.0478, lng: 121.5170 }, disableDefaultUI: true, styles: [{ "featureType": "poi", "stylers": [{ "visibility": "off" }] }] });
+            marker = new google.maps.Marker({ map, label: { text: "👣", fontSize: "30px" }, icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999 });
+            pathLine = new google.maps.Polyline({ map, strokeColor: "#333", strokeWeight: 6, strokeOpacity: 0.4 });
             geocoder = new google.maps.Geocoder();
-            // 核心修復：初始化全域彈窗物件
+            // 關鍵初始化：確保 InfoWindow 存在
             infoWindow = new google.maps.InfoWindow();
         }
 
@@ -163,6 +151,27 @@
         function updateStatus(text, type) {
             const el = document.getElementById('statusBar');
             if(el) { el.innerText = text; el.className = `status-${type}`; }
+        }
+
+        // --- 核心工具：建立具備點擊監聽的 Marker ---
+        function createEventMarker(pos, icon, text) {
+            const m = new google.maps.Marker({
+                position: pos,
+                map: map,
+                label: { text: icon, fontSize: "26px" },
+                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }
+            });
+
+            // 綁定點擊事件
+            google.maps.event.addListener(m, 'click', function() {
+                const content = `<div class="iw-box">
+                    <div class="iw-title">${icon}</div>
+                    <div class="iw-text">${text || "漫遊中的小小紀錄..."}</div>
+                </div>`;
+                infoWindow.setContent(content);
+                infoWindow.open(map, m);
+            });
+            return m;
         }
 
         function startWalk() {
@@ -181,59 +190,33 @@
             }, null, { enableHighAccuracy: true });
             
             setInterval(() => {
-                const recording = document.getElementById('state-recording');
-                if (recording && !recording.classList.contains('hidden')) {
+                if (!document.getElementById('state-recording').classList.contains('hidden')) {
                     if ((new Date() - lastMoveTime) > 15000) updateStatus("暫停一下，休息是為了走更長遠的路", "pausing");
                 }
             }, 5000);
         }
 
         function openEventCanvas() { document.getElementById('eventModal').style.display = 'flex'; }
-
-        // --- 新增：建立地圖 Marker 並綁定點擊事件 ---
-        function createEventMarker(pos, icon, text) {
-            const m = new google.maps.Marker({
-                position: pos,
-                map: map,
-                label: { text: icon, fontSize: "26px" },
-                icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }
-            });
-
-            m.addListener("click", () => {
-                infoWindow.setContent(`<div class="iw-content"><h3>${icon}</h3><p>${text || "這一刻沒有留下文字..."}</p></div>`);
-                infoWindow.open(map, m);
-            });
-
-            return m;
-        }
-
         function saveEvent() {
             const text = document.getElementById('eventText').value;
             const pos = marker.getPosition().toJSON();
             eventsData.push({ text, icon: selectedIcon, pos });
-            
-            // 使用新函式建立 Marker
-            createEventMarker(pos, selectedIcon, text);
-
-            document.getElementById('eventText').value = ""; 
-            document.getElementById('eventModal').style.display = 'none';
+            createEventMarker(pos, selectedIcon, text); // 即時建立
+            document.getElementById('eventText').value = ""; document.getElementById('eventModal').style.display = 'none';
         }
 
         function endWalk() {
             navigator.geolocation.clearWatch(watchId); updateStatus("City Walker", "default");
-            document.getElementById('state-init').classList.add('hidden');
             document.getElementById('state-recording').classList.add('hidden');
             document.getElementById('state-finished').classList.remove('hidden');
             totalDistance = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
             durationStr = Math.floor(Math.abs(new Date() - startTime) / 60000) + " 分鐘";
-            
             if(walkPath.length > 0) {
                 geocoder.geocode({ location: walkPath[walkPath.length-1] }, (results, status) => {
                     if (status === "OK" && results[0]) {
                         const cityObj = results[0].address_components.find(c => c.types.includes("administrative_area_level_1") || c.types.includes("locality"));
                         cityName = cityObj ? cityObj.long_name : "未知城市";
-                        const box = document.getElementById('summaryBox');
-                        if(box) box.innerHTML = `<strong>漫遊結算</strong><br>🏙️ 城市：${cityName}<br>👣 里程：${totalDistance.toFixed(2)} KM<br>⏱️ 時長：${durationStr}<br>📸 事件：${eventsData.length} 個`;
+                        document.getElementById('summaryBox').innerHTML = `<strong>漫遊結算</strong><br>🏙️ 城市：${cityName}<br>👣 里程：${totalDistance.toFixed(2)} KM<br>⏱️ 時長：${durationStr}<br>📸 事件：${eventsData.length} 個`;
                     }
                 });
             }
@@ -267,32 +250,25 @@
         }
 
         function loadSavedRoute(id) {
-            const data = window.currentDocs.find(d => d.id === id); 
-            if(!data) return;
-
-            switchPage('main');
-            
-            // 1. 清除地圖上舊的標記與路線
-            if (pathLine) pathLine.setPath([]);
-            historyMarkers.forEach(m => m.setMap(null));
+            const data = window.currentDocs.find(d => d.id === id); if(!data) return;
+            switchPage('main'); 
+            pathLine.setPath([]); 
+            historyMarkers.forEach(m => m.setMap(null)); 
             historyMarkers = [];
-
-            // 2. 繪製歷史路徑
+            
             const pts = data.path.map(p => ({lat: p.lat, lng: p.lng}));
-            pathLine.setPath(pts);
+            pathLine.setPath(pts); 
             pathLine.setOptions({ strokeColor: "#FEAD89", strokeOpacity: 0.8, strokeWeight: 8 });
-
-            // 3. 核心修復：重繪舊事件並呼叫 createEventMarker 綁定彈窗
-            if(data.events && data.events.length > 0) {
+            
+            // 重要修正：使用帶監聽的函式重建 Marker
+            if(data.events) {
                 data.events.forEach(ev => {
                     const m = createEventMarker(ev.pos, ev.icon, ev.text);
                     historyMarkers.push(m);
                 });
             }
-            
             map.panTo(pts[0]);
-            const btn = document.getElementById('btnFocusRoute');
-            if(btn) btn.classList.remove('hidden');
+            const btn = document.getElementById('btnFocusRoute'); if(btn) btn.classList.remove('hidden');
         }
 
         async function deleteRecord(e, id) { e.stopPropagation(); if(!confirm("確定要刪除嗎？")) return; await window.api.deleteDoc(window.api.doc(window.db, "walk_records", id)); fetchRecords(); }
