@@ -146,36 +146,30 @@
             infoWindow = new google.maps.InfoWindow(); // 全域唯一的彈窗
         }
 
-      // --- v1.0.9.2 核心修復：座標定位法 ---
-        function createEventMarker(pos, icon, text) {
-            console.log("建立 Marker:", icon, text);
+     function createEventMarker(pos, icon, text) {
             const m = new google.maps.Marker({
                 position: pos,
                 map: map,
-                label: { text: icon, fontSize: "26px" },
+                label: { text: icon, fontSize: "28px" },
                 icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-                zIndex: 2000
+                zIndex: 2000,
+                clickable: true
             });
 
-            // 核心修正：點擊時不使用 anchor，直接使用座標 (Position)
-            google.maps.event.addListener(m, 'click', function() {
-                console.log("Marker 點擊確認，位置:", pos);
+            // 核心修正：改為觸發 HTML 自定義彈窗
+            m.addListener("click", function() {
+                console.log("🎯 點擊 Icon，準備彈出自定義視窗:", text);
                 
-                const content = `
-                    <div style="padding:10px; text-align:center; min-width:120px; font-family:sans-serif;">
-                        <div style="font-size:24px; margin-bottom:5px;">${icon}</div>
-                        <div style="font-size:14px; color:#333; line-height:1.4;">${text || "漫遊回憶"}</div>
-                    </div>`;
+                // 填入資料
+                document.getElementById('memoryIcon').innerText = icon;
+                document.getElementById('memoryText').innerText = text || "漫遊中的片段記憶...";
                 
-                infoWindow.close(); // 先關閉舊的
-                infoWindow.setContent(content);
-                infoWindow.setPosition(pos); // 核心：強制設定跟 Marker 一樣的座標
-                
-                // 增加一個微小的偏移量 (PixelOffset)，讓彈窗出現在 Icon 上方一點
-                infoWindow.setOptions({ pixelOffset: new google.maps.Size(0, -30) });
-                
-                infoWindow.open(map); // 直接在地圖上開啟，不傳入 m
+                // 顯示彈窗
+                const box = document.getElementById('memoryBox');
+                box.classList.remove('hidden');
+                box.style.display = 'flex'; // 確保 flex 佈局生效
             });
+
             return m;
         }
 
@@ -285,5 +279,12 @@
         window.switchPage = switchPage;
     </script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=geometry" async defer></script>
+    <div id="memoryBox" class="hidden" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; display: none; align-items: center; justify-content: center;" onclick="this.style.display='none'">
+        <div style="background: white; width: 85%; max-width: 320px; border-radius: 28px; padding: 30px; text-align: center; box-shadow: 0 15px 50px rgba(0,0,0,0.3); transform: translateY(-20px);" onclick="event.stopPropagation()">
+            <div id="memoryIcon" style="font-size: 50px; margin-bottom: 15px;">📸</div>
+            <div id="memoryText" style="font-size: 17px; color: #333; line-height: 1.6; margin-bottom: 25px; min-height: 60px; font-weight: 500;"></div>
+            <button class="btn-base" style="background: #333; color: white; border: none; padding: 16px; width: 100%; border-radius: 14px; font-weight: bold; cursor: pointer;" onclick="document.getElementById('memoryBox').style.display='none'">關閉回憶</button>
+        </div>
+    </div>
 </body>
 </html>
