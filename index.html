@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.3.0</title>
+<title>City Walker - v1.4.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
 <style>
 /* ===================================================
-   PSEUDO: 定義全域 CSS 變數（色票）
+   PSEUDO: 全域 CSS 變數（色票）
    =================================================== */
 :root {
   --bg-warm: #F9F7F2;
@@ -18,16 +18,14 @@
   --border-light: #EEEEEE;
   --white: #FFFFFF;
   --accent-pin: #FFD700;
-
-  /* [新增 v1.3.0] 狀態列各狀態的顏色 */
-  --status-idle:     #F9F7F2;   /* 待機：暖白 */
-  --status-locating: #FFF3CD;   /* 取得定位中：淡黃 */
-  --status-walking:  #D4EDDA;   /* 漫步中：淡綠 */
-  --status-paused:   #FFE5CC;   /* 暫停一下：淡橘 */
-  --status-ended:    #E2E8F0;   /* 結束：淡灰 */
+  --status-idle:     #F9F7F2;
+  --status-locating: #FFF3CD;
+  --status-walking:  #D4EDDA;
+  --status-paused:   #FFE5CC;
+  --status-ended:    #E2E8F0;
 }
 
-/* PSEUDO: 全域重置 */
+/* PSEUDO: 全域重置，禁止頁面捲動 */
 body {
   margin: 0; padding: 0;
   font-family: 'Poly', 'Microsoft JhengHei', sans-serif;
@@ -47,24 +45,18 @@ body {
 #page-main { z-index: 20; overflow: hidden; }
 #page-list { z-index: 25; background: var(--bg-warm); padding-top: 60px; }
 
-/* ===================================================
-   [新增 v1.3.0] 頂部狀態列樣式
-   PSEUDO: 加入 transition 讓顏色切換有漸變效果
-   不同狀態透過 setStatusBar() 函式切換背景色和文字
-   =================================================== */
+/* PSEUDO: 頂部狀態列，顏色切換有 0.5s 漸變動畫 */
 #statusBar {
   position: fixed; top: 0; width: 100%; height: 50px;
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: bold;
   background: var(--status-idle);
   backdrop-filter: blur(5px);
-  z-index: 1000;
-  border-bottom: 1px solid var(--border-light);
-  transition: background-color 0.5s ease, color 0.5s ease; /* 顏色漸變動畫 */
+  z-index: 1000; border-bottom: 1px solid var(--border-light);
+  transition: background-color 0.5s ease, color 0.5s ease;
   letter-spacing: 1px;
 }
 
-/* PSEUDO: 地圖佔滿整個視窗 */
 #map { height: 100vh; width: 100%; background: #e5e3df; }
 
 /* PSEUDO: 地圖右側浮動控制鈕 */
@@ -123,7 +115,7 @@ body {
 .btn-main { background: var(--text-main); color: var(--white); }
 .btn-event { background: var(--accent-positive); color: var(--white); }
 
-/* PSEUDO: Modal 共用，z-index 9999 蓋過地圖所有圖層 */
+/* PSEUDO: Modal 共用，z-index 9999 蓋過所有地圖圖層 */
 #eventModal, #saveModal, #memoryBox {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.5);
@@ -141,7 +133,21 @@ body {
 /* PSEUDO: 地標偵測結果顯示區 */
 #nearbyBadge { font-size: 12px; color: var(--text-soft); margin-bottom: 8px; min-height: 18px; }
 
-/* PSEUDO: OverlayView 自製事件標記（解決手機 hitbox 問題） */
+/* ===================================================
+   [校正 v1.4.0] 回憶視窗關閉按鈕
+   PSEUDO: 改成右上角 ✕ icon，符合手機 UX 習慣
+   使用者直覺是「右上角關閉」，不是底部大按鈕
+   =================================================== */
+#memoryCloseBtn {
+  position: absolute; top: 16px; right: 20px;
+  font-size: 22px; color: var(--text-soft);
+  cursor: pointer; line-height: 1;
+  padding: 4px 8px; border-radius: 50%;
+  transition: background 0.2s;
+}
+#memoryCloseBtn:active { background: var(--bg-warm); }
+
+/* PSEUDO: OverlayView 自製事件標記 */
 .event-marker-div {
   position: absolute; font-size: 28px; cursor: pointer;
   transform: translate(-50%, -50%);
@@ -150,7 +156,7 @@ body {
 }
 </style>
 
-<!-- PSEUDO: Firebase 模組初始化，掛到 window 供傳統 script 使用 -->
+<!-- PSEUDO: Firebase 初始化，掛到 window 供傳統 script 使用 -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -170,25 +176,33 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 </head>
 <body>
 
-<!-- ===================================================
-     [新增 v1.3.0] 頂部狀態列
-     PSEUDO: 預設顯示 "City Walker"
-     走路過程中由 setStatusBar() 動態更新文字和背景色
-     =================================================== -->
 <div id="statusBar">City Walker</div>
 
+<!-- ===================================================
+     PSEUDO: 地圖控制鈕
+     只在主畫面（漫遊頁）顯示，清單頁不需要
+     [校正 v1.4.0] map-controls 本來在清單頁也看得到
+     改為只綁在 page-main 內部即可，詳見下方 HTML 結構
+     =================================================== -->
 <div class="map-controls">
   <button class="map-btn" onclick="focusOnMe()">📍</button>
   <button class="map-btn hidden" id="btnFocusRoute" onclick="focusOnRouteStart()">🛣️</button>
 </div>
 
-<!-- PSEUDO: 回憶彈窗，點擊背景關閉 -->
+<!-- ===================================================
+     [校正 v1.4.0] 回憶視窗
+     PSEUDO: 改成右上角 ✕ 關閉，符合手機 UX 直覺
+     - 原本是底部大按鈕「關閉回憶」
+     - 手機使用者預期右上角有關閉鍵
+     - 點擊背景半透明區域也可以關閉（保留原有行為）
+     =================================================== -->
 <div id="memoryBox" onclick="closeMemoryBox()">
-  <div class="modal-content" onclick="event.stopPropagation()" style="text-align:center;">
-    <div id="memoryIcon" style="font-size:50px; margin-bottom:15px;">📸</div>
-    <div id="memoryPlace" style="font-size:12px; color:var(--text-soft); margin-bottom:8px;"></div>
-    <div id="memoryText" style="font-size:17px; color:#333; line-height:1.6; margin-bottom:25px; min-height:60px;"></div>
-    <button class="btn-base btn-main" onclick="closeMemoryBox()">關閉回憶</button>
+  <div class="modal-content" onclick="event.stopPropagation()" style="position:relative; text-align:center; padding-top:40px;">
+    <!-- 右上角關閉按鈕 -->
+    <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
+    <div id="memoryIcon" style="font-size:50px; margin-bottom:12px;">📸</div>
+    <div id="memoryPlace" style="font-size:12px; color:var(--text-soft); margin-bottom:6px;"></div>
+    <div id="memoryText" style="font-size:17px; color:#333; line-height:1.6; min-height:60px;"></div>
   </div>
 </div>
 
@@ -226,7 +240,7 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
   </div>
 </div>
 
-<!-- PSEUDO: 主畫面，三個狀態區塊用 hidden 切換 -->
+<!-- PSEUDO: 主畫面 -->
 <div id="page-main" class="page">
   <div id="map"></div>
   <div id="functionPanel">
@@ -238,6 +252,12 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
       <button class="btn-base" style="background:#f5f5f5; color:#666; margin-top:10px;" onclick="endWalk()">結束本次漫遊</button>
     </div>
     <div id="state-finished" class="hidden">
+      <!-- ===================================================
+           [新增 v1.4.0] 鼓勵詞語區塊
+           PSEUDO: 顯示在結算數據上方，每次隨機抽一句
+           用淡色斜體呈現，視覺上輕盈不搶戲
+           =================================================== -->
+      <div id="encourageBox" style="font-style:italic; color:var(--accent-positive); font-size:14px; margin-bottom:12px; line-height:1.6;"></div>
       <div id="summaryBox" style="background:#FCFAF7; border-radius:16px; padding:15px; margin-bottom:15px; text-align:left; font-size:14px; border:1px dashed var(--accent-positive);"></div>
       <button class="btn-base btn-event" onclick="openSaveModal()">加入我的路線清單</button>
       <button class="btn-base btn-main" style="margin-top:10px;" onclick="location.reload()">重新開始</button>
@@ -245,7 +265,13 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
   </div>
 </div>
 
-<!-- PSEUDO: 清單頁，預設隱藏 -->
+<!-- ===================================================
+     [校正 v1.4.0] 清單頁
+     PSEUDO: 把 map-controls（📍定位按鈕）移出清單頁範圍
+     清單頁是靜態列表，不需要地圖定位功能
+     原本 map-controls 是 fixed 定位，清單頁也看得到
+     解法：用 JS 在切換頁面時控制 map-controls 的顯示/隱藏
+     =================================================== -->
 <div id="page-list" class="page hidden">
   <h2 style="text-align:center; letter-spacing:2px; margin-bottom:20px;">MY JOURNEYS</h2>
   <div id="recordsContainer"></div>
@@ -260,37 +286,61 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 <script>
 /* ===================================================
    PSEUDO: 全域變數
-   新增：
-   - pauseTimer：用來計算是否靜止超過 15 秒的計時器 ID
-   - lastMovedTime：最後一次有效位移的時間，用來判斷暫停狀態
    =================================================== */
 let map, marker, pathLine, watchId, geocoder, placesService;
 let walkPath = [], eventsData = [], totalDistance = 0;
 let startTime, durationStr, cityName = "未知城市", selectedIcon = '📸';
 let historyMarkers = [];
-let pauseTimer = null;       /* [新增 v1.3.0] 暫停狀態的計時器 */
-let lastMovedTime = null;    /* [新增 v1.3.0] 最後有效移動的時間點 */
-let locatingTimer = null;    /* [新增 v1.3.0] 取得定位逾時的計時器 */
+let pauseTimer = null;
+let locatingTimer = null;
 
 
 /* ===================================================
-   [新增 v1.3.0] setStatusBar()
-   PSEUDO: 統一控制狀態列的文字和背景顏色
-   
-   參數：
-   - text：要顯示的狀態文字（含 emoji）
-   - bgColor：CSS 變數名稱或顏色值
-   - textColor：文字顏色，預設 #333333
-   
-   使用 CSS transition，顏色切換時有 0.5s 漸變動畫
+   [新增 v1.4.0] 鼓勵詞語資料庫
+   PSEUDO: 依照規格書「鼓勵詞語數據庫」
+   共 20 句，結算時隨機抽一句顯示
+   設計原則：正向、簡短、與走路/探索主題相關
    =================================================== */
-function setStatusBar(text, bgColor, textColor) {
+var ENCOURAGE_LIST = [
+  "每一步都是在和這座城市說你好。",
+  "你走過的路，都成為了你的一部分。",
+  "不趕時間的移動，才看得見風景。",
+  "今天的漫遊，是送給未來的你的禮物。",
+  "走路是最誠實的旅行方式。",
+  "迷路也是一種探索。",
+  "城市的故事，藏在你停下來的每個瞬間。",
+  "腳步慢下來，世界就大了起來。",
+  "你不是在趕路，你是在收集記憶。",
+  "走著走著，就找到了答案。",
+  "每條路都值得被好好走過。",
+  "今天的你，多認識了一點這座城市。",
+  "散步是一種溫柔的勇氣。",
+  "你的足跡，是這座城市最好的地圖。",
+  "好好走路，是對自己最好的陪伴。",
+  "慢慢走，什麼都會來的。",
+  "城市不大，只要你願意用腳丈量。",
+  "今天走過的路，明天會變成想念。",
+  "每次 City Walk，都是一次小小的冒險。",
+  "謝謝你今天也好好走路了。"
+];
+
+/* PSEUDO: 隨機抽一句鼓勵詞語，使用日期當種子讓同一天抽到同一句 */
+function getDailyEncouragement() {
+  var today = new Date();
+  /* PSEUDO: 把今天的日期（年月日）轉成數字當作隨機種子
+     同一天永遠抽到同一句，明天才換新的 */
+  var seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  var index = seed % ENCOURAGE_LIST.length;
+  return ENCOURAGE_LIST[index];
+}
+
+
+/* PSEUDO: 狀態列文字和背景色統一控制 */
+function setStatusBar(text, bgColor) {
   var bar = document.getElementById('statusBar');
   bar.innerText = text;
   bar.style.backgroundColor = bgColor || 'var(--status-idle)';
-  bar.style.color = textColor || '#333333';
 }
-
 
 /* PSEUDO: 關閉回憶彈窗 */
 function closeMemoryBox() {
@@ -299,9 +349,7 @@ function closeMemoryBox() {
 
 
 /* ===================================================
-   PSEUDO: initMap()
-   Google Maps SDK 載入後自動執行
-   建立地圖、標記、Polyline、Geocoder、PlacesService
+   PSEUDO: initMap() - Google Maps SDK 載入後自動執行
    =================================================== */
 function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
@@ -310,34 +358,28 @@ function initMap() {
     disableDefaultUI: true,
     styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }]
   });
-
   marker = new google.maps.Marker({
     map,
     label: { text: "👣", fontSize: "30px" },
     icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
     zIndex: 999
   });
-
   pathLine = new google.maps.Polyline({
     map, strokeColor: "#333", strokeWeight: 6, strokeOpacity: 0.4
   });
-
   geocoder = new google.maps.Geocoder();
   placesService = new google.maps.places.PlacesService(map);
 }
 
 
 /* ===================================================
-   PSEUDO: createEventMarker()
-   用 OverlayView 自製 emoji 標記
-   確保手機觸控的 hitbox 正確（v1.2.0 修復）
+   PSEUDO: createEventMarker() - OverlayView 自製標記
+   解決手機 hitbox 問題（v1.2.0 修復）
    =================================================== */
 function createEventMarker(pos, icon, text, placeName) {
   function EmojiOverlay(position, icon, text, placeName) {
     this.position_ = new google.maps.LatLng(position.lat, position.lng);
-    this.icon_ = icon;
-    this.text_ = text;
-    this.placeName_ = placeName || '';
+    this.icon_ = icon; this.text_ = text; this.placeName_ = placeName || '';
     this.div_ = null;
     this.setMap(map);
   }
@@ -347,9 +389,7 @@ function createEventMarker(pos, icon, text, placeName) {
     var div = document.createElement('div');
     div.className = 'event-marker-div';
     div.innerText = this.icon_;
-    var capturedIcon = this.icon_;
-    var capturedText = this.text_;
-    var capturedPlace = this.placeName_;
+    var capturedIcon = this.icon_, capturedText = this.text_, capturedPlace = this.placeName_;
 
     function showMemory(e) {
       e.stopPropagation();
@@ -359,7 +399,6 @@ function createEventMarker(pos, icon, text, placeName) {
       document.getElementById('memoryPlace').innerText = capturedPlace ? ('📍 ' + capturedPlace) : '';
       document.getElementById('memoryBox').style.display = 'flex';
     }
-
     div.addEventListener('click', showMemory);
     div.addEventListener('touchstart', showMemory, { passive: false });
     this.div_ = div;
@@ -375,10 +414,7 @@ function createEventMarker(pos, icon, text, placeName) {
   };
 
   EmojiOverlay.prototype.onRemove = function() {
-    if (this.div_) {
-      this.div_.parentNode.removeChild(this.div_);
-      this.div_ = null;
-    }
+    if (this.div_) { this.div_.parentNode.removeChild(this.div_); this.div_ = null; }
   };
 
   return new EmojiOverlay(pos, icon, text, placeName);
@@ -395,34 +431,16 @@ function focusOnRouteStart() {
 
 
 /* ===================================================
-   PSEUDO: startWalk()
-   開始 City Walk
-   
-   [新增 v1.3.0] 狀態列邏輯：
-   
-   1. 立即把狀態列改成「取得定位中」（黃色）
-   2. 啟動一個 60 秒倒計時，如果 60 秒內都沒收到
-      有效 GPS 座標，自動終止並顯示提示
-   3. 每次收到有效座標後：
-      - 清除「取得定位中」的 60 秒計時器
-      - 判斷位移 > 7m → 切換為「漫步中」（綠色）
-      - 位移 < 7m → 啟動 15 秒計時器，
-        15 秒後若還沒移動就切「暫停一下...」（橘色）
+   PSEUDO: startWalk() - 開始 City Walk
+   含狀態列切換邏輯（v1.3.0）和 GPS 三道過濾（v1.1.0）
    =================================================== */
 function startWalk() {
   startTime = new Date();
-  lastMovedTime = new Date();
-
   document.getElementById('state-init').classList.add('hidden');
   document.getElementById('state-recording').classList.remove('hidden');
-
-  /* [新增 v1.3.0] step1：立刻顯示「取得定位中」 */
   setStatusBar('📡 取得定位狀態中', 'var(--status-locating)');
 
-  /* [新增 v1.3.0] step2：啟動 60 秒逾時計時器
-     PSEUDO: 如果 60 秒內都沒收到有效座標，視為定位失敗
-     自動執行和 endWalk 相同的結束流程，但不顯示結算
-     而是在功能區顯示提示訊息 */
+  /* PSEUDO: 60 秒定位逾時，超過自動終止並提示 */
   locatingTimer = setTimeout(function() {
     navigator.geolocation.clearWatch(watchId);
     clearTimeout(pauseTimer);
@@ -437,7 +455,7 @@ function startWalk() {
     var newPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
     var accuracy = pos.coords.accuracy;
 
-    /* GPS 漂移三道過濾（v1.1.0 修復） */
+    /* 防線一：精度過濾 */
     if (accuracy > 40) return;
 
     var dist = 0;
@@ -447,83 +465,53 @@ function startWalk() {
         new google.maps.LatLng(last.lat, last.lng),
         new google.maps.LatLng(newPoint.lat, newPoint.lng)
       );
+      /* 防線二：靜止漂移 */
       if (dist < 3) return;
+      /* 防線三：跳點 */
       if (dist > 80) return;
     }
 
-    /* PSEUDO: 收到第一個有效座標，清除「取得定位中」的逾時計時器 */
-    if (locatingTimer) {
-      clearTimeout(locatingTimer);
-      locatingTimer = null;
-    }
+    /* PSEUDO: 收到第一個有效座標，清除定位逾時計時器 */
+    if (locatingTimer) { clearTimeout(locatingTimer); locatingTimer = null; }
 
-    /* PSEUDO: 記錄有效座標，更新路線和標記位置 */
     walkPath.push(newPoint);
     pathLine.setPath(walkPath);
     marker.setPosition(newPoint);
     map.panTo(newPoint);
 
-    /* -----------------------------------------------
-       [新增 v1.3.0] 狀態判斷邏輯
-       
-       PSEUDO: 計算即時里程（給狀態列顯示用）
-       dist > 7m → 漫步中（清除暫停計時器）
-       dist < 7m 或剛開始 → 啟動/重置暫停計時器
-       ----------------------------------------------- */
+    /* PSEUDO: 狀態判斷 - 位移 > 7m 漫步中，否則啟動 15 秒暫停計時器 */
     var currentKm = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
-
     if (dist > 7) {
-      /* 正在移動：切換為「漫步中」綠色，顯示即時里程 */
       setStatusBar('🚶 漫步中・' + currentKm.toFixed(2) + ' km', 'var(--status-walking)');
-      lastMovedTime = new Date();
-
-      /* PSEUDO: 有移動就清除暫停計時器，避免誤判為暫停 */
-      if (pauseTimer) {
-        clearTimeout(pauseTimer);
-        pauseTimer = null;
-      }
+      if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
     } else {
-      /* PSEUDO: 距離 < 7m，啟動 15 秒暫停計時器
-         如果 15 秒內又開始移動，計時器會被上面的 clearTimeout 取消
-         如果 15 秒後還沒動，就切換為「暫停一下...」 */
       if (!pauseTimer) {
         pauseTimer = setTimeout(function() {
           setStatusBar('☕ 暫停一下...', 'var(--status-paused)');
           pauseTimer = null;
-        }, 15000); /* 15,000 毫秒 = 15 秒 */
+        }, 15000);
       }
     }
 
   }, function(err) {
     console.error('[GPS錯誤]', err);
     setStatusBar('📡 取得定位狀態中', 'var(--status-locating)');
-  }, {
-    enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: 10000
-  });
+  }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
 }
 
 
-/* ===================================================
-   PSEUDO: openEventCanvas()
-   開啟紀錄事件彈窗，同時查詢附近地標（NearbySearch）
-   =================================================== */
+/* PSEUDO: openEventCanvas() - 開啟事件視窗並查詢附近地標 */
 function openEventCanvas() {
   document.getElementById('eventModal').style.display = 'flex';
   document.getElementById('nearbyBadge').innerText = '📍 偵測附近地標中...';
   window._nearbyPlaceName = '';
-
   var currentPos = marker.getPosition();
   if (!currentPos || !placesService) {
     document.getElementById('nearbyBadge').innerText = '（無法取得位置）';
     return;
   }
-
   placesService.nearbySearch({
-    location: currentPos,
-    radius: 50,
-    type: ['establishment']
+    location: currentPos, radius: 50, type: ['establishment']
   }, function(results, status) {
     if (status === google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
       var names = results.slice(0, 3).map(function(p) { return p.name; });
@@ -535,8 +523,7 @@ function openEventCanvas() {
   });
 }
 
-
-/* PSEUDO: saveEvent() - 確認紀錄事件，加入陣列並放 OverlayView 標記 */
+/* PSEUDO: saveEvent() - 確認紀錄事件 */
 function saveEvent() {
   var text = document.getElementById('eventText').value;
   var pos = marker.getPosition().toJSON();
@@ -550,22 +537,21 @@ function saveEvent() {
 
 
 /* ===================================================
-   PSEUDO: endWalk()
-   結束漫遊
-   [新增 v1.3.0] 清除所有計時器，狀態列改為「漫遊結束」
+   PSEUDO: endWalk() - 結束漫遊
+   [新增 v1.4.0] 結算時顯示當日鼓勵詞語
    =================================================== */
 function endWalk() {
   navigator.geolocation.clearWatch(watchId);
-
-  /* [新增 v1.3.0] 清除所有狀態相關計時器 */
   if (pauseTimer) { clearTimeout(pauseTimer); pauseTimer = null; }
   if (locatingTimer) { clearTimeout(locatingTimer); locatingTimer = null; }
-
-  /* [新增 v1.3.0] 狀態列切換為結束狀態 */
   setStatusBar('✅ 漫遊結束', 'var(--status-ended)');
-
   document.getElementById('state-recording').classList.add('hidden');
   document.getElementById('state-finished').classList.remove('hidden');
+
+  /* [新增 v1.4.0] 顯示鼓勵詞語
+     PSEUDO: 從 ENCOURAGE_LIST 依今日日期抽一句，
+     顯示在 encourageBox，用引號包住增加視覺層次 */
+  document.getElementById('encourageBox').innerText = '「' + getDailyEncouragement() + '」';
 
   totalDistance = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
   durationStr = Math.floor(Math.abs(new Date() - startTime) / 60000) + " 分鐘";
@@ -589,22 +575,15 @@ function endWalk() {
 }
 
 
-/* ===================================================
-   PSEUDO: executeCloudSave()
-   把路線資料存到 Firebase Firestore
-   =================================================== */
+/* PSEUDO: executeCloudSave() - 存到 Firebase */
 async function executeCloudSave() {
   var btn = document.getElementById('btnConfirmSave');
   if (btn) btn.disabled = true;
   try {
     await window.api.addDoc(window.api.collection(window.db, "walk_records"), {
       name: document.getElementById('routeName').value || "未命名漫遊",
-      city: cityName,
-      distance: totalDistance,
-      duration: durationStr,
-      path: walkPath,
-      events: eventsData,
-      isPinned: false,
+      city: cityName, distance: totalDistance, duration: durationStr,
+      path: walkPath, events: eventsData, isPinned: false,
       createdAt: window.api.serverTimestamp()
     });
     location.reload();
@@ -615,11 +594,7 @@ async function executeCloudSave() {
 }
 
 
-/* ===================================================
-   PSEUDO: fetchRecords()
-   從 Firebase 讀取所有路線，渲染成清單卡片
-   排序：isPinned 優先，再依 createdAt 倒序
-   =================================================== */
+/* PSEUDO: fetchRecords() - 從 Firebase 讀取清單 */
 async function fetchRecords() {
   var container = document.getElementById('recordsContainer');
   if (!container) return;
@@ -651,11 +626,7 @@ async function fetchRecords() {
 }
 
 
-/* ===================================================
-   PSEUDO: loadSavedRoute()
-   從清單點擊卡片，把舊路線載入地圖
-   清除目前路線和標記，重繪舊路線（橘色）
-   =================================================== */
+/* PSEUDO: loadSavedRoute() - 載入舊路線到地圖 */
 function loadSavedRoute(id) {
   var data = window.currentDocs.find(function(d) { return d.id === id; });
   if (!data) return;
@@ -676,8 +647,6 @@ function loadSavedRoute(id) {
   document.getElementById('btnFocusRoute').classList.remove('hidden');
 }
 
-
-/* PSEUDO: 刪除路線，stopPropagation 防止觸發卡片的 loadSavedRoute */
 async function deleteRecord(e, id) {
   e.stopPropagation();
   if (!confirm("確定要刪除嗎？")) return;
@@ -685,14 +654,19 @@ async function deleteRecord(e, id) {
   fetchRecords();
 }
 
-/* PSEUDO: 切換釘選狀態 */
 async function togglePin(e, id, status) {
   e.stopPropagation();
   await window.api.updateDoc(window.api.doc(window.db, "walk_records", id), { isPinned: !status });
   fetchRecords();
 }
 
-/* PSEUDO: 切換主畫面和清單頁 */
+
+/* ===================================================
+   [校正 v1.4.0] switchPage()
+   PSEUDO: 切換到清單頁時隱藏地圖控制鈕（📍定位按鈕）
+   切回主畫面時重新顯示
+   因為 map-controls 是 fixed 定位，會飄在清單頁上方
+   =================================================== */
 function switchPage(p) {
   document.querySelectorAll('.page').forEach(function(page) { page.classList.add('hidden'); });
   document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
@@ -700,10 +674,16 @@ function switchPage(p) {
   var targetNav  = document.getElementById('nav-' + p);
   if (targetPage) targetPage.classList.remove('hidden');
   if (targetNav)  targetNav.classList.add('active');
+
+  /* PSEUDO: 清單頁隱藏地圖控制鈕，主畫面顯示 */
+  var mapControls = document.querySelector('.map-controls');
+  if (mapControls) {
+    mapControls.style.display = (p === 'list') ? 'none' : 'flex';
+  }
+
   if (p === 'list') fetchRecords();
 }
 
-/* PSEUDO: 切換選中的事件 emoji */
 function selectIcon(el, icon) {
   document.querySelectorAll('.icon-item').forEach(function(i) { i.classList.remove('selected'); });
   el.classList.add('selected');
@@ -712,7 +692,7 @@ function selectIcon(el, icon) {
 
 function openSaveModal() { document.getElementById('saveModal').style.display = 'flex'; }
 
-/* PSEUDO: 把所有函式掛到 window，讓 HTML onclick 可以呼叫 */
+/* PSEUDO: 把所有函式掛到 window */
 window.onload = initMap;
 window.focusOnMe = focusOnMe;
 window.focusOnRouteStart = focusOnRouteStart;
@@ -727,9 +707,7 @@ window.deleteRecord = deleteRecord;
 window.togglePin = togglePin;
 </script>
 
-<!-- PSEUDO: 載入 Google Maps SDK
-     libraries=places,geometry 兩個都必須有
-     places → NearbySearch；geometry → 計算距離 -->
+<!-- PSEUDO: Google Maps SDK，libraries=places,geometry 兩個都必須有 -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=places,geometry" async defer></script>
 
 </body>
