@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.4.0</title>
+<title>City Walker - v1.5.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
 <style>
 /* ===================================================
-   PSEUDO: 全域 CSS 變數（色票）
+   PSEUDO: 全域 CSS 變數
    =================================================== */
 :root {
   --bg-warm: #F9F7F2;
@@ -25,17 +25,14 @@
   --status-ended:    #E2E8F0;
 }
 
-/* PSEUDO: 全域重置，禁止頁面捲動 */
 body {
   margin: 0; padding: 0;
   font-family: 'Poly', 'Microsoft JhengHei', sans-serif;
   background: var(--bg-warm); color: var(--text-main);
   overflow: hidden; width: 100vw; height: 100vh;
 }
-
 .hidden { display: none !important; }
 
-/* PSEUDO: 每個主畫面的容器，疊在同一位置用 hidden 切換 */
 .page {
   height: 100vh; width: 100%;
   position: absolute; top: 0; left: 0;
@@ -45,7 +42,6 @@ body {
 #page-main { z-index: 20; overflow: hidden; }
 #page-list { z-index: 25; background: var(--bg-warm); padding-top: 60px; }
 
-/* PSEUDO: 頂部狀態列，顏色切換有 0.5s 漸變動畫 */
 #statusBar {
   position: fixed; top: 0; width: 100%; height: 50px;
   display: flex; align-items: center; justify-content: center;
@@ -53,13 +49,12 @@ body {
   background: var(--status-idle);
   backdrop-filter: blur(5px);
   z-index: 1000; border-bottom: 1px solid var(--border-light);
-  transition: background-color 0.5s ease, color 0.5s ease;
+  transition: background-color 0.5s ease;
   letter-spacing: 1px;
 }
 
 #map { height: 100vh; width: 100%; background: #e5e3df; }
 
-/* PSEUDO: 地圖右側浮動控制鈕 */
 .map-controls {
   position: fixed; right: 20px; bottom: 210px;
   display: flex; flex-direction: column; gap: 12px; z-index: 1200;
@@ -71,7 +66,6 @@ body {
   font-size: 22px; cursor: pointer; border: none;
 }
 
-/* PSEUDO: 底部功能面板 */
 #functionPanel {
   position: fixed; bottom: 95px;
   left: 50%; transform: translateX(-50%);
@@ -81,7 +75,6 @@ body {
   z-index: 1500; text-align: center;
 }
 
-/* PSEUDO: 路線清單卡片 */
 #recordsContainer { width: 92%; max-width: 450px; margin: 0 auto; }
 .record-card {
   background: var(--white); margin: 15px 0; padding: 22px;
@@ -93,7 +86,6 @@ body {
 .pin-icon { position: absolute; top: 18px; right: 18px; cursor: pointer; font-size: 22px; opacity: 0.3; }
 .delete-btn { position: absolute; bottom: 18px; right: 18px; cursor: pointer; font-size: 18px; opacity: 0.3; }
 
-/* PSEUDO: 底部導覽列 */
 #navBar {
   position: fixed; bottom: 0; width: 100%; height: 75px;
   background: var(--white); display: flex;
@@ -107,7 +99,6 @@ body {
 }
 .nav-item.active { color: var(--text-main); font-weight: bold; }
 
-/* PSEUDO: 共用按鈕樣式 */
 .btn-base {
   padding: 16px 24px; font-size: 15px; font-weight: bold;
   border: none; border-radius: 14px; cursor: pointer; width: 100%; outline: none;
@@ -115,7 +106,6 @@ body {
 .btn-main { background: var(--text-main); color: var(--white); }
 .btn-event { background: var(--accent-positive); color: var(--white); }
 
-/* PSEUDO: Modal 共用，z-index 9999 蓋過所有地圖圖層 */
 #eventModal, #saveModal, #memoryBox {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.5);
@@ -130,19 +120,13 @@ body {
 .icon-item { cursor: pointer; padding: 8px; border-radius: 12px; border: 2px solid transparent; }
 .icon-item.selected { background: var(--bg-warm); border-color: var(--accent-positive); }
 
-/* PSEUDO: 地標偵測結果顯示區 */
 #nearbyBadge { font-size: 12px; color: var(--text-soft); margin-bottom: 8px; min-height: 18px; }
 
-/* ===================================================
-   [校正 v1.4.0] 回憶視窗關閉按鈕
-   PSEUDO: 改成右上角 ✕ icon，符合手機 UX 習慣
-   使用者直覺是「右上角關閉」，不是底部大按鈕
-   =================================================== */
+/* PSEUDO: 回憶視窗關閉按鈕，右上角 ✕ */
 #memoryCloseBtn {
   position: absolute; top: 16px; right: 20px;
   font-size: 22px; color: var(--text-soft);
-  cursor: pointer; line-height: 1;
-  padding: 4px 8px; border-radius: 50%;
+  cursor: pointer; padding: 4px 8px; border-radius: 50%;
   transition: background 0.2s;
 }
 #memoryCloseBtn:active { background: var(--bg-warm); }
@@ -154,9 +138,72 @@ body {
   user-select: none; -webkit-user-select: none;
   pointer-events: auto; z-index: 999;
 }
+
+/* ===================================================
+   [新增 v1.5.0] 色彩色盤樣式
+   
+   PSEUDO: 設計決策
+   - 位置：地圖左上角固定浮層，不干擾功能面板
+   - 平時收合顯示目前選色的圓點，點擊展開 7 色選擇
+   - 走路開始後整個色盤隱藏（路線顏色已鎖定）
+   - 7 個圓形色塊，選中的有白色邊框＋放大效果
+   =================================================== */
+#colorPicker {
+  position: fixed;
+  top: 62px; /* 狀態列下方 */
+  left: 16px;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* PSEUDO: 收合狀態只顯示目前顏色的小圓點 + 展開箭頭 */
+#colorToggleBtn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 3px solid var(--white);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  cursor: pointer;
+  transition: transform 0.2s;
+  position: relative;
+}
+#colorToggleBtn:active { transform: scale(0.92); }
+
+/* PSEUDO: 展開後的色盤容器，有白色圓角卡片背景 */
+#colorOptions {
+  display: none; /* 預設收合 */
+  flex-direction: column;
+  gap: 8px;
+  background: var(--white);
+  border-radius: 20px;
+  padding: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+#colorOptions.open { display: flex; }
+
+/* PSEUDO: 每個顏色圓點 */
+.color-dot {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid transparent;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transition: transform 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.color-dot:active { transform: scale(0.88); }
+
+/* PSEUDO: 選中的顏色：白色邊框 + 放大 */
+.color-dot.selected {
+  border-color: var(--white);
+  transform: scale(1.18);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
 </style>
 
-<!-- PSEUDO: Firebase 初始化，掛到 window 供傳統 script 使用 -->
+<!-- PSEUDO: Firebase 初始化 -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -179,26 +226,39 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 <div id="statusBar">City Walker</div>
 
 <!-- ===================================================
-     PSEUDO: 地圖控制鈕
-     只在主畫面（漫遊頁）顯示，清單頁不需要
-     [校正 v1.4.0] map-controls 本來在清單頁也看得到
-     改為只綁在 page-main 內部即可，詳見下方 HTML 結構
+     [新增 v1.5.0] 色彩色盤
+     PSEUDO: 位於地圖左上角，走路前可選擇軌跡顏色
+     
+     結構：
+     1. #colorToggleBtn → 收合狀態，顯示目前選色圓點
+     2. #colorOptions   → 展開後的 7 色選擇清單
+     
+     7 色：炭黑（預設）、珊瑚橘、薄荷綠、天空藍、薰衣草紫、玫瑰粉、金黃
      =================================================== -->
+<div id="colorPicker">
+  <!-- 收合按鈕：背景色 = 目前選中顏色，點擊展開/收合 -->
+  <div id="colorToggleBtn" onclick="toggleColorPicker()"></div>
+
+  <!-- 展開後的色盤 -->
+  <div id="colorOptions">
+    <div class="color-dot selected" style="background:#333333;" data-color="#333333" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#FF6B6B;" data-color="#FF6B6B" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#8FB9A8;" data-color="#8FB9A8" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#5BA4CF;" data-color="#5BA4CF" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#B39DDB;" data-color="#B39DDB" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#F48FB1;" data-color="#F48FB1" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#FFD700;" data-color="#FFD700" onclick="selectColor(this)"></div>
+  </div>
+</div>
+
 <div class="map-controls">
   <button class="map-btn" onclick="focusOnMe()">📍</button>
   <button class="map-btn hidden" id="btnFocusRoute" onclick="focusOnRouteStart()">🛣️</button>
 </div>
 
-<!-- ===================================================
-     [校正 v1.4.0] 回憶視窗
-     PSEUDO: 改成右上角 ✕ 關閉，符合手機 UX 直覺
-     - 原本是底部大按鈕「關閉回憶」
-     - 手機使用者預期右上角有關閉鍵
-     - 點擊背景半透明區域也可以關閉（保留原有行為）
-     =================================================== -->
+<!-- PSEUDO: 回憶彈窗，右上角 ✕ 關閉 -->
 <div id="memoryBox" onclick="closeMemoryBox()">
   <div class="modal-content" onclick="event.stopPropagation()" style="position:relative; text-align:center; padding-top:40px;">
-    <!-- 右上角關閉按鈕 -->
     <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
     <div id="memoryIcon" style="font-size:50px; margin-bottom:12px;">📸</div>
     <div id="memoryPlace" style="font-size:12px; color:var(--text-soft); margin-bottom:6px;"></div>
@@ -252,11 +312,6 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
       <button class="btn-base" style="background:#f5f5f5; color:#666; margin-top:10px;" onclick="endWalk()">結束本次漫遊</button>
     </div>
     <div id="state-finished" class="hidden">
-      <!-- ===================================================
-           [新增 v1.4.0] 鼓勵詞語區塊
-           PSEUDO: 顯示在結算數據上方，每次隨機抽一句
-           用淡色斜體呈現，視覺上輕盈不搶戲
-           =================================================== -->
       <div id="encourageBox" style="font-style:italic; color:var(--accent-positive); font-size:14px; margin-bottom:12px; line-height:1.6;"></div>
       <div id="summaryBox" style="background:#FCFAF7; border-radius:16px; padding:15px; margin-bottom:15px; text-align:left; font-size:14px; border:1px dashed var(--accent-positive);"></div>
       <button class="btn-base btn-event" onclick="openSaveModal()">加入我的路線清單</button>
@@ -265,13 +320,7 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
   </div>
 </div>
 
-<!-- ===================================================
-     [校正 v1.4.0] 清單頁
-     PSEUDO: 把 map-controls（📍定位按鈕）移出清單頁範圍
-     清單頁是靜態列表，不需要地圖定位功能
-     原本 map-controls 是 fixed 定位，清單頁也看得到
-     解法：用 JS 在切換頁面時控制 map-controls 的顯示/隱藏
-     =================================================== -->
+<!-- PSEUDO: 清單頁 -->
 <div id="page-list" class="page hidden">
   <h2 style="text-align:center; letter-spacing:2px; margin-bottom:20px;">MY JOURNEYS</h2>
   <div id="recordsContainer"></div>
@@ -286,20 +335,20 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 <script>
 /* ===================================================
    PSEUDO: 全域變數
+   新增：
+   - selectedTrackColor：目前選中的軌跡顏色，預設炭黑
    =================================================== */
 let map, marker, pathLine, watchId, geocoder, placesService;
 let walkPath = [], eventsData = [], totalDistance = 0;
 let startTime, durationStr, cityName = "未知城市", selectedIcon = '📸';
 let historyMarkers = [];
-let pauseTimer = null;
-let locatingTimer = null;
+let pauseTimer = null, locatingTimer = null;
+let selectedTrackColor = '#333333'; /* [新增 v1.5.0] 預設炭黑 */
 
 
 /* ===================================================
-   [新增 v1.4.0] 鼓勵詞語資料庫
-   PSEUDO: 依照規格書「鼓勵詞語數據庫」
-   共 20 句，結算時隨機抽一句顯示
-   設計原則：正向、簡短、與走路/探索主題相關
+   PSEUDO: 鼓勵詞語資料庫（v1.4.0 新增）
+   依今日日期抽取，同一天固定同一句
    =================================================== */
 var ENCOURAGE_LIST = [
   "每一步都是在和這座城市說你好。",
@@ -324,32 +373,80 @@ var ENCOURAGE_LIST = [
   "謝謝你今天也好好走路了。"
 ];
 
-/* PSEUDO: 隨機抽一句鼓勵詞語，使用日期當種子讓同一天抽到同一句 */
 function getDailyEncouragement() {
   var today = new Date();
-  /* PSEUDO: 把今天的日期（年月日）轉成數字當作隨機種子
-     同一天永遠抽到同一句，明天才換新的 */
   var seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-  var index = seed % ENCOURAGE_LIST.length;
-  return ENCOURAGE_LIST[index];
+  return ENCOURAGE_LIST[seed % ENCOURAGE_LIST.length];
 }
 
 
-/* PSEUDO: 狀態列文字和背景色統一控制 */
+/* ===================================================
+   [新增 v1.5.0] 色彩色盤控制函式
+
+   toggleColorPicker()
+   PSEUDO: 點擊收合按鈕，切換色盤展開/收合狀態
+   點擊其他地方也會自動收合（見 document click 監聽）
+
+   selectColor()
+   PSEUDO: 選擇顏色
+   1. 更新 selectedTrackColor 變數
+   2. 更新收合按鈕的背景色（視覺反饋）
+   3. 移除其他圓點的 selected class，選中的加上
+   4. 立即更新 Polyline 顏色（如果正在走路中）
+   5. 收合色盤
+   =================================================== */
+function toggleColorPicker() {
+  var options = document.getElementById('colorOptions');
+  options.classList.toggle('open');
+}
+
+function selectColor(el) {
+  var color = el.getAttribute('data-color');
+  selectedTrackColor = color;
+
+  /* PSEUDO: 更新收合按鈕顏色，讓使用者看到目前選擇 */
+  document.getElementById('colorToggleBtn').style.backgroundColor = color;
+
+  /* PSEUDO: 更新選中狀態的視覺 */
+  document.querySelectorAll('.color-dot').forEach(function(dot) {
+    dot.classList.remove('selected');
+  });
+  el.classList.add('selected');
+
+  /* PSEUDO: 如果正在走路，立即更新 Polyline 顏色
+     讓使用者可以走到一半換顏色，分段不同顏色 */
+  if (pathLine) {
+    pathLine.setOptions({ strokeColor: color });
+  }
+
+  /* PSEUDO: 選完顏色後自動收合色盤 */
+  document.getElementById('colorOptions').classList.remove('open');
+}
+
+/* PSEUDO: 點擊地圖或其他地方時，自動收合色盤 */
+document.addEventListener('click', function(e) {
+  var picker = document.getElementById('colorPicker');
+  if (picker && !picker.contains(e.target)) {
+    document.getElementById('colorOptions').classList.remove('open');
+  }
+});
+
+
+/* PSEUDO: 狀態列控制 */
 function setStatusBar(text, bgColor) {
   var bar = document.getElementById('statusBar');
   bar.innerText = text;
   bar.style.backgroundColor = bgColor || 'var(--status-idle)';
 }
 
-/* PSEUDO: 關閉回憶彈窗 */
 function closeMemoryBox() {
   document.getElementById('memoryBox').style.display = 'none';
 }
 
 
 /* ===================================================
-   PSEUDO: initMap() - Google Maps SDK 載入後自動執行
+   PSEUDO: initMap() - Google Maps 初始化
+   [新增 v1.5.0] 初始化後設定色盤收合按鈕的預設背景色
    =================================================== */
 function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {
@@ -358,24 +455,30 @@ function initMap() {
     disableDefaultUI: true,
     styles: [{ featureType: "poi", stylers: [{ visibility: "off" }] }]
   });
+
   marker = new google.maps.Marker({
     map,
     label: { text: "👣", fontSize: "30px" },
     icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
     zIndex: 999
   });
+
   pathLine = new google.maps.Polyline({
-    map, strokeColor: "#333", strokeWeight: 6, strokeOpacity: 0.4
+    map,
+    strokeColor: selectedTrackColor, /* [新增 v1.5.0] 使用選中顏色 */
+    strokeWeight: 6,
+    strokeOpacity: 0.85             /* [調整 v1.5.0] 提高不透明度讓顏色更鮮明 */
   });
+
   geocoder = new google.maps.Geocoder();
   placesService = new google.maps.places.PlacesService(map);
+
+  /* [新增 v1.5.0] 設定色盤收合按鈕初始背景色（預設炭黑） */
+  document.getElementById('colorToggleBtn').style.backgroundColor = selectedTrackColor;
 }
 
 
-/* ===================================================
-   PSEUDO: createEventMarker() - OverlayView 自製標記
-   解決手機 hitbox 問題（v1.2.0 修復）
-   =================================================== */
+/* PSEUDO: createEventMarker() - OverlayView 自製標記（v1.2.0 修復） */
 function createEventMarker(pos, icon, text, placeName) {
   function EmojiOverlay(position, icon, text, placeName) {
     this.position_ = new google.maps.LatLng(position.lat, position.lng);
@@ -390,7 +493,6 @@ function createEventMarker(pos, icon, text, placeName) {
     div.className = 'event-marker-div';
     div.innerText = this.icon_;
     var capturedIcon = this.icon_, capturedText = this.text_, capturedPlace = this.placeName_;
-
     function showMemory(e) {
       e.stopPropagation();
       if (e.preventDefault) e.preventDefault();
@@ -431,8 +533,8 @@ function focusOnRouteStart() {
 
 
 /* ===================================================
-   PSEUDO: startWalk() - 開始 City Walk
-   含狀態列切換邏輯（v1.3.0）和 GPS 三道過濾（v1.1.0）
+   PSEUDO: startWalk()
+   [新增 v1.5.0] 開始走路後隱藏色盤（顏色已鎖定）
    =================================================== */
 function startWalk() {
   startTime = new Date();
@@ -440,7 +542,14 @@ function startWalk() {
   document.getElementById('state-recording').classList.remove('hidden');
   setStatusBar('📡 取得定位狀態中', 'var(--status-locating)');
 
-  /* PSEUDO: 60 秒定位逾時，超過自動終止並提示 */
+  /* [新增 v1.5.0] 隱藏色盤，走路中不允許換色
+     PSEUDO: 走路開始後顏色鎖定，避免路線中途混亂
+     如果要允許中途換色，把這行移除即可 */
+  document.getElementById('colorPicker').style.display = 'none';
+
+  /* PSEUDO: 確保 Polyline 使用選中顏色 */
+  pathLine.setOptions({ strokeColor: selectedTrackColor, strokeOpacity: 0.85 });
+
   locatingTimer = setTimeout(function() {
     navigator.geolocation.clearWatch(watchId);
     clearTimeout(pauseTimer);
@@ -455,7 +564,6 @@ function startWalk() {
     var newPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
     var accuracy = pos.coords.accuracy;
 
-    /* 防線一：精度過濾 */
     if (accuracy > 40) return;
 
     var dist = 0;
@@ -465,13 +573,10 @@ function startWalk() {
         new google.maps.LatLng(last.lat, last.lng),
         new google.maps.LatLng(newPoint.lat, newPoint.lng)
       );
-      /* 防線二：靜止漂移 */
       if (dist < 3) return;
-      /* 防線三：跳點 */
       if (dist > 80) return;
     }
 
-    /* PSEUDO: 收到第一個有效座標，清除定位逾時計時器 */
     if (locatingTimer) { clearTimeout(locatingTimer); locatingTimer = null; }
 
     walkPath.push(newPoint);
@@ -479,7 +584,6 @@ function startWalk() {
     marker.setPosition(newPoint);
     map.panTo(newPoint);
 
-    /* PSEUDO: 狀態判斷 - 位移 > 7m 漫步中，否則啟動 15 秒暫停計時器 */
     var currentKm = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
     if (dist > 7) {
       setStatusBar('🚶 漫步中・' + currentKm.toFixed(2) + ' km', 'var(--status-walking)');
@@ -500,7 +604,6 @@ function startWalk() {
 }
 
 
-/* PSEUDO: openEventCanvas() - 開啟事件視窗並查詢附近地標 */
 function openEventCanvas() {
   document.getElementById('eventModal').style.display = 'flex';
   document.getElementById('nearbyBadge').innerText = '📍 偵測附近地標中...';
@@ -523,7 +626,6 @@ function openEventCanvas() {
   });
 }
 
-/* PSEUDO: saveEvent() - 確認紀錄事件 */
 function saveEvent() {
   var text = document.getElementById('eventText').value;
   var pos = marker.getPosition().toJSON();
@@ -537,8 +639,8 @@ function saveEvent() {
 
 
 /* ===================================================
-   PSEUDO: endWalk() - 結束漫遊
-   [新增 v1.4.0] 結算時顯示當日鼓勵詞語
+   PSEUDO: endWalk()
+   [新增 v1.5.0] 把選用的顏色存入 Firebase，重播時使用
    =================================================== */
 function endWalk() {
   navigator.geolocation.clearWatch(watchId);
@@ -547,10 +649,6 @@ function endWalk() {
   setStatusBar('✅ 漫遊結束', 'var(--status-ended)');
   document.getElementById('state-recording').classList.add('hidden');
   document.getElementById('state-finished').classList.remove('hidden');
-
-  /* [新增 v1.4.0] 顯示鼓勵詞語
-     PSEUDO: 從 ENCOURAGE_LIST 依今日日期抽一句，
-     顯示在 encourageBox，用引號包住增加視覺層次 */
   document.getElementById('encourageBox').innerText = '「' + getDailyEncouragement() + '」';
 
   totalDistance = google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000;
@@ -575,15 +673,24 @@ function endWalk() {
 }
 
 
-/* PSEUDO: executeCloudSave() - 存到 Firebase */
+/* ===================================================
+   PSEUDO: executeCloudSave()
+   [新增 v1.5.0] trackColor 欄位存入 Firebase
+   重播舊路線時可以用原本的顏色繪製
+   =================================================== */
 async function executeCloudSave() {
   var btn = document.getElementById('btnConfirmSave');
   if (btn) btn.disabled = true;
   try {
     await window.api.addDoc(window.api.collection(window.db, "walk_records"), {
       name: document.getElementById('routeName').value || "未命名漫遊",
-      city: cityName, distance: totalDistance, duration: durationStr,
-      path: walkPath, events: eventsData, isPinned: false,
+      city: cityName,
+      distance: totalDistance,
+      duration: durationStr,
+      path: walkPath,
+      events: eventsData,
+      trackColor: selectedTrackColor, /* [新增 v1.5.0] 儲存軌跡顏色 */
+      isPinned: false,
       createdAt: window.api.serverTimestamp()
     });
     location.reload();
@@ -594,7 +701,6 @@ async function executeCloudSave() {
 }
 
 
-/* PSEUDO: fetchRecords() - 從 Firebase 讀取清單 */
 async function fetchRecords() {
   var container = document.getElementById('recordsContainer');
   if (!container) return;
@@ -608,8 +714,11 @@ async function fetchRecords() {
     });
     container.innerHTML = "";
     window.currentDocs.forEach(function(data) {
+      /* [新增 v1.5.0] 卡片左邊框用路線顏色，視覺化區分不同路線 */
+      var cardColor = data.trackColor || 'var(--accent-positive)';
       var card = document.createElement('div');
       card.className = 'record-card ' + (data.isPinned ? 'is-pinned' : '');
+      card.style.borderLeftColor = data.isPinned ? 'var(--accent-pin)' : cardColor;
       card.onclick = function() { loadSavedRoute(data.id); };
       card.innerHTML =
         '<div class="pin-icon" onclick="togglePin(event,\'' + data.id + '\',' + data.isPinned + ')">📌</div>' +
@@ -626,7 +735,11 @@ async function fetchRecords() {
 }
 
 
-/* PSEUDO: loadSavedRoute() - 載入舊路線到地圖 */
+/* ===================================================
+   PSEUDO: loadSavedRoute()
+   [新增 v1.5.0] 讀取 trackColor，用原本顏色重播路線
+   舊資料沒有 trackColor 欄位時，fallback 到橘色
+   =================================================== */
 function loadSavedRoute(id) {
   var data = window.currentDocs.find(function(d) { return d.id === id; });
   if (!data) return;
@@ -636,7 +749,11 @@ function loadSavedRoute(id) {
   historyMarkers = [];
   var pts = data.path.map(function(p) { return { lat: p.lat, lng: p.lng }; });
   pathLine.setPath(pts);
-  pathLine.setOptions({ strokeColor: "#FEAD89", strokeOpacity: 0.8, strokeWeight: 8 });
+
+  /* [新增 v1.5.0] 用儲存的顏色重播，沒有顏色資料則 fallback 橘色 */
+  var replayColor = data.trackColor || '#FEAD89';
+  pathLine.setOptions({ strokeColor: replayColor, strokeOpacity: 0.85, strokeWeight: 6 });
+
   if (data.events) {
     data.events.forEach(function(ev) {
       var m = createEventMarker(ev.pos, ev.icon, ev.text, ev.placeName || '');
@@ -646,6 +763,7 @@ function loadSavedRoute(id) {
   map.panTo(pts[0]);
   document.getElementById('btnFocusRoute').classList.remove('hidden');
 }
+
 
 async function deleteRecord(e, id) {
   e.stopPropagation();
@@ -660,12 +778,11 @@ async function togglePin(e, id, status) {
   fetchRecords();
 }
 
-
 /* ===================================================
-   [校正 v1.4.0] switchPage()
-   PSEUDO: 切換到清單頁時隱藏地圖控制鈕（📍定位按鈕）
-   切回主畫面時重新顯示
-   因為 map-controls 是 fixed 定位，會飄在清單頁上方
+   PSEUDO: switchPage()
+   [調整 v1.5.0] 切到清單頁時也隱藏色盤
+   切回主畫面時，只有在 state-init 狀態才顯示色盤
+   （走路中和結束後不重新顯示）
    =================================================== */
 function switchPage(p) {
   document.querySelectorAll('.page').forEach(function(page) { page.classList.add('hidden'); });
@@ -675,10 +792,17 @@ function switchPage(p) {
   if (targetPage) targetPage.classList.remove('hidden');
   if (targetNav)  targetNav.classList.add('active');
 
-  /* PSEUDO: 清單頁隱藏地圖控制鈕，主畫面顯示 */
   var mapControls = document.querySelector('.map-controls');
-  if (mapControls) {
-    mapControls.style.display = (p === 'list') ? 'none' : 'flex';
+  var colorPicker = document.getElementById('colorPicker');
+  var isInit = !document.getElementById('state-init').classList.contains('hidden');
+
+  if (p === 'list') {
+    if (mapControls) mapControls.style.display = 'none';
+    if (colorPicker) colorPicker.style.display = 'none';
+  } else {
+    if (mapControls) mapControls.style.display = 'flex';
+    /* PSEUDO: 只有在 state-init（還沒開始走）才顯示色盤 */
+    if (colorPicker) colorPicker.style.display = isInit ? 'flex' : 'none';
   }
 
   if (p === 'list') fetchRecords();
@@ -692,7 +816,6 @@ function selectIcon(el, icon) {
 
 function openSaveModal() { document.getElementById('saveModal').style.display = 'flex'; }
 
-/* PSEUDO: 把所有函式掛到 window */
 window.onload = initMap;
 window.focusOnMe = focusOnMe;
 window.focusOnRouteStart = focusOnRouteStart;
@@ -705,9 +828,10 @@ window.switchPage = switchPage;
 window.closeMemoryBox = closeMemoryBox;
 window.deleteRecord = deleteRecord;
 window.togglePin = togglePin;
+window.toggleColorPicker = toggleColorPicker;
+window.selectColor = selectColor;
 </script>
 
-<!-- PSEUDO: Google Maps SDK，libraries=places,geometry 兩個都必須有 -->
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=places,geometry" async defer></script>
 
 </body>
