@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.8.4</title>
+<title>City Walker - v1.8.5</title>
 <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -436,7 +436,11 @@ async function openEventCanvas(){
       nearbyPlaces.push(placeData);
       var tag=document.createElement('div');
       tag.className='place-tag';
-      tag.innerText='📍 '+place.displayName;
+      /* PSEUDO: 地標名稱超過 10 字截斷加 ...，避免 tag 過長擠版面 */
+      var shortName = place.displayName.length > 10
+        ? place.displayName.slice(0, 10) + '...'
+        : place.displayName;
+      tag.innerText='📍 '+shortName;
       tag.onclick=function(){
         if(selectedPlace&&selectedPlace.placeId===placeData.placeId){
           selectedPlace=null; tag.classList.remove('selected');
