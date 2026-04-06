@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.6.0</title>
+<title>City Walker - v1.7.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -41,14 +41,11 @@ body {
   position: fixed; top: 0; width: 100%; height: 50px;
   display: flex; align-items: center; justify-content: center;
   font-size: 13px; font-weight: bold;
-  background: var(--status-idle);
-  backdrop-filter: blur(5px);
+  background: var(--status-idle); backdrop-filter: blur(5px);
   z-index: 1000; border-bottom: 1px solid var(--border-light);
-  transition: background-color 0.5s ease;
-  letter-spacing: 1px;
+  transition: background-color 0.5s ease; letter-spacing: 1px;
 }
 #map { height: 100vh; width: 100%; background: #e5e3df; }
-
 .map-controls {
   position: fixed; right: 20px; bottom: 210px;
   display: flex; flex-direction: column; gap: 12px; z-index: 1200;
@@ -77,7 +74,6 @@ body {
 .record-card.is-pinned { border-left-color: var(--accent-pin); background: #FFFDF5; }
 .pin-icon { position: absolute; top: 18px; right: 18px; cursor: pointer; font-size: 22px; opacity: 0.3; }
 .delete-btn { position: absolute; bottom: 18px; right: 18px; cursor: pointer; font-size: 18px; opacity: 0.3; }
-
 #navBar {
   position: fixed; bottom: 0; width: 100%; height: 75px;
   background: var(--white); display: flex;
@@ -107,9 +103,6 @@ body {
   background: var(--white); width: 90%; max-width: 380px;
   border-radius: 28px; padding: 25px; box-sizing: border-box;
 }
-.icon-selector { display: flex; justify-content: space-around; margin: 15px 0; font-size: 28px; }
-.icon-item { cursor: pointer; padding: 8px; border-radius: 12px; border: 2px solid transparent; }
-.icon-item.selected { background: var(--bg-warm); border-color: var(--accent-positive); }
 #nearbyBadge { font-size: 12px; color: var(--text-soft); margin-bottom: 8px; min-height: 18px; }
 #memoryCloseBtn {
   position: absolute; top: 16px; right: 20px;
@@ -154,6 +147,85 @@ body {
 .color-dot.selected {
   border-color: var(--white); transform: scale(1.18);
   box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+}
+
+/* ===================================================
+   [新增 v1.7.0] Icon 選擇器樣式
+   
+   PSEUDO: 設計重點
+   - 頂部有分類 tab（美食、飲品、自然...）
+   - 點擊 tab 切換對應 icon 群組
+   - icon 格以 5 欄 grid 排列，可捲動
+   - 選中的 icon 有綠色背景高亮
+   =================================================== */
+#iconPickerSection {
+  margin: 12px 0;
+}
+
+/* PSEUDO: 分類 tab 列，水平捲動避免換行 */
+#iconCategoryTabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none; /* 隱藏捲軸 Firefox */
+  -ms-overflow-style: none;
+}
+#iconCategoryTabs::-webkit-scrollbar { display: none; } /* 隱藏捲軸 Chrome */
+
+.icon-tab {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  background: var(--bg-warm);
+  color: var(--text-soft);
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.icon-tab.active {
+  background: var(--white);
+  color: var(--text-main);
+  border-color: var(--accent-positive);
+  font-weight: bold;
+}
+
+/* PSEUDO: icon grid，5 欄排列，固定高度可捲動 */
+#iconGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 4px 2px;
+  scrollbar-width: thin;
+}
+
+.icon-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  padding: 6px;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+  aspect-ratio: 1;
+}
+.icon-cell:active { transform: scale(0.88); }
+.icon-cell.selected {
+  background: var(--bg-warm);
+  border-color: var(--accent-positive);
+}
+
+/* PSEUDO: 已選 icon 預覽，顯示在分類 tab 右側 */
+#selectedIconPreview {
+  font-size: 28px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 </style>
 
@@ -205,20 +277,33 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
   </div>
 </div>
 
+<!-- ===================================================
+     [新增 v1.7.0] 紀錄事件彈窗 - 新版 Icon 選擇器
+     PSEUDO: 結構改為
+     1. 地標偵測結果
+     2. 文字輸入
+     3. 分類 tab + icon grid（取代原本 5 個固定 icon）
+     4. 確認/取消按鈕
+     =================================================== -->
 <div id="eventModal">
   <div class="modal-content">
-    <div style="font-weight:bold; font-size:18px; text-align:center;">紀錄這一刻</div>
+    <div style="font-weight:bold; font-size:18px; text-align:center; margin-bottom:10px;">紀錄這一刻</div>
     <div id="nearbyBadge">📍 偵測附近地標中...</div>
     <textarea id="eventText" placeholder="寫下心情..." maxlength="100"
-      style="width:100%; height:80px; border:1px solid #EEE; padding:12px; border-radius:12px; margin:8px 0 15px; box-sizing:border-box; outline:none; resize:none;"></textarea>
-    <div class="icon-selector">
-      <div class="icon-item selected" onclick="selectIcon(this,'📸')">📸</div>
-      <div class="icon-item" onclick="selectIcon(this,'☕')">☕</div>
-      <div class="icon-item" onclick="selectIcon(this,'🌸')">🌸</div>
-      <div class="icon-item" onclick="selectIcon(this,'✨')">✨</div>
-      <div class="icon-item" onclick="selectIcon(this,'🍔')">🍔</div>
+      style="width:100%; height:72px; border:1px solid #EEE; padding:12px; border-radius:12px; margin:8px 0 10px; box-sizing:border-box; outline:none; resize:none; font-size:14px;"></textarea>
+
+    <!-- Icon 選擇器 -->
+    <div id="iconPickerSection">
+      <!-- 分類 tab 列 + 已選 icon 預覽 -->
+      <div style="display:flex; align-items:center; margin-bottom:8px;">
+        <div id="iconCategoryTabs"></div>
+        <div id="selectedIconPreview">📸</div>
+      </div>
+      <!-- Icon Grid -->
+      <div id="iconGrid"></div>
     </div>
-    <div style="display:flex; gap:12px;">
+
+    <div style="display:flex; gap:12px; margin-top:12px;">
       <button class="btn-base" style="background:#EEE;" onclick="document.getElementById('eventModal').style.display='none'">取消</button>
       <button class="btn-base btn-event" onclick="saveEvent()">確認紀錄</button>
     </div>
@@ -270,26 +355,143 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 <script>
 /* ===================================================
    PSEUDO: 全域變數
-   新增：
-   - rawGpsBuffer：暫存原始 GPS 座標，累積後送 Roads API
-   - snapBuffer：Roads API 回傳的吸附座標暫存
-   - pauseAccumDist：暫停判定用的累計位移
-   - pauseWindowStart：暫停判定視窗的起始時間
    =================================================== */
 var map, marker, pathLine, watchId, geocoder, placesService;
 var walkPath = [], eventsData = [], totalDistance = 0;
 var startTime, durationStr, cityName = '未知城市', selectedIcon = '📸';
 var historyMarkers = [];
-var pauseTimer = null, locatingTimer = null;
+var locatingTimer = null;
 var selectedTrackColor = '#333333';
-
-/* [新增 v1.6.0] Roads API 相關 */
-var rawGpsBuffer = [];        /* 暫存原始 GPS 點，每 5 個送一次 Roads API */
+var rawGpsBuffer = [];
 var ROADS_API_KEY = 'AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
+var pauseWindowPoints = [];
+var pauseWindowStart = null;
 
-/* [新增 v1.6.0] 暫停判定優化 */
-var pauseWindowPoints = [];   /* 15 秒視窗內的 GPS 座標，用來計算累計位移 */
-var pauseWindowStart = null;  /* 視窗起始時間 */
+
+/* ===================================================
+   [新增 v1.7.0] Icon 資料庫
+   PSEUDO: 6 大分類，共 30 個 emoji
+   分類設計邏輯：符合 City Walk 場景
+   - 美食：吃喝相關
+   - 自然：戶外、植物、天氣
+   - 地點：城市、交通、建築
+   - 心情：情緒、感受
+   - 活動：動作、運動
+   - 特別：星、獎、紀念
+   =================================================== */
+var ICON_CATEGORIES = [
+  {
+    name: '美食',
+    emoji: '🍽️',
+    icons: ['☕', '🍔', '🍜', '🍣', '🧁', '🍺', '🧃', '🍦', '🥐', '🍱']
+  },
+  {
+    name: '自然',
+    emoji: '🌿',
+    icons: ['🌸', '🌳', '🌊', '🌙', '☀️', '🌧️', '🍂', '🌈', '🏔️', '🌺']
+  },
+  {
+    name: '地點',
+    emoji: '📍',
+    icons: ['🏛️', '🏪', '🚉', '🌉', '🏠', '🎭', '🏟️', '⛩️', '🗼', '🛣️']
+  },
+  {
+    name: '心情',
+    emoji: '💭',
+    icons: ['✨', '❤️', '😊', '🥹', '😮', '💡', '🤔', '😴', '🥰', '🎉']
+  },
+  {
+    name: '活動',
+    emoji: '🎯',
+    icons: ['📸', '🎵', '🛍️', '📖', '🎨', '🏃', '🚲', '⚽', '🎮', '🎤']
+  },
+  {
+    name: '特別',
+    emoji: '⭐',
+    icons: ['⭐', '🏆', '💎', '🎁', '🔖', '📌', '🗓️', '💫', '🕐', '🎊']
+  }
+];
+
+/* PSEUDO: 目前選中的分類 index */
+var currentCategoryIndex = 0;
+
+
+/* ===================================================
+   [新增 v1.7.0] buildIconPicker()
+   PSEUDO: 初始化 Icon 選擇器 UI
+   
+   步驟：
+   1. 建立分類 tab（每個 category 一個 tab）
+   2. 渲染第一個分類的 icon grid
+   3. 預設選中第一個分類的第一個 icon
+   =================================================== */
+function buildIconPicker() {
+  var tabContainer = document.getElementById('iconCategoryTabs');
+  tabContainer.innerHTML = '';
+
+  ICON_CATEGORIES.forEach(function(cat, idx) {
+    var tab = document.createElement('div');
+    tab.className = 'icon-tab' + (idx === 0 ? ' active' : '');
+    tab.innerText = cat.emoji + ' ' + cat.name;
+    tab.onclick = function() { switchIconCategory(idx); };
+    tabContainer.appendChild(tab);
+  });
+
+  /* PSEUDO: 渲染預設第一個分類 */
+  renderIconGrid(0);
+}
+
+
+/* ===================================================
+   [新增 v1.7.0] switchIconCategory()
+   PSEUDO: 切換 icon 分類
+   1. 更新 tab 的 active class
+   2. 重新渲染 icon grid
+   =================================================== */
+function switchIconCategory(idx) {
+  currentCategoryIndex = idx;
+
+  /* 更新 tab active 狀態 */
+  document.querySelectorAll('.icon-tab').forEach(function(tab, i) {
+    tab.classList.toggle('active', i === idx);
+  });
+
+  renderIconGrid(idx);
+}
+
+
+/* ===================================================
+   [新增 v1.7.0] renderIconGrid()
+   PSEUDO: 渲染指定分類的 icon grid
+   每個 icon 是一個可點擊的 .icon-cell
+   點擊後更新 selectedIcon 和右上角預覽
+   =================================================== */
+function renderIconGrid(idx) {
+  var grid = document.getElementById('iconGrid');
+  grid.innerHTML = '';
+  var icons = ICON_CATEGORIES[idx].icons;
+
+  icons.forEach(function(emoji) {
+    var cell = document.createElement('div');
+    cell.className = 'icon-cell' + (emoji === selectedIcon ? ' selected' : '');
+    cell.innerText = emoji;
+    cell.onclick = function() {
+      /* PSEUDO: 選中這個 icon */
+      selectedIcon = emoji;
+
+      /* 更新 grid 內的選中狀態 */
+      document.querySelectorAll('.icon-cell').forEach(function(c) {
+        c.classList.remove('selected');
+      });
+      cell.classList.add('selected');
+
+      /* 更新右上角預覽 */
+      document.getElementById('selectedIconPreview').innerText = emoji;
+    };
+    grid.appendChild(cell);
+  });
+}
+
 
 var ENCOURAGE_LIST = [
   '每一步都是在和這座城市說你好。',
@@ -330,7 +532,6 @@ function closeMemoryBox() {
   document.getElementById('memoryBox').style.display = 'none';
 }
 
-/* 色彩色盤控制 */
 function toggleColorPicker() {
   document.getElementById('colorOptions').classList.toggle('open');
 }
@@ -351,14 +552,8 @@ document.addEventListener('click', function(e) {
 
 
 /* ===================================================
-   PSEUDO: initMap()
-   [新增 v1.6.0] 地圖初始化後立即取得使用者位置
-   
-   步驟：
-   1. 建立地圖（暫以台北為中心）
-   2. 呼叫 getCurrentPosition() 取得真實位置
-   3. 地圖移到使用者位置，marker 也移過去
-   4. 狀態列短暫顯示「📡 取得位置中...」
+   PSEUDO: initMap() - 地圖初始化 + 開啟即自動定位（v1.6.0）
+   [新增 v1.7.0] 同時初始化 Icon 選擇器
    =================================================== */
 function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
@@ -367,32 +562,23 @@ function initMap() {
     disableDefaultUI: true,
     styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
   });
-
   marker = new google.maps.Marker({
     map,
     label: { text: '👣', fontSize: '30px' },
     icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
     zIndex: 999
   });
-
   pathLine = new google.maps.Polyline({
-    map,
-    strokeColor: selectedTrackColor,
-    strokeWeight: 6,
-    strokeOpacity: 0.85
+    map, strokeColor: selectedTrackColor, strokeWeight: 6, strokeOpacity: 0.85
   });
-
   geocoder = new google.maps.Geocoder();
   placesService = new google.maps.places.PlacesService(map);
   document.getElementById('colorToggleBtn').style.backgroundColor = selectedTrackColor;
 
-  /* ===================================================
-     [新增 v1.6.0] 開啟即自動定位
-     PSEUDO: 頁面載入後馬上取得使用者位置
-     - 用 getCurrentPosition（一次性，不持續追蹤）
-     - 成功後把地圖和 marker 移到使用者位置
-     - 失敗（拒絕授權等）就保持台北預設位置
-     =================================================== */
+  /* [新增 v1.7.0] 初始化 Icon 選擇器 */
+  buildIconPicker();
+
+  /* 開啟即自動定位（v1.6.0） */
   setStatusBar('📡 取得位置中...', 'var(--status-locating)');
   navigator.geolocation.getCurrentPosition(
     function(pos) {
@@ -401,22 +587,14 @@ function initMap() {
       marker.setPosition(userPos);
       setStatusBar('City Walker', 'var(--status-idle)');
     },
-    function() {
-      /* PSEUDO: 取得位置失敗，靜默恢復，不影響主流程 */
-      setStatusBar('City Walker', 'var(--status-idle)');
-    },
+    function() { setStatusBar('City Walker', 'var(--status-idle)'); },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
 }
 
 
 /* ===================================================
-   PSEUDO: focusOnMe()
-   [修復 v1.6.0] 走路前定位按鈕無效問題
-   
-   原本：只讀 marker.getPosition()，走路前 marker 在預設位置
-   修法：改用 getCurrentPosition() 重新取得實際座標
-         取到後同時更新 marker 和地圖中心
+   PSEUDO: focusOnMe() - 定位按鈕（v1.6.0 修復）
    =================================================== */
 function focusOnMe() {
   navigator.geolocation.getCurrentPosition(
@@ -425,10 +603,7 @@ function focusOnMe() {
       marker.setPosition(userPos);
       map.panTo(userPos);
     },
-    function() {
-      /* PSEUDO: 取得失敗時 fallback 到 marker 現有位置 */
-      if (marker && marker.getPosition()) map.panTo(marker.getPosition());
-    },
+    function() { if (marker && marker.getPosition()) map.panTo(marker.getPosition()); },
     { enableHighAccuracy: true, timeout: 8000, maximumAge: 3000 }
   );
 }
@@ -439,82 +614,42 @@ function focusOnRouteStart() {
 }
 
 
-/* ===================================================
-   [新增 v1.6.0] snapToRoads()
-   PSEUDO: 把一批原始 GPS 座標送到 Roads API
-   API 回傳每個點「吸附」到最近道路的座標
-   
-   流程：
-   1. 把 rawGpsBuffer 的座標組成 path 參數字串
-   2. fetch Roads API snapToRoads endpoint
-   3. 解析回傳的 snappedPoints
-   4. 把吸附後的座標加入 walkPath 並更新 Polyline
-   5. 清空 rawGpsBuffer，等待下一批
-   
-   注意：Roads API 每次最多 100 個點，
-         我們每 5 個點送一次，完全不會超限
-   =================================================== */
+/* PSEUDO: Roads API 吸附（v1.6.0） */
 async function snapToRoads(points) {
   if (!points || points.length === 0) return;
-
-  var pathStr = points.map(function(p) {
-    return p.lat + ',' + p.lng;
-  }).join('|');
-
+  var pathStr = points.map(function(p) { return p.lat + ',' + p.lng; }).join('|');
   try {
     var res = await fetch(
       'https://roads.googleapis.com/v1/snapToRoads?path=' +
-      encodeURIComponent(pathStr) +
-      '&interpolate=true&key=' + ROADS_API_KEY
+      encodeURIComponent(pathStr) + '&interpolate=true&key=' + ROADS_API_KEY
     );
     var data = await res.json();
-
     if (data.snappedPoints && data.snappedPoints.length > 0) {
       data.snappedPoints.forEach(function(sp) {
-        var snapped = {
-          lat: sp.location.latitude,
-          lng: sp.location.longitude
-        };
-        walkPath.push(snapped);
+        walkPath.push({ lat: sp.location.latitude, lng: sp.location.longitude });
       });
       pathLine.setPath(walkPath);
-
-      /* PSEUDO: 讓 marker 跟著最新的吸附點走 */
       var last = walkPath[walkPath.length - 1];
       marker.setPosition(last);
       map.panTo(last);
     }
   } catch (err) {
-    /* ===================================================
-       PSEUDO: Roads API 失敗時的 fallback
-       直接把原始 GPS 點加入路線，不讓路線中斷
-       常見失敗原因：無網路、API 額度超限
-       =================================================== */
-    console.warn('[Roads API] 失敗，使用原始座標 fallback:', err);
+    console.warn('[Roads API] fallback:', err);
     points.forEach(function(p) { walkPath.push(p); });
     pathLine.setPath(walkPath);
   }
 }
 
+async function flushRawBuffer() {
+  if (rawGpsBuffer.length > 0) {
+    var remaining = rawGpsBuffer.slice();
+    rawGpsBuffer = [];
+    await snapToRoads(remaining);
+  }
+}
 
-/* ===================================================
-   PSEUDO: startWalk()
-   [修改 v1.6.0] GPS 收到新座標的處理流程改變：
-   
-   原本：每個座標點直接加入 walkPath
-   現在：
-   1. 座標先進 rawGpsBuffer 暫存
-   2. 每累積 5 個點，送一次 Roads API 吸附
-   3. 吸附後的座標才加入 walkPath
-   
-   [修改 v1.6.0] 暫停判定邏輯優化：
-   原本：15 秒沒有新座標進來 → 暫停（容易誤判）
-   現在：
-   1. 維護一個 15 秒的滑動視窗
-   2. 視窗內收集所有座標
-   3. 計算視窗內的總位移
-   4. 總位移 < 7m → 才判定為暫停
-   =================================================== */
+
+/* PSEUDO: startWalk() - GPS + 狀態判定（v1.6.0） */
 function startWalk() {
   startTime = new Date();
   document.getElementById('state-init').classList.add('hidden');
@@ -522,8 +657,6 @@ function startWalk() {
   setStatusBar('📡 取得定位狀態中', 'var(--status-locating)');
   document.getElementById('colorPicker').style.display = 'none';
   pathLine.setOptions({ strokeColor: selectedTrackColor, strokeOpacity: 0.85 });
-
-  /* 初始化暫停判定視窗 */
   pauseWindowPoints = [];
   pauseWindowStart = new Date();
 
@@ -538,64 +671,36 @@ function startWalk() {
 
   watchId = navigator.geolocation.watchPosition(function(pos) {
     var newPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    var accuracy = pos.coords.accuracy;
+    if (pos.coords.accuracy > 40) return;
 
-    /* 防線一：精度過濾 */
-    if (accuracy > 40) return;
-
-    /* PSEUDO: 計算與上一個原始點的距離（用於基本過濾） */
-    var dist = 0;
     var lastRaw = rawGpsBuffer.length > 0
       ? rawGpsBuffer[rawGpsBuffer.length - 1]
       : (walkPath.length > 0 ? walkPath[walkPath.length - 1] : null);
 
     if (lastRaw) {
-      dist = google.maps.geometry.spherical.computeDistanceBetween(
+      var dist = google.maps.geometry.spherical.computeDistanceBetween(
         new google.maps.LatLng(lastRaw.lat, lastRaw.lng),
         new google.maps.LatLng(newPoint.lat, newPoint.lng)
       );
-      /* 防線二：靜止漂移 */
-      if (dist < 3) return;
-      /* 防線三：跳點 */
-      if (dist > 80) return;
+      if (dist < 3 || dist > 80) return;
     }
 
-    /* PSEUDO: 清除定位逾時計時器（已收到有效座標） */
     if (locatingTimer) { clearTimeout(locatingTimer); locatingTimer = null; }
 
-    /* ===================================================
-       [新增 v1.6.0] Roads API 緩衝處理
-       PSEUDO: 把新座標放進 rawGpsBuffer
-       累積到 5 個點就送 Roads API 吸附
-       未滿 5 個時先在 marker 上顯示預覽位置（即時感）
-       =================================================== */
     rawGpsBuffer.push(newPoint);
-    marker.setPosition(newPoint); /* 先預覽，Roads API 回來後再修正 */
-
+    marker.setPosition(newPoint);
     if (rawGpsBuffer.length >= 5) {
-      var batch = rawGpsBuffer.slice(); /* 複製一份送出 */
-      rawGpsBuffer = [];               /* 清空 buffer */
-      snapToRoads(batch);              /* 非同步送 Roads API */
+      var batch = rawGpsBuffer.slice();
+      rawGpsBuffer = [];
+      snapToRoads(batch);
     }
 
-    /* ===================================================
-       [修改 v1.6.0] 暫停判定邏輯優化
-       PSEUDO: 滑動視窗法
-       1. 把新座標加入 pauseWindowPoints
-       2. 移除視窗起始 15 秒前的舊點
-       3. 計算視窗內首尾兩點的距離（近似總位移）
-       4. 視窗已滿 15 秒且位移 < 7m → 暫停
-          視窗內有移動 > 7m → 漫步中，重置視窗
-       =================================================== */
     var now = new Date();
     pauseWindowPoints.push({ point: newPoint, time: now });
-
-    /* 移除 15 秒前的點 */
     pauseWindowPoints = pauseWindowPoints.filter(function(item) {
       return (now - item.time) <= 15000;
     });
 
-    /* 計算視窗內的位移 */
     var windowDist = 0;
     if (pauseWindowPoints.length >= 2) {
       var first = pauseWindowPoints[0].point;
@@ -606,25 +711,17 @@ function startWalk() {
       );
     }
 
-    /* 即時里程（用現有 walkPath 計算） */
     var currentKm = walkPath.length > 1
-      ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000
-      : 0;
+      ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000 : 0;
 
     if (windowDist > 7) {
-      /* PSEUDO: 視窗內有效移動 > 7m → 漫步中 */
       setStatusBar('🚶 漫步中・' + currentKm.toFixed(2) + ' km', 'var(--status-walking)');
-      /* 重置視窗，從現在開始重新計算 */
       pauseWindowPoints = [{ point: newPoint, time: now }];
       pauseWindowStart = now;
     } else if ((now - pauseWindowStart) >= 15000) {
-      /* PSEUDO: 視窗滿 15 秒且位移 < 7m → 真正的暫停 */
       setStatusBar('☕ 暫停一下...', 'var(--status-paused)');
-    } else {
-      /* PSEUDO: 視窗還沒滿 15 秒，先維持漫步中狀態 */
-      if (currentKm > 0) {
-        setStatusBar('🚶 漫步中・' + currentKm.toFixed(2) + ' km', 'var(--status-walking)');
-      }
+    } else if (currentKm > 0) {
+      setStatusBar('🚶 漫步中・' + currentKm.toFixed(2) + ' km', 'var(--status-walking)');
     }
 
   }, function(err) {
@@ -635,23 +732,18 @@ function startWalk() {
 
 
 /* ===================================================
-   PSEUDO: flushRawBuffer()
-   結束走路時，把 buffer 裡剩餘未送出的 GPS 點送去吸附
-   避免最後幾個點因為不足 5 個而丟失
+   PSEUDO: openEventCanvas()
+   [新增 v1.7.0] 開啟時重置 icon 選擇器到預設狀態
    =================================================== */
-async function flushRawBuffer() {
-  if (rawGpsBuffer.length > 0) {
-    var remaining = rawGpsBuffer.slice();
-    rawGpsBuffer = [];
-    await snapToRoads(remaining);
-  }
-}
-
-
 function openEventCanvas() {
   document.getElementById('eventModal').style.display = 'flex';
   document.getElementById('nearbyBadge').innerText = '📍 偵測附近地標中...';
   window._nearbyPlaceName = '';
+
+  /* PSEUDO: 重置 icon 選擇器，回到第一個分類 */
+  switchIconCategory(0);
+  document.getElementById('selectedIconPreview').innerText = selectedIcon;
+
   var currentPos = marker.getPosition();
   if (!currentPos || !placesService) {
     document.getElementById('nearbyBadge').innerText = '（無法取得位置）';
@@ -681,12 +773,6 @@ function saveEvent() {
   document.getElementById('eventModal').style.display = 'none';
 }
 
-
-/* ===================================================
-   PSEUDO: endWalk()
-   [修改 v1.6.0] 先 flush 剩餘 GPS buffer 再結算
-   用 async/await 確保 Roads API 回來後才計算里程
-   =================================================== */
 async function endWalk() {
   navigator.geolocation.clearWatch(watchId);
   if (locatingTimer) { clearTimeout(locatingTimer); locatingTimer = null; }
@@ -694,15 +780,10 @@ async function endWalk() {
   document.getElementById('state-recording').classList.add('hidden');
   document.getElementById('state-finished').classList.remove('hidden');
   document.getElementById('encourageBox').innerText = '「' + getDailyEncouragement() + '」';
-
-  /* [新增 v1.6.0] 先把剩餘 buffer 送出，Roads API 回來後再算里程 */
   await flushRawBuffer();
-
   totalDistance = walkPath.length > 1
-    ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000
-    : 0;
+    ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000 : 0;
   durationStr = Math.floor(Math.abs(new Date() - startTime) / 60000) + ' 分鐘';
-
   if (walkPath.length > 0) {
     geocoder.geocode({ location: walkPath[walkPath.length - 1] }, function(results, status) {
       if (status === 'OK' && results[0]) {
@@ -721,7 +802,6 @@ async function endWalk() {
   }
 }
 
-
 async function executeCloudSave() {
   var btn = document.getElementById('btnConfirmSave');
   if (btn) btn.disabled = true;
@@ -730,8 +810,7 @@ async function executeCloudSave() {
       name: document.getElementById('routeName').value || '未命名漫遊',
       city: cityName, distance: totalDistance, duration: durationStr,
       path: walkPath, events: eventsData,
-      trackColor: selectedTrackColor,
-      isPinned: false,
+      trackColor: selectedTrackColor, isPinned: false,
       createdAt: window.api.serverTimestamp()
     });
     location.reload();
@@ -741,16 +820,11 @@ async function executeCloudSave() {
   }
 }
 
-
-/* ===================================================
-   PSEUDO: createEventMarker() - OverlayView 自製標記
-   =================================================== */
 function createEventMarker(pos, icon, text, placeName) {
   function EmojiOverlay(position, icon, text, placeName) {
     this.position_ = new google.maps.LatLng(position.lat, position.lng);
     this.icon_ = icon; this.text_ = text; this.placeName_ = placeName || '';
-    this.div_ = null;
-    this.setMap(map);
+    this.div_ = null; this.setMap(map);
   }
   EmojiOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
   EmojiOverlay.prototype.onAdd = function() {
@@ -773,17 +847,13 @@ function createEventMarker(pos, icon, text, placeName) {
   };
   EmojiOverlay.prototype.draw = function() {
     var pt = this.getProjection().fromLatLngToDivPixel(this.position_);
-    if (this.div_ && pt) {
-      this.div_.style.left = pt.x + 'px';
-      this.div_.style.top  = pt.y + 'px';
-    }
+    if (this.div_ && pt) { this.div_.style.left = pt.x + 'px'; this.div_.style.top = pt.y + 'px'; }
   };
   EmojiOverlay.prototype.onRemove = function() {
     if (this.div_) { this.div_.parentNode.removeChild(this.div_); this.div_ = null; }
   };
   return new EmojiOverlay(pos, icon, text, placeName);
 }
-
 
 async function fetchRecords() {
   var container = document.getElementById('recordsContainer');
@@ -826,8 +896,7 @@ function loadSavedRoute(id) {
   historyMarkers = [];
   var pts = data.path.map(function(p) { return { lat: p.lat, lng: p.lng }; });
   pathLine.setPath(pts);
-  var replayColor = data.trackColor || '#FEAD89';
-  pathLine.setOptions({ strokeColor: replayColor, strokeOpacity: 0.85, strokeWeight: 6 });
+  pathLine.setOptions({ strokeColor: data.trackColor || '#FEAD89', strokeOpacity: 0.85, strokeWeight: 6 });
   if (data.events) {
     data.events.forEach(function(ev) {
       historyMarkers.push(createEventMarker(ev.pos, ev.icon, ev.text, ev.placeName || ''));
@@ -843,7 +912,6 @@ async function deleteRecord(e, id) {
   await window.api.deleteDoc(window.api.doc(window.db, 'walk_records', id));
   fetchRecords();
 }
-
 async function togglePin(e, id, status) {
   e.stopPropagation();
   await window.api.updateDoc(window.api.doc(window.db, 'walk_records', id), { isPinned: !status });
@@ -870,11 +938,6 @@ function switchPage(p) {
   if (p === 'list') fetchRecords();
 }
 
-function selectIcon(el, icon) {
-  document.querySelectorAll('.icon-item').forEach(function(i) { i.classList.remove('selected'); });
-  el.classList.add('selected');
-  selectedIcon = icon;
-}
 function openSaveModal() { document.getElementById('saveModal').style.display = 'flex'; }
 
 window.onload = initMap;
@@ -882,7 +945,6 @@ window.focusOnMe = focusOnMe;
 window.focusOnRouteStart = focusOnRouteStart;
 window.openEventCanvas = openEventCanvas;
 window.saveEvent = saveEvent;
-window.selectIcon = selectIcon;
 window.openSaveModal = openSaveModal;
 window.executeCloudSave = executeCloudSave;
 window.switchPage = switchPage;
@@ -896,6 +958,5 @@ window.startWalk = startWalk;
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=places,geometry" async defer></script>
-
 </body>
 </html>
