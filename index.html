@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.10.0</title>
+<title>City Walker - v1.10.1</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -145,26 +145,53 @@ body {
 }
 
 /* ===================================================
-   [新增 v1.10.0] 拍立得照片樣式（回憶視窗）
-   PSEUDO: 模擬拍立得的外觀
-   - 白色背景卡片，四邊留白
-   - 底部留白略大（拍立得特徵）
-   - 輕微陰影和微微旋轉增加手感
+   [改版 v1.10.1] 拍立得照片樣式（回憶視窗）
+   PSEUDO: 米色背景 + 膠帶貼著的手帳質感
+   - 米色背景（#F5F0E8）比純白更溫暖
+   - 底部留更多空白（拍立得特徵）
+   - 微微旋轉增加手感
+   - ::before 偽元素模擬透明膠帶貼在頂部
    =================================================== */
 .polaroid-wrap {
-  background: #fff;
-  padding: 10px 10px 28px 10px; /* 底部留更多空白 */
-  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-  border-radius: 4px;
+  background: #F5F0E8;  /* 米色 */
+  padding: 10px 10px 32px 10px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+  border-radius: 2px;
   display: inline-block;
-  margin: 12px auto 8px;
-  transform: rotate(-1.5deg); /* 微微傾斜 */
+  margin: 20px auto 8px; /* 上方留空間給膠帶 */
+  transform: rotate(-1.5deg);
   max-width: 240px;
+  position: relative;
 }
+
+/* PSEUDO: 膠帶效果
+   用 ::before 在照片頂部中央貼一條半透明膠帶
+   膠帶顏色：淡黃半透明，模擬透明膠帶的視覺 */
+.polaroid-wrap::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(1deg); /* 膠帶略微歪斜 */
+  width: 60px;
+  height: 22px;
+  background: rgba(255, 235, 150, 0.65); /* 淡黃半透明 */
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  /* 模擬膠帶的細紋理 */
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 4px,
+    rgba(255,255,255,0.15) 4px,
+    rgba(255,255,255,0.15) 5px
+  );
+}
+
 .polaroid-wrap img {
   width: 100%; max-height: 200px;
   object-fit: cover; display: block;
-  border-radius: 2px;
+  border-radius: 1px;
 }
 </style>
 
