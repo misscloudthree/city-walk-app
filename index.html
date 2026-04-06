@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.9.0</title>
-<link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
+<title>City Walker - v1.10.0</title>
+<!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg-warm: #F9F7F2; --text-main: #333333; --text-soft: #7D7D7D;
@@ -13,7 +14,12 @@
   --status-idle: #F9F7F2; --status-locating: #FFF3CD;
   --status-walking: #D4EDDA; --status-paused: #FFE5CC; --status-ended: #E2E8F0;
 }
-body { margin:0; padding:0; font-family:'Poly','Microsoft JhengHei',sans-serif; background:var(--bg-warm); color:var(--text-main); overflow:hidden; width:100vw; height:100vh; }
+body {
+  margin:0; padding:0;
+  font-family:'Poly','Microsoft JhengHei',sans-serif;
+  background:var(--bg-warm); color:var(--text-main);
+  overflow:hidden; width:100vw; height:100vh;
+}
 .hidden { display:none !important; }
 .page { height:100vh; width:100%; position:absolute; top:0; left:0; overflow-y:auto; padding-bottom:120px; box-sizing:border-box; z-index:10; }
 #page-main { z-index:20; overflow:hidden; }
@@ -34,7 +40,12 @@ body { margin:0; padding:0; font-family:'Poly','Microsoft JhengHei',sans-serif; 
 .btn-base { padding:16px 24px; font-size:15px; font-weight:bold; border:none; border-radius:14px; cursor:pointer; width:100%; outline:none; }
 .btn-main { background:var(--text-main); color:var(--white); }
 .btn-event { background:var(--accent-positive); color:var(--white); }
-#eventModal, #saveModal, #memoryBox { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:9999; }
+
+#eventModal, #saveModal, #memoryBox, #photoConfirmModal {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.5);
+  display:none; align-items:center; justify-content:center; z-index:9999;
+}
 .modal-content { background:var(--white); width:92%; max-width:400px; border-radius:28px; padding:20px 16px; box-sizing:border-box; max-height:90vh; overflow-y:auto; }
 #memoryCloseBtn { position:absolute; top:16px; right:16px; font-size:22px; color:var(--text-soft); cursor:pointer; padding:4px 8px; border-radius:50%; transition:background 0.2s; }
 #memoryCloseBtn:active { background:var(--bg-warm); }
@@ -48,37 +59,136 @@ body { margin:0; padding:0; font-family:'Poly','Microsoft JhengHei',sans-serif; 
 .color-dot { width:34px; height:34px; border-radius:50%; cursor:pointer; border:3px solid transparent; box-shadow:0 2px 6px rgba(0,0,0,0.15); transition:transform 0.15s,border-color 0.15s; flex-shrink:0; }
 .color-dot:active { transform:scale(0.88); }
 .color-dot.selected { border-color:var(--white); transform:scale(1.18); box-shadow:0 3px 10px rgba(0,0,0,0.25); }
+
+/* Icon 選擇器 */
 #iconPickerSection { margin:10px 0; }
 #iconCategoryTabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; -ms-overflow-style:none; }
 #iconCategoryTabs::-webkit-scrollbar { display:none; }
 .icon-tab { flex-shrink:0; padding:5px 10px; border-radius:20px; font-size:11px; background:var(--bg-warm); color:var(--text-soft); cursor:pointer; border:1.5px solid transparent; transition:all 0.2s; white-space:nowrap; }
 .icon-tab.active { background:var(--white); color:var(--text-main); border-color:var(--accent-positive); font-weight:bold; }
-#iconGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; max-height:130px; overflow-y:auto; padding:2px 0; }
+#iconGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; max-height:120px; overflow-y:auto; padding:2px 0; }
 .icon-cell { display:flex; align-items:center; justify-content:center; font-size:22px; padding:4px; border-radius:10px; cursor:pointer; border:2px solid transparent; transition:background 0.15s; aspect-ratio:1; min-width:0; }
 .icon-cell:active { transform:scale(0.88); }
 .icon-cell.selected { background:var(--bg-warm); border-color:var(--accent-positive); }
 #selectedIconPreview { font-size:26px; margin-left:auto; flex-shrink:0; }
-#placeSection { margin:8px 0 10px; }
+
+/* 地標選擇區 */
+#placeSection { margin:6px 0 8px; }
 #placeLabel { font-size:11px; color:var(--text-soft); margin-bottom:6px; }
-#placeTags { display:flex; flex-wrap:wrap; gap:6px; min-height:32px; align-items:center; }
-.place-tag { display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:20px; font-size:12px; background:var(--bg-warm); color:var(--text-main); border:1.5px solid var(--border-light); cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+#placeTags { display:flex; flex-wrap:wrap; gap:6px; min-height:28px; align-items:center; }
+.place-tag { display:flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; font-size:12px; background:var(--bg-warm); color:var(--text-main); border:1.5px solid var(--border-light); cursor:pointer; transition:all 0.2s; white-space:nowrap; }
 .place-tag:active { transform:scale(0.95); }
 .place-tag.selected { background:#EEF6F3; border-color:var(--accent-positive); color:var(--accent-positive); font-weight:bold; }
 .place-detecting { font-size:12px; color:var(--text-soft); font-style:italic; }
+
+/* ===================================================
+   [新增 v1.10.0] 手寫字體應用
+   PSEUDO: Caveat 用於事件輸入框和回憶視窗內文
+   讓整體有手帳、日記的質感
+   中文字仍 fallback 到微軟正黑體（Caveat 不支援中文）
+   =================================================== */
+#eventText {
+  font-family: 'Caveat', 'Microsoft JhengHei', sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.6;
+}
+#memoryText {
+  font-family: 'Caveat', 'Microsoft JhengHei', sans-serif !important;
+  font-size: 19px !important;
+  line-height: 1.7;
+}
+
+/* ===================================================
+   [新增 v1.10.0] 照片相關 UI
+
+   相機按鈕區：緊接在 icon 選擇器下方
+   =================================================== */
+#photoSection {
+  margin: 8px 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* PSEUDO: 相機按鈕，點擊後觸發隱藏的 file input */
+#cameraBtn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 20px;
+  font-size: 13px; background: var(--bg-warm);
+  color: var(--text-soft); border: 1.5px solid var(--border-light);
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.2s;
+}
+#cameraBtn:active { background: #EEF6F3; border-color: var(--accent-positive); }
+
+/* PSEUDO: 已選照片的縮圖預覽（小版，在事件視窗內） */
+#photoPreviewThumb {
+  width: 48px; height: 48px;
+  border-radius: 8px; object-fit: cover;
+  border: 2px solid var(--accent-positive);
+  cursor: pointer; display: none;
+}
+
+/* ===================================================
+   [新增 v1.10.0] 照片確認視窗（photoConfirmModal）
+   PSEUDO: 使用者拍完或選完照片後進入這個畫面
+   顯示照片預覽，提供三個選項：
+   - 🔄 重拍：重新觸發 file input
+   - ✕ 取消：不帶照片，回事件頁
+   - ✓ 使用這張：確認帶入，回事件頁
+   =================================================== */
+#photoConfirmImg {
+  width: 100%; max-height: 280px;
+  object-fit: contain;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+/* ===================================================
+   [新增 v1.10.0] 拍立得照片樣式（回憶視窗）
+   PSEUDO: 模擬拍立得的外觀
+   - 白色背景卡片，四邊留白
+   - 底部留白略大（拍立得特徵）
+   - 輕微陰影和微微旋轉增加手感
+   =================================================== */
+.polaroid-wrap {
+  background: #fff;
+  padding: 10px 10px 28px 10px; /* 底部留更多空白 */
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  border-radius: 4px;
+  display: inline-block;
+  margin: 12px auto 8px;
+  transform: rotate(-1.5deg); /* 微微傾斜 */
+  max-width: 240px;
+}
+.polaroid-wrap img {
+  width: 100%; max-height: 200px;
+  object-fit: cover; display: block;
+  border-radius: 2px;
+}
 </style>
 
+<!-- PSEUDO: Firebase 初始化，新增 Storage 相關 import -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
 const firebaseConfig = {
-  apiKey: "AIzaSyDc460QtdfTv32gEPNPLVCMOxPz0hCWxbQ", authDomain: "city-walk-project.firebaseapp.com",
-  projectId: "city-walk-project", storageBucket: "city-walk-project.firebasestorage.app",
-  messagingSenderId: "190868537611", appId: "1:190868537611:web:9a97031a9357f4d39be20e"
+  apiKey: "AIzaSyDc460QtdfTv32gEPNPLVCMOxPz0hCWxbQ",
+  authDomain: "city-walk-project.firebaseapp.com",
+  projectId: "city-walk-project",
+  storageBucket: "city-walk-project.firebasestorage.app",
+  messagingSenderId: "190868537611",
+  appId: "1:190868537611:web:9a97031a9357f4d39be20e"
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 window.db = db;
+window.storage = storage;
 window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTimestamp };
+window.storageApi = { ref, uploadBytes, getDownloadURL };
 </script>
 </head>
 <body>
@@ -101,32 +211,90 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
   <button class="map-btn hidden" id="btnFocusRoute" onclick="focusOnRouteStart()">🛣️</button>
 </div>
 
-<div id="memoryBox" onclick="closeMemoryBox()">
-  <div class="modal-content" onclick="event.stopPropagation()" style="position:relative;text-align:center;padding-top:40px;">
-    <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
-    <div id="memoryIcon" style="font-size:50px;margin-bottom:12px;">📸</div>
-    <div id="memoryPlace" style="font-size:12px;color:var(--text-soft);margin-bottom:6px;"></div>
-    <div id="memoryText" style="font-size:17px;color:#333;line-height:1.6;min-height:60px;"></div>
+<!-- ===================================================
+     [新增 v1.10.0] 隱藏的 file input
+     PSEUDO: 實際觸發相機/相簿的元素，視覺上隱藏
+     accept="image/*" capture="environment" → 優先開啟後鏡頭
+     手機上會詢問「拍照」或「從相簿選取」
+     =================================================== -->
+<input type="file" id="photoFileInput" accept="image/*" capture="environment"
+  style="display:none;" onchange="handlePhotoSelected(this)">
+
+<!-- ===================================================
+     [新增 v1.10.0] 照片確認視窗
+     PSEUDO: 選完照片後顯示預覽，讓使用者決定要不要用
+     =================================================== -->
+<div id="photoConfirmModal">
+  <div class="modal-content" style="text-align:center;">
+    <div style="font-weight:bold; font-size:16px; margin-bottom:12px;">確認使用這張照片？</div>
+    <img id="photoConfirmImg" src="" alt="照片預覽">
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <!-- 🔄 重拍：重新觸發 file input -->
+      <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);font-size:13px;padding:12px;"
+        onclick="retakePhoto()">🔄 重拍</button>
+      <!-- ✕ 取消：不帶照片，回事件頁 -->
+      <button class="btn-base" style="background:#EEE;color:#666;font-size:13px;padding:12px;"
+        onclick="cancelPhoto()">✕ 取消</button>
+      <!-- ✓ 使用這張：帶入事件頁 -->
+      <button class="btn-base btn-event" style="font-size:13px;padding:12px;"
+        onclick="confirmPhoto()">✓ 使用</button>
+    </div>
   </div>
 </div>
 
+<!-- ===================================================
+     [改版 v1.10.0] 回憶視窗
+     PSEUDO: 有照片時顯示拍立得風格，無照片維持原樣
+     =================================================== -->
+<div id="memoryBox" onclick="closeMemoryBox()">
+  <div class="modal-content" onclick="event.stopPropagation()" style="position:relative;text-align:center;padding-top:40px;">
+    <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
+    <div id="memoryIcon" style="font-size:50px;margin-bottom:8px;">📸</div>
+    <div id="memoryPlace" style="font-size:12px;color:var(--text-soft);margin-bottom:6px;"></div>
+    <!-- 拍立得照片區，有照片才顯示 -->
+    <div id="memoryPolaroid" class="hidden">
+      <div class="polaroid-wrap">
+        <img id="memoryPhoto" src="" alt="記憶照片">
+      </div>
+    </div>
+    <div id="memoryText" style="color:#333;line-height:1.7;min-height:40px;margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- ===================================================
+     [改版 v1.10.0] 紀錄事件彈窗
+     新增照片區塊（相機按鈕 + 縮圖預覽）
+     =================================================== -->
 <div id="eventModal">
   <div class="modal-content">
     <div style="font-weight:bold;font-size:18px;text-align:center;margin-bottom:10px;">紀錄這一刻</div>
+
+    <!-- 地標選擇區 -->
     <div id="placeSection">
       <div id="placeLabel">📍 附近地標</div>
       <div id="placeTags"><span class="place-detecting">偵測中...</span></div>
     </div>
+
+    <!-- 文字輸入（Caveat 手寫字體） -->
     <textarea id="eventText" placeholder="寫下心情..." maxlength="100"
-      style="width:100%;height:68px;border:1px solid #EEE;padding:10px;border-radius:12px;margin:0 0 10px;box-sizing:border-box;outline:none;resize:none;font-size:14px;"></textarea>
+      style="width:100%;height:68px;border:1px solid #EEE;padding:10px;border-radius:12px;margin:8px 0 8px;box-sizing:border-box;outline:none;resize:none;"></textarea>
+
+    <!-- 照片區塊 -->
+    <div id="photoSection">
+      <button id="cameraBtn" onclick="openCamera()">📷 加入照片</button>
+      <img id="photoPreviewThumb" src="" alt="照片預覽" onclick="openCamera()">
+    </div>
+
+    <!-- Icon 選擇器 -->
     <div id="iconPickerSection">
-      <div style="display:flex;align-items:center;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;margin-bottom:8px;margin-top:8px;">
         <div id="iconCategoryTabs"></div>
         <div id="selectedIconPreview">📸</div>
       </div>
       <div id="iconGrid"></div>
     </div>
-    <div style="display:flex;gap:10px;margin-top:12px;">
+
+    <div style="display:flex;gap:10px;margin-top:10px;">
       <button class="btn-base" style="background:#EEE;font-size:14px;" onclick="closeEventModal()">取消</button>
       <button class="btn-base btn-event" style="font-size:14px;" onclick="saveEvent()">確認紀錄</button>
     </div>
@@ -181,6 +349,14 @@ var rawGpsBuffer=[], ROADS_API_KEY='AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
 var pauseWindowPoints=[], pauseWindowStart=null;
 var nearbyPlaces=[], selectedPlace=null;
 
+/* ===================================================
+   [新增 v1.10.0] 照片相關全域變數
+   - selectedPhotoBlob：壓縮後的照片 Blob，存事件時上傳
+   - selectedPhotoDataUrl：壓縮後照片的 DataURL，用於預覽
+   =================================================== */
+var selectedPhotoBlob = null;
+var selectedPhotoDataUrl = null;
+
 var ICON_CATEGORIES = [
   { name:'美食', emoji:'🍽️', icons:['☕','🍔','🍜','🍣','🧁','🍺','🧃','🍦','🥐','🍱'] },
   { name:'自然', emoji:'🌿', icons:['🌸','🌳','🌊','🌙','☀️','🌧️','🍂','🌈','🏔️','🌺'] },
@@ -190,36 +366,37 @@ var ICON_CATEGORIES = [
   { name:'特別', emoji:'⭐', icons:['⭐','🏆','💎','🎁','🔖','📌','🗓️','💫','🕐','🎊'] }
 ];
 function buildIconPicker() {
-  var tc = document.getElementById('iconCategoryTabs'); tc.innerHTML = '';
+  var tc=document.getElementById('iconCategoryTabs'); tc.innerHTML='';
   ICON_CATEGORIES.forEach(function(cat,idx) {
-    var tab = document.createElement('div');
-    tab.className = 'icon-tab'+(idx===0?' active':'');
-    tab.innerText = cat.emoji+' '+cat.name;
-    tab.onclick = function() { switchIconCategory(idx); };
+    var tab=document.createElement('div');
+    tab.className='icon-tab'+(idx===0?' active':'');
+    tab.innerText=cat.emoji+' '+cat.name;
+    tab.onclick=function(){switchIconCategory(idx);};
     tc.appendChild(tab);
   });
   renderIconGrid(0);
 }
 function switchIconCategory(idx) {
-  document.querySelectorAll('.icon-tab').forEach(function(t,i){ t.classList.toggle('active',i===idx); });
+  document.querySelectorAll('.icon-tab').forEach(function(t,i){t.classList.toggle('active',i===idx);});
   renderIconGrid(idx);
 }
 function renderIconGrid(idx) {
-  var grid = document.getElementById('iconGrid'); grid.innerHTML = '';
+  var grid=document.getElementById('iconGrid'); grid.innerHTML='';
   ICON_CATEGORIES[idx].icons.forEach(function(emoji) {
-    var cell = document.createElement('div');
-    cell.className = 'icon-cell'+(emoji===selectedIcon?' selected':'');
-    cell.innerText = emoji;
-    cell.onclick = function() {
-      selectedIcon = emoji;
-      document.querySelectorAll('.icon-cell').forEach(function(c){ c.classList.remove('selected'); });
+    var cell=document.createElement('div');
+    cell.className='icon-cell'+(emoji===selectedIcon?' selected':'');
+    cell.innerText=emoji;
+    cell.onclick=function(){
+      selectedIcon=emoji;
+      document.querySelectorAll('.icon-cell').forEach(function(c){c.classList.remove('selected');});
       cell.classList.add('selected');
-      document.getElementById('selectedIconPreview').innerText = emoji;
+      document.getElementById('selectedIconPreview').innerText=emoji;
     };
     grid.appendChild(cell);
   });
 }
-var ENCOURAGE_LIST = [
+
+var ENCOURAGE_LIST=[
   '每一步都是在和這座城市說你好。','你走過的路，都成為了你的一部分。',
   '不趕時間的移動，才看得見風景。','今天的漫遊，是送給未來的你的禮物。',
   '走路是最誠實的旅行方式。','迷路也是一種探索。',
@@ -236,87 +413,69 @@ function getDailyEncouragement() {
   var seed=today.getFullYear()*10000+(today.getMonth()+1)*100+today.getDate();
   return ENCOURAGE_LIST[seed%ENCOURAGE_LIST.length];
 }
-function setStatusBar(text,bgColor) {
-  var bar=document.getElementById('statusBar');
-  bar.innerText=text; bar.style.backgroundColor=bgColor||'var(--status-idle)';
-}
-function closeMemoryBox() { document.getElementById('memoryBox').style.display='none'; }
-function toggleColorPicker() { document.getElementById('colorOptions').classList.toggle('open'); }
-function selectColor(el) {
+function setStatusBar(t,bg){var b=document.getElementById('statusBar');b.innerText=t;b.style.backgroundColor=bg||'var(--status-idle)';}
+function closeMemoryBox(){document.getElementById('memoryBox').style.display='none';}
+function toggleColorPicker(){document.getElementById('colorOptions').classList.toggle('open');}
+function selectColor(el){
   selectedTrackColor=el.getAttribute('data-color');
   document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
-  document.querySelectorAll('.color-dot').forEach(function(d){ d.classList.remove('selected'); });
+  document.querySelectorAll('.color-dot').forEach(function(d){d.classList.remove('selected');});
   el.classList.add('selected');
-  if(pathLine) pathLine.setOptions({strokeColor:selectedTrackColor});
+  if(pathLine)pathLine.setOptions({strokeColor:selectedTrackColor});
   document.getElementById('colorOptions').classList.remove('open');
 }
 document.addEventListener('click',function(e){
-  var picker=document.getElementById('colorPicker');
-  if(picker&&!picker.contains(e.target)) document.getElementById('colorOptions').classList.remove('open');
+  var p=document.getElementById('colorPicker');
+  if(p&&!p.contains(e.target))document.getElementById('colorOptions').classList.remove('open');
 });
 
-async function initMap() {
-  var { Map } = await google.maps.importLibrary('maps');
-  var { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
-  map = new Map(document.getElementById('map'),{
-    zoom:17, center:{lat:25.0478,lng:121.5170},
-    disableDefaultUI:true, mapId:'DEMO_MAP_ID'
-  });
-  var markerDiv=document.createElement('div');
-  markerDiv.className='user-marker'; markerDiv.innerText='👣';
-  userMarker=new AdvancedMarkerElement({map:map,content:markerDiv,zIndex:999});
+async function initMap(){
+  var {Map}=await google.maps.importLibrary('maps');
+  var {AdvancedMarkerElement}=await google.maps.importLibrary('marker');
+  map=new Map(document.getElementById('map'),{zoom:17,center:{lat:25.0478,lng:121.5170},disableDefaultUI:true,mapId:'DEMO_MAP_ID'});
+  var md=document.createElement('div'); md.className='user-marker'; md.innerText='👣';
+  userMarker=new AdvancedMarkerElement({map:map,content:md,zIndex:999});
   pathLine=new google.maps.Polyline({map,strokeColor:selectedTrackColor,strokeWeight:6,strokeOpacity:0.85});
   geocoder=new google.maps.Geocoder();
   document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
   buildIconPicker();
   setStatusBar('📡 取得位置中...','var(--status-locating)');
   navigator.geolocation.getCurrentPosition(
-    function(pos){
-      var p={lat:pos.coords.latitude,lng:pos.coords.longitude};
-      map.setCenter(p); userMarker.position=p;
-      setStatusBar('City Walker','var(--status-idle)');
-    },
-    function(){ setStatusBar('City Walker','var(--status-idle)'); },
+    function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude};map.setCenter(p);userMarker.position=p;setStatusBar('City Walker','var(--status-idle)');},
+    function(){setStatusBar('City Walker','var(--status-idle)');},
     {enableHighAccuracy:true,timeout:10000,maximumAge:0}
   );
 }
 function getUserPosition(){
   var pos=userMarker&&userMarker.position;
-  if(!pos) return null;
-  if(typeof pos.lat==='function') return {lat:pos.lat(),lng:pos.lng()};
-  return {lat:pos.lat,lng:pos.lng};
+  if(!pos)return null;
+  if(typeof pos.lat==='function')return{lat:pos.lat(),lng:pos.lng()};
+  return{lat:pos.lat,lng:pos.lng};
 }
 function focusOnMe(){
   navigator.geolocation.getCurrentPosition(
-    function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude}; userMarker.position=p; map.panTo(p);},
-    function(){var p=getUserPosition(); if(p) map.panTo(p);},
+    function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude};userMarker.position=p;map.panTo(p);},
+    function(){var p=getUserPosition();if(p)map.panTo(p);},
     {enableHighAccuracy:true,timeout:8000,maximumAge:3000}
   );
 }
-function focusOnRouteStart(){
-  var p=pathLine.getPath().getArray(); if(p.length>0) map.panTo(p[0]);
-}
+function focusOnRouteStart(){var p=pathLine.getPath().getArray();if(p.length>0)map.panTo(p[0]);}
+
 async function snapToRoads(points){
-  if(!points||points.length===0) return;
+  if(!points||points.length===0)return;
   var pathStr=points.map(function(p){return p.lat+','+p.lng;}).join('|');
   try{
     var res=await fetch('https://roads.googleapis.com/v1/snapToRoads?path='+encodeURIComponent(pathStr)+'&interpolate=true&key='+ROADS_API_KEY);
     var data=await res.json();
     if(data.snappedPoints&&data.snappedPoints.length>0){
-      data.snappedPoints.forEach(function(sp){ walkPath.push({lat:sp.location.latitude,lng:sp.location.longitude}); });
+      data.snappedPoints.forEach(function(sp){walkPath.push({lat:sp.location.latitude,lng:sp.location.longitude});});
       pathLine.setPath(walkPath);
-      var last=walkPath[walkPath.length-1]; userMarker.position=last; map.panTo(last);
+      var last=walkPath[walkPath.length-1];userMarker.position=last;map.panTo(last);
     }
-  }catch(err){
-    console.warn('[Roads API] fallback:',err);
-    points.forEach(function(p){ walkPath.push(p); }); pathLine.setPath(walkPath);
-  }
+  }catch(err){console.warn('[Roads API]',err);points.forEach(function(p){walkPath.push(p);});pathLine.setPath(walkPath);}
 }
-async function flushRawBuffer(){
-  if(rawGpsBuffer.length>0){
-    var r=rawGpsBuffer.slice(); rawGpsBuffer=[]; await snapToRoads(r);
-  }
-}
+async function flushRawBuffer(){if(rawGpsBuffer.length>0){var r=rawGpsBuffer.slice();rawGpsBuffer=[];await snapToRoads(r);}}
+
 function startWalk(){
   startTime=new Date();
   document.getElementById('state-init').classList.add('hidden');
@@ -324,7 +483,7 @@ function startWalk(){
   setStatusBar('📡 取得定位狀態中','var(--status-locating)');
   document.getElementById('colorPicker').style.display='none';
   pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85});
-  pauseWindowPoints=[]; pauseWindowStart=new Date();
+  pauseWindowPoints=[];pauseWindowStart=new Date();
   locatingTimer=setTimeout(function(){
     navigator.geolocation.clearWatch(watchId);
     setStatusBar('⚠️ 定位失敗','var(--status-ended)');
@@ -334,14 +493,11 @@ function startWalk(){
   },60000);
   watchId=navigator.geolocation.watchPosition(function(pos){
     var newPoint={lat:pos.coords.latitude,lng:pos.coords.longitude};
-    if(pos.coords.accuracy>40) return;
+    if(pos.coords.accuracy>40)return;
     var lastRaw=rawGpsBuffer.length>0?rawGpsBuffer[rawGpsBuffer.length-1]:(walkPath.length>0?walkPath[walkPath.length-1]:null);
-    if(lastRaw){
-      var dist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(lastRaw.lat,lastRaw.lng),new google.maps.LatLng(newPoint.lat,newPoint.lng));
-      if(dist<3||dist>80) return;
-    }
+    if(lastRaw){var dist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(lastRaw.lat,lastRaw.lng),new google.maps.LatLng(newPoint.lat,newPoint.lng));if(dist<3||dist>80)return;}
     if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
-    rawGpsBuffer.push(newPoint); userMarker.position=newPoint;
+    rawGpsBuffer.push(newPoint);userMarker.position=newPoint;
     if(rawGpsBuffer.length>=5){var batch=rawGpsBuffer.slice();rawGpsBuffer=[];snapToRoads(batch);}
     var now=new Date();
     pauseWindowPoints.push({point:newPoint,time:now});
@@ -352,133 +508,198 @@ function startWalk(){
       windowDist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(first.lat,first.lng),new google.maps.LatLng(last.lat,last.lng));
     }
     var currentKm=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
-    if(windowDist>7){
-      setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');
-      pauseWindowPoints=[{point:newPoint,time:now}];pauseWindowStart=now;
-    }else if((now-pauseWindowStart)>=15000){
-      setStatusBar('☕ 暫停一下...','var(--status-paused)');
-    }else if(currentKm>0){
-      setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');
-    }
-  },function(err){
-    console.error('[GPS錯誤]',err);
-    setStatusBar('📡 取得定位狀態中','var(--status-locating)');
-  },{enableHighAccuracy:true,maximumAge:0,timeout:10000});
+    if(windowDist>7){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');pauseWindowPoints=[{point:newPoint,time:now}];pauseWindowStart=now;}
+    else if((now-pauseWindowStart)>=15000){setStatusBar('☕ 暫停一下...','var(--status-paused)');}
+    else if(currentKm>0){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');}
+  },function(err){console.error('[GPS]',err);setStatusBar('📡 取得定位狀態中','var(--status-locating)');},{enableHighAccuracy:true,maximumAge:0,timeout:10000});
 }
 
 
 /* ===================================================
-   [修復 v1.8.4] openEventCanvas() - Place.searchNearby 正確格式
+   [新增 v1.10.0] 照片處理函式
 
-   查清楚的三個問題：
+   openCamera()
+   PSEUDO: 點擊相機按鈕，觸發隱藏的 file input
+   手機上會彈出「拍照/選擇照片」的系統選單
 
-   問題一：includedTypes 不支援 'establishment'
-   - 'establishment' 是 Table B 的值，只能出現在回傳結果
-   - includedTypes 只接受 Table A 的值（具體類別）
-   - 解法：改用多個具體 type，或直接不傳 includedTypes
-     不傳 includedTypes 代表回傳所有類型的地點
+   handlePhotoSelected()
+   PSEUDO: 使用者選完照片後的處理流程
+   1. 讀取原始圖片
+   2. 用 Canvas API 壓縮到最大寬度 800px、品質 70%
+   3. 把壓縮後的圖片顯示在確認視窗
 
-   問題二：locationRestriction 格式
-   - JavaScript Maps API 直接傳 { center: LatLngLiteral, radius: number }
-   - 不需要 google.maps.Circle 物件（那是 REST API 的用法）
+   compressImage()
+   PSEUDO: Canvas 壓縮核心邏輯
+   - 計算等比例縮放後的尺寸
+   - 繪製到 canvas，輸出 blob
 
-   問題三：fields 格式
-   - JavaScript API 用 fields 陣列，值是 camelCase 字串
-   - 正確值：'displayName', 'location', 'id'
+   retakePhoto() / cancelPhoto() / confirmPhoto()
+   PSEUDO: 照片確認視窗的三個按鈕處理
    =================================================== */
-async function openEventCanvas(){
+function openCamera() {
+  document.getElementById('photoFileInput').click();
+}
+
+function handlePhotoSelected(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+
+  /* PSEUDO: 先隱藏事件視窗，顯示照片確認視窗 */
+  document.getElementById('eventModal').style.display = 'none';
+  document.getElementById('photoConfirmModal').style.display = 'flex';
+
+  /* PSEUDO: 讀取檔案為 DataURL，再壓縮 */
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    compressImage(e.target.result, 800, 0.7, function(blob, dataUrl) {
+      selectedPhotoBlob = blob;
+      selectedPhotoDataUrl = dataUrl;
+      document.getElementById('photoConfirmImg').src = dataUrl;
+    });
+  };
+  reader.readAsDataURL(file);
+  /* PSEUDO: 清空 input value，讓同一張照片可以重選 */
+  input.value = '';
+}
+
+function compressImage(dataUrl, maxWidth, quality, callback) {
+  var img = new Image();
+  img.onload = function() {
+    var canvas = document.createElement('canvas');
+    var scale = Math.min(1, maxWidth / img.width);
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(function(blob) {
+      /* PSEUDO: toBlob 產生 Blob，同時產生 DataURL 供預覽 */
+      var reader = new FileReader();
+      reader.onload = function(e) { callback(blob, e.target.result); };
+      reader.readAsDataURL(blob);
+    }, 'image/jpeg', quality);
+  };
+  img.src = dataUrl;
+}
+
+function retakePhoto() {
+  /* PSEUDO: 重拍：清空選取狀態，重新觸發 file input */
+  selectedPhotoBlob = null;
+  selectedPhotoDataUrl = null;
+  document.getElementById('photoConfirmModal').style.display = 'none';
+  document.getElementById('eventModal').style.display = 'flex';
+  setTimeout(function() { openCamera(); }, 100);
+}
+
+function cancelPhoto() {
+  /* PSEUDO: 取消：不用照片，回事件頁 */
+  selectedPhotoBlob = null;
+  selectedPhotoDataUrl = null;
+  document.getElementById('photoConfirmModal').style.display = 'none';
+  document.getElementById('eventModal').style.display = 'flex';
+}
+
+function confirmPhoto() {
+  /* PSEUDO: 確認使用：照片帶入事件頁，顯示縮圖預覽 */
+  document.getElementById('photoConfirmModal').style.display = 'none';
+  document.getElementById('eventModal').style.display = 'flex';
+  if (selectedPhotoDataUrl) {
+    var thumb = document.getElementById('photoPreviewThumb');
+    thumb.src = selectedPhotoDataUrl;
+    thumb.style.display = 'block';
+    document.getElementById('cameraBtn').innerText = '📷 換照片';
+  }
+}
+
+
+async function openEventCanvas() {
   document.getElementById('eventModal').style.display='flex';
   selectedPlace=null; nearbyPlaces=[];
   document.getElementById('placeTags').innerHTML='<span class="place-detecting">偵測中...</span>';
   switchIconCategory(0);
   document.getElementById('selectedIconPreview').innerText=selectedIcon;
+  /* PSEUDO: 重置照片狀態 */
+  selectedPhotoBlob=null; selectedPhotoDataUrl=null;
+  document.getElementById('photoPreviewThumb').style.display='none';
+  document.getElementById('photoPreviewThumb').src='';
+  document.getElementById('cameraBtn').innerText='📷 加入照片';
 
   var currentPos=getUserPosition();
-  if(!currentPos){
-    document.getElementById('placeTags').innerHTML='<span class="place-detecting">（無法取得位置）</span>';
-    return;
-  }
-
+  if(!currentPos){document.getElementById('placeTags').innerHTML='<span class="place-detecting">（無法取得位置）</span>';return;}
   try{
-    var { Place } = await google.maps.importLibrary('places');
-
-    var request={
+    var {Place}=await google.maps.importLibrary('places');
+    var {places}=await Place.searchNearby({
       fields:['displayName','location','id'],
-      locationRestriction:{
-        /* PSEUDO: 正確格式：直接傳 plain object { center, radius }
-           center 是 LatLngLiteral {lat, lng}
-           radius 單位公尺，上限 50000 */
-        center: currentPos,
-        radius: 100
-      }
-      /* PSEUDO: 不傳 includedTypes，讓 API 回傳所有類型的地點
-         因為 'establishment' 不在 Table A，不能作為 filter
-         不傳的話等同於搜尋所有地點，反而結果更完整 */
-    };
-
-    var { places } = await Place.searchNearby(request);
+      locationRestriction:{center:currentPos,radius:100}
+    });
     var tagsContainer=document.getElementById('placeTags');
     tagsContainer.innerHTML='';
-
-    if(!places||places.length===0){
-      tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';
-      return;
-    }
-
+    if(!places||places.length===0){tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';return;}
     places.slice(0,3).forEach(function(place){
-      if(!place.location) return;
-      var placeData={
-        name: place.displayName,
-        placeId: place.id,
-        lat: place.location.lat(),
-        lng: place.location.lng()
-      };
+      if(!place.location)return;
+      var placeData={name:place.displayName,placeId:place.id,lat:place.location.lat(),lng:place.location.lng()};
       nearbyPlaces.push(placeData);
+      var shortName=place.displayName.length>10?place.displayName.slice(0,10)+'...':place.displayName;
       var tag=document.createElement('div');
-      tag.className='place-tag';
-      /* PSEUDO: 地標名稱超過 10 字截斷加 ...，避免 tag 過長擠版面 */
-      var shortName = place.displayName.length > 10
-        ? place.displayName.slice(0, 10) + '...'
-        : place.displayName;
-      tag.innerText='📍 '+shortName;
+      tag.className='place-tag'; tag.innerText='📍 '+shortName;
       tag.onclick=function(){
-        if(selectedPlace&&selectedPlace.placeId===placeData.placeId){
-          selectedPlace=null; tag.classList.remove('selected');
-        }else{
-          selectedPlace=placeData;
-          document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});
-          tag.classList.add('selected');
-        }
+        if(selectedPlace&&selectedPlace.placeId===placeData.placeId){selectedPlace=null;tag.classList.remove('selected');}
+        else{selectedPlace=placeData;document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});tag.classList.add('selected');}
       };
       tagsContainer.appendChild(tag);
     });
-
-    if(tagsContainer.children.length===0){
-      tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';
-    }
-  }catch(err){
-    console.error('[Places API 錯誤]',err);
-    document.getElementById('placeTags').innerHTML='<span class="place-detecting">（地標偵測失敗）</span>';
-  }
+    if(tagsContainer.children.length===0)tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';
+  }catch(err){console.error('[Places]',err);document.getElementById('placeTags').innerHTML='<span class="place-detecting">（地標偵測失敗）</span>';}
 }
 
-function closeEventModal(){ selectedPlace=null; document.getElementById('eventModal').style.display='none'; }
-function saveEvent(){
-  var text=document.getElementById('eventText').value;
-  var eventPos,placeName,placeId;
-  if(selectedPlace){
-    eventPos={lat:selectedPlace.lat,lng:selectedPlace.lng};
-    placeName=selectedPlace.name; placeId=selectedPlace.placeId;
-  }else{
-    eventPos=getUserPosition()||{lat:0,lng:0};
-    placeName=''; placeId='';
-  }
-  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId});
-  createEventMarker(eventPos,selectedIcon,text,placeName);
-  document.getElementById('eventText').value='';
-  selectedPlace=null;
+function closeEventModal(){
+  selectedPlace=null; selectedPhotoBlob=null; selectedPhotoDataUrl=null;
   document.getElementById('eventModal').style.display='none';
 }
+
+
+/* ===================================================
+   [改版 v1.10.0] saveEvent()
+   PSEUDO: 新增照片上傳流程
+   1. 如果有選照片（selectedPhotoBlob 不為 null）
+      → 上傳到 Firebase Storage
+      → 取得 downloadURL
+      → 存入事件的 photoUrl 欄位
+   2. 沒有照片 → photoUrl 為空字串
+   上傳時顯示「上傳中...」避免使用者重複點擊
+   =================================================== */
+async function saveEvent() {
+  var text=document.getElementById('eventText').value;
+  var eventPos,placeName,placeId;
+  if(selectedPlace){eventPos={lat:selectedPlace.lat,lng:selectedPlace.lng};placeName=selectedPlace.name;placeId=selectedPlace.placeId;}
+  else{eventPos=getUserPosition()||{lat:0,lng:0};placeName='';placeId='';}
+
+  var photoUrl='';
+
+  if(selectedPhotoBlob){
+    /* PSEUDO: 上傳照片到 Firebase Storage
+       路徑：event_photos/{timestamp}_{random}.jpg
+       timestamp + random 確保不重複 */
+    var btn=document.querySelector('#eventModal .btn-event');
+    if(btn){btn.innerText='上傳中...';btn.disabled=true;}
+    try{
+      var fileName='event_photos/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.jpg';
+      var storageRef=window.storageApi.ref(window.storage,fileName);
+      await window.storageApi.uploadBytes(storageRef,selectedPhotoBlob);
+      photoUrl=await window.storageApi.getDownloadURL(storageRef);
+    }catch(err){
+      console.error('[Storage 上傳失敗]',err);
+      /* PSEUDO: 上傳失敗不阻斷，事件仍可儲存，只是沒有照片 */
+    }
+    if(btn){btn.innerText='確認紀錄';btn.disabled=false;}
+  }
+
+  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl});
+  createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl);
+  document.getElementById('eventText').value='';
+  selectedPlace=null; selectedPhotoBlob=null; selectedPhotoDataUrl=null;
+  document.getElementById('eventModal').style.display='none';
+}
+
 
 async function endWalk(){
   navigator.geolocation.clearWatch(watchId);
@@ -493,24 +714,22 @@ async function endWalk(){
   if(walkPath.length>0){
     geocoder.geocode({location:walkPath[walkPath.length-1]},function(results,status){
       if(status==='OK'&&results[0]){
-        var cityObj=results[0].address_components.find(function(c){
-          return c.types.includes('administrative_area_level_1')||c.types.includes('locality');
-        });
+        var cityObj=results[0].address_components.find(function(c){return c.types.includes('administrative_area_level_1')||c.types.includes('locality');});
         cityName=cityObj?cityObj.long_name:'未知城市';
 
-        /* PSEUDO: 從 eventsData 撈出有綁定地標的事件
-           用物件去除重複名稱，再以 / 分隔顯示
-           沒有任何綁定地標時，不顯示這行 */
-        var seenPlaces={}, placeNames=[];
+        /* ===================================================
+           [校正 v1.10.0] 結算頁地標名稱截斷 10 字
+           PSEUDO: 與事件 tag 一致，超過 10 字加 ...
+           =================================================== */
+        var seenPlaces={},placeNames=[];
         eventsData.forEach(function(ev){
-          if(ev.placeName && !seenPlaces[ev.placeName]){
+          if(ev.placeName&&!seenPlaces[ev.placeName]){
             seenPlaces[ev.placeName]=true;
-            placeNames.push(ev.placeName);
+            var shortName=ev.placeName.length>10?ev.placeName.slice(0,10)+'...':ev.placeName;
+            placeNames.push(shortName);
           }
         });
-        var placeLine=placeNames.length>0
-          ? '<br>📍 停留地標：'+placeNames.join(' / ')
-          : '';
+        var placeLine=placeNames.length>0?'<br>📍 停留地標：'+placeNames.join(' / '):'';
 
         document.getElementById('summaryBox').innerHTML=
           '<strong>漫遊結算</strong><br>🏙️ 城市：'+cityName+'<br>👣 里程：'+totalDistance.toFixed(2)+' KM<br>⏱️ 時長：'+durationStr+'<br>📸 事件：'+eventsData.length+' 個'+placeLine;
@@ -520,7 +739,7 @@ async function endWalk(){
 }
 
 async function executeCloudSave(){
-  var btn=document.getElementById('btnConfirmSave'); if(btn) btn.disabled=true;
+  var btn=document.getElementById('btnConfirmSave');if(btn)btn.disabled=true;
   try{
     await window.api.addDoc(window.api.collection(window.db,'walk_records'),{
       name:document.getElementById('routeName').value||'未命名漫遊',
@@ -529,25 +748,40 @@ async function executeCloudSave(){
       isPinned:false,createdAt:window.api.serverTimestamp()
     });
     location.reload();
-  }catch(e){alert('儲存失敗');if(btn) btn.disabled=false;}
+  }catch(e){alert('儲存失敗');if(btn)btn.disabled=false;}
 }
 
-function createEventMarker(pos,icon,text,placeName){
-  function EmojiOverlay(position,icon,text,placeName){
+
+/* ===================================================
+   [改版 v1.10.0] createEventMarker()
+   PSEUDO: 新增 photoUrl 參數
+   點擊標記後，如果有照片就在回憶視窗顯示拍立得
+   =================================================== */
+function createEventMarker(pos,icon,text,placeName,photoUrl){
+  function EmojiOverlay(position,icon,text,placeName,photoUrl){
     this.position_=new google.maps.LatLng(position.lat,position.lng);
-    this.icon_=icon;this.text_=text;this.placeName_=placeName||'';
+    this.icon_=icon;this.text_=text;this.placeName_=placeName||'';this.photoUrl_=photoUrl||'';
     this.div_=null;this.setMap(map);
   }
   EmojiOverlay.prototype=Object.create(google.maps.OverlayView.prototype);
   EmojiOverlay.prototype.onAdd=function(){
-    var div=document.createElement('div');
-    div.className='event-marker-div';div.innerText=this.icon_;
-    var ci=this.icon_,ct=this.text_,cp=this.placeName_;
+    var div=document.createElement('div');div.className='event-marker-div';div.innerText=this.icon_;
+    var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_;
     function showMemory(e){
       e.stopPropagation();if(e.preventDefault)e.preventDefault();
       document.getElementById('memoryIcon').innerText=ci||'📸';
       document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';
       document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';
+      /* PSEUDO: 有照片 → 顯示拍立得；無照片 → 隱藏 */
+      var polaroid=document.getElementById('memoryPolaroid');
+      var memPhoto=document.getElementById('memoryPhoto');
+      if(cph){
+        memPhoto.src=cph;
+        polaroid.classList.remove('hidden');
+      }else{
+        polaroid.classList.add('hidden');
+        memPhoto.src='';
+      }
       document.getElementById('memoryBox').style.display='flex';
     }
     div.addEventListener('click',showMemory);
@@ -558,23 +792,19 @@ function createEventMarker(pos,icon,text,placeName){
     var pt=this.getProjection().fromLatLngToDivPixel(this.position_);
     if(this.div_&&pt){this.div_.style.left=pt.x+'px';this.div_.style.top=pt.y+'px';}
   };
-  EmojiOverlay.prototype.onRemove=function(){
-    if(this.div_){this.div_.parentNode.removeChild(this.div_);this.div_=null;}
-  };
-  return new EmojiOverlay(pos,icon,text,placeName);
+  EmojiOverlay.prototype.onRemove=function(){if(this.div_){this.div_.parentNode.removeChild(this.div_);this.div_=null;}};
+  return new EmojiOverlay(pos,icon,text,placeName,photoUrl);
 }
 
 async function fetchRecords(){
   var container=document.getElementById('recordsContainer');
-  if(!container) return;
+  if(!container)return;
   container.innerHTML='<p style="text-align:center;padding:20px;">載入中...</p>';
   try{
     var snap=await window.api.getDocs(window.api.collection(window.db,'walk_records'));
     window.currentDocs=[];
     snap.forEach(function(d){window.currentDocs.push(Object.assign({id:d.id},d.data()));});
-    window.currentDocs.sort(function(a,b){
-      return(b.isPinned-a.isPinned)||((b.createdAt&&b.createdAt.seconds||0)-(a.createdAt&&a.createdAt.seconds||0));
-    });
+    window.currentDocs.sort(function(a,b){return(b.isPinned-a.isPinned)||((b.createdAt&&b.createdAt.seconds||0)-(a.createdAt&&a.createdAt.seconds||0));});
     container.innerHTML='';
     window.currentDocs.forEach(function(data){
       var cardColor=data.trackColor||'var(--accent-positive)';
@@ -592,44 +822,35 @@ async function fetchRecords(){
     });
   }catch(e){console.error(e);container.innerHTML='<p style="text-align:center;color:red;">載入失敗</p>';}
 }
+
 function loadSavedRoute(id){
   var data=window.currentDocs.find(function(d){return d.id===id;});
-  if(!data) return;
+  if(!data)return;
   switchPage('main');pathLine.setPath([]);
   historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];
   var pts=data.path.map(function(p){return{lat:p.lat,lng:p.lng};});
-  pathLine.setPath(pts);
-  pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
+  pathLine.setPath(pts);pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
   if(data.events){
     data.events.forEach(function(ev){
-      historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||''));
+      historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||''));
     });
   }
-  map.panTo(pts[0]);
-  document.getElementById('btnFocusRoute').classList.remove('hidden');
+  map.panTo(pts[0]);document.getElementById('btnFocusRoute').classList.remove('hidden');
 }
-async function deleteRecord(e,id){
-  e.stopPropagation();
-  if(!confirm('確定要刪除嗎？')) return;
-  await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));
-  fetchRecords();
-}
-async function togglePin(e,id,status){
-  e.stopPropagation();
-  await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});
-  fetchRecords();
-}
+
+async function deleteRecord(e,id){e.stopPropagation();if(!confirm('確定要刪除嗎？'))return;await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));fetchRecords();}
+async function togglePin(e,id,status){e.stopPropagation();await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});fetchRecords();}
+
 function switchPage(p){
   document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   var tp=document.getElementById('page-'+p),tn=document.getElementById('nav-'+p);
-  if(tp) tp.classList.remove('hidden');
-  if(tn) tn.classList.add('active');
+  if(tp)tp.classList.remove('hidden');if(tn)tn.classList.add('active');
   var mc=document.querySelector('.map-controls'),cp=document.getElementById('colorPicker');
   var isInit=!document.getElementById('state-init').classList.contains('hidden');
   if(p==='list'){if(mc)mc.style.display='none';if(cp)cp.style.display='none';}
   else{if(mc)mc.style.display='flex';if(cp)cp.style.display=isInit?'flex':'none';}
-  if(p==='list') fetchRecords();
+  if(p==='list')fetchRecords();
 }
 function openSaveModal(){document.getElementById('saveModal').style.display='flex';}
 
@@ -641,6 +862,8 @@ window.executeCloudSave=executeCloudSave; window.switchPage=switchPage;
 window.closeMemoryBox=closeMemoryBox; window.deleteRecord=deleteRecord;
 window.togglePin=togglePin; window.toggleColorPicker=toggleColorPicker;
 window.selectColor=selectColor; window.endWalk=endWalk; window.startWalk=startWalk;
+window.openCamera=openCamera; window.handlePhotoSelected=handlePhotoSelected;
+window.retakePhoto=retakePhoto; window.cancelPhoto=cancelPhoto; window.confirmPhoto=confirmPhoto;
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async" async defer></script>
