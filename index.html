@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.8.0</title>
+<title>City Walker - v1.8.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -91,18 +91,33 @@ body {
 }
 .btn-main { background: var(--text-main); color: var(--white); }
 .btn-event { background: var(--accent-positive); color: var(--white); }
+
 #eventModal, #saveModal, #memoryBox {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.5);
   display: none; align-items: center; justify-content: center;
   z-index: 9999;
 }
+
+/* ===================================================
+   [修復 v1.8.1] modal-content
+   PSEUDO: 原本 padding:25px 在小螢幕上擠壓 icon grid
+   改為左右 padding 縮小到 16px，給 grid 更多橫向空間
+   同時加 max-height + overflow-y 避免內容超出螢幕
+   =================================================== */
 .modal-content {
-  background: var(--white); width: 90%; max-width: 380px;
-  border-radius: 28px; padding: 25px; box-sizing: border-box;
+  background: var(--white);
+  width: 92%;           /* 略微加寬 */
+  max-width: 400px;
+  border-radius: 28px;
+  padding: 20px 16px;   /* 左右從 25px 縮到 16px */
+  box-sizing: border-box;
+  max-height: 90vh;     /* 防止超出螢幕高度 */
+  overflow-y: auto;
 }
+
 #memoryCloseBtn {
-  position: absolute; top: 16px; right: 20px;
+  position: absolute; top: 16px; right: 16px;
   font-size: 22px; color: var(--text-soft);
   cursor: pointer; padding: 4px 8px; border-radius: 50%;
   transition: background 0.2s;
@@ -114,6 +129,8 @@ body {
   user-select: none; -webkit-user-select: none;
   pointer-events: auto; z-index: 999;
 }
+
+/* 色彩色盤 */
 #colorPicker {
   position: fixed; top: 62px; left: 16px;
   z-index: 1300;
@@ -144,7 +161,7 @@ body {
   box-shadow: 0 3px 10px rgba(0,0,0,0.25);
 }
 
-/* Icon 選擇器（v1.7.0） */
+/* Icon 選擇器 */
 #iconPickerSection { margin: 10px 0; }
 #iconCategoryTabs {
   display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px;
@@ -152,8 +169,8 @@ body {
 }
 #iconCategoryTabs::-webkit-scrollbar { display: none; }
 .icon-tab {
-  flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
-  font-size: 12px; background: var(--bg-warm); color: var(--text-soft);
+  flex-shrink: 0; padding: 5px 10px; border-radius: 20px;
+  font-size: 11px; background: var(--bg-warm); color: var(--text-soft);
   cursor: pointer; border: 1.5px solid transparent;
   transition: all 0.2s; white-space: nowrap;
 }
@@ -161,81 +178,61 @@ body {
   background: var(--white); color: var(--text-main);
   border-color: var(--accent-positive); font-weight: bold;
 }
+
+/* ===================================================
+   [修復 v1.8.1] Icon Grid
+   PSEUDO: Bug 1 根本原因
+   原本 font-size:24px + padding:5px，在 92% 寬的 modal 裡
+   5 欄合計寬度超過容器，第五欄被擠出去
+   
+   修法：
+   - 用 grid-template-columns: repeat(5, 1fr) 讓每欄自動等寬
+   - font-size 縮到 22px
+   - padding 改成 4px
+   - aspect-ratio:1 確保每格是正方形
+   關鍵：不設固定寬度，讓 grid 自己分配
+   =================================================== */
 #iconGrid {
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  gap: 6px; max-height: 120px; overflow-y: auto; padding: 4px 2px;
-  scrollbar-width: thin;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr); /* 5 欄等寬，自動分配 */
+  gap: 4px;
+  max-height: 130px;
+  overflow-y: auto;
+  padding: 2px 0;
 }
 .icon-cell {
   display: flex; align-items: center; justify-content: center;
-  font-size: 24px; padding: 5px; border-radius: 12px;
+  font-size: 22px;  /* 從 24px 縮小 */
+  padding: 4px;     /* 從 5px 縮小 */
+  border-radius: 10px;
   cursor: pointer; border: 2px solid transparent;
   transition: background 0.15s; aspect-ratio: 1;
+  min-width: 0;     /* 防止 grid item 撐開超出欄寬 */
 }
 .icon-cell:active { transform: scale(0.88); }
 .icon-cell.selected { background: var(--bg-warm); border-color: var(--accent-positive); }
-#selectedIconPreview { font-size: 28px; margin-left: auto; flex-shrink: 0; }
+#selectedIconPreview { font-size: 26px; margin-left: auto; flex-shrink: 0; }
 
-/* ===================================================
-   [新增 v1.8.0] 地標選擇區樣式
-   
-   PSEUDO: 設計邏輯
-   - NearbySearch 回傳結果後，顯示最多 3 個地標 tag
-   - 每個 tag 是可點選的圓角膠囊
-   - 點選後高亮（綠色邊框），再點取消
-   - 一次只能選一個（單選）
-   - 沒有選任何 tag 就是不綁定地標
-   - 偵測中顯示 loading 狀態
-   =================================================== */
-#placeSection {
-  margin: 8px 0 10px;
-}
-
-#placeLabel {
-  font-size: 11px;
-  color: var(--text-soft);
-  margin-bottom: 6px;
-}
-
+/* 地標選擇區 */
+#placeSection { margin: 8px 0 10px; }
+#placeLabel { font-size: 11px; color: var(--text-soft); margin-bottom: 6px; }
 #placeTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  min-height: 32px;
-  align-items: center;
+  display: flex; flex-wrap: wrap; gap: 6px;
+  min-height: 32px; align-items: center;
 }
-
-/* PSEUDO: 單個地標 tag */
 .place-tag {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  background: var(--bg-warm);
-  color: var(--text-main);
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border-radius: 20px;
+  font-size: 12px; background: var(--bg-warm); color: var(--text-main);
   border: 1.5px solid var(--border-light);
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
 }
 .place-tag:active { transform: scale(0.95); }
-
-/* PSEUDO: 選中的地標 tag - 綠色邊框 + 淡綠背景 */
 .place-tag.selected {
-  background: #EEF6F3;
-  border-color: var(--accent-positive);
-  color: var(--accent-positive);
-  font-weight: bold;
+  background: #EEF6F3; border-color: var(--accent-positive);
+  color: var(--accent-positive); font-weight: bold;
 }
-
-/* PSEUDO: 偵測中的 loading 提示 */
-.place-detecting {
-  font-size: 12px;
-  color: var(--text-soft);
-  font-style: italic;
-}
+.place-detecting { font-size: 12px; color: var(--text-soft); font-style: italic; }
 </style>
 
 <script type="module">
@@ -277,26 +274,19 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
   <button class="map-btn hidden" id="btnFocusRoute" onclick="focusOnRouteStart()">🛣️</button>
 </div>
 
-<!-- 回憶彈窗 -->
 <div id="memoryBox" onclick="closeMemoryBox()">
   <div class="modal-content" onclick="event.stopPropagation()" style="position:relative; text-align:center; padding-top:40px;">
     <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
     <div id="memoryIcon" style="font-size:50px; margin-bottom:12px;">📸</div>
-    <!-- [v1.8.0] 地標名稱顯示，有綁定才出現 -->
     <div id="memoryPlace" style="font-size:12px; color:var(--text-soft); margin-bottom:6px;"></div>
     <div id="memoryText" style="font-size:17px; color:#333; line-height:1.6; min-height:60px;"></div>
   </div>
 </div>
 
-<!-- ===================================================
-     [改版 v1.8.0] 紀錄事件彈窗
-     新增地標選擇區，取代原本純文字的 nearbyBadge
-     =================================================== -->
 <div id="eventModal">
   <div class="modal-content">
     <div style="font-weight:bold; font-size:18px; text-align:center; margin-bottom:10px;">紀錄這一刻</div>
 
-    <!-- [新增 v1.8.0] 地標選擇區 -->
     <div id="placeSection">
       <div id="placeLabel">📍 附近地標</div>
       <div id="placeTags">
@@ -305,9 +295,8 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
     </div>
 
     <textarea id="eventText" placeholder="寫下心情..." maxlength="100"
-      style="width:100%; height:72px; border:1px solid #EEE; padding:12px; border-radius:12px; margin:0 0 10px; box-sizing:border-box; outline:none; resize:none; font-size:14px;"></textarea>
+      style="width:100%; height:68px; border:1px solid #EEE; padding:10px; border-radius:12px; margin:0 0 10px; box-sizing:border-box; outline:none; resize:none; font-size:14px;"></textarea>
 
-    <!-- Icon 選擇器（v1.7.0） -->
     <div id="iconPickerSection">
       <div style="display:flex; align-items:center; margin-bottom:8px;">
         <div id="iconCategoryTabs"></div>
@@ -316,9 +305,9 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
       <div id="iconGrid"></div>
     </div>
 
-    <div style="display:flex; gap:12px; margin-top:12px;">
-      <button class="btn-base" style="background:#EEE;" onclick="closeEventModal()">取消</button>
-      <button class="btn-base btn-event" onclick="saveEvent()">確認紀錄</button>
+    <div style="display:flex; gap:10px; margin-top:12px;">
+      <button class="btn-base" style="background:#EEE; font-size:14px;" onclick="closeEventModal()">取消</button>
+      <button class="btn-base btn-event" style="font-size:14px;" onclick="saveEvent()">確認紀錄</button>
     </div>
   </div>
 </div>
@@ -366,12 +355,6 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 
 
 <script>
-/* ===================================================
-   PSEUDO: 全域變數
-   [新增 v1.8.0]
-   - nearbyPlaces：NearbySearch 回傳的地標物件陣列
-   - selectedPlace：使用者選中的地標物件 { name, placeId, lat, lng }
-   =================================================== */
 var map, marker, pathLine, watchId, geocoder, placesService;
 var walkPath = [], eventsData = [], totalDistance = 0;
 var startTime, durationStr, cityName = '未知城市', selectedIcon = '📸';
@@ -381,15 +364,8 @@ var selectedTrackColor = '#333333';
 var rawGpsBuffer = [];
 var ROADS_API_KEY = 'AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
 var pauseWindowPoints = [], pauseWindowStart = null;
+var nearbyPlaces = [], selectedPlace = null;
 
-/* [新增 v1.8.0] 地標選擇相關 */
-var nearbyPlaces = [];   /* NearbySearch 回傳的最多 3 個地標 */
-var selectedPlace = null; /* 使用者選中的地標，null = 不綁定 */
-
-
-/* ===================================================
-   PSEUDO: Icon 資料庫（v1.7.0）
-   =================================================== */
 var ICON_CATEGORIES = [
   { name: '美食', emoji: '🍽️', icons: ['☕','🍔','🍜','🍣','🧁','🍺','🧃','🍦','🥐','🍱'] },
   { name: '自然', emoji: '🌿', icons: ['🌸','🌳','🌊','🌙','☀️','🌧️','🍂','🌈','🏔️','🌺'] },
@@ -460,7 +436,6 @@ function setStatusBar(text, bgColor) {
   bar.style.backgroundColor = bgColor || 'var(--status-idle)';
 }
 function closeMemoryBox() { document.getElementById('memoryBox').style.display = 'none'; }
-
 function toggleColorPicker() { document.getElementById('colorOptions').classList.toggle('open'); }
 function selectColor(el) {
   selectedTrackColor = el.getAttribute('data-color');
@@ -472,27 +447,18 @@ function selectColor(el) {
 }
 document.addEventListener('click', function(e) {
   var picker = document.getElementById('colorPicker');
-  if (picker && !picker.contains(e.target)) {
-    document.getElementById('colorOptions').classList.remove('open');
-  }
+  if (picker && !picker.contains(e.target)) document.getElementById('colorOptions').classList.remove('open');
 });
 
-
-/* ===================================================
-   PSEUDO: initMap()
-   =================================================== */
 function initMap() {
   map = new google.maps.Map(document.getElementById('map'), {
-    zoom: 17,
-    center: { lat: 25.0478, lng: 121.5170 },
+    zoom: 17, center: { lat: 25.0478, lng: 121.5170 },
     disableDefaultUI: true,
     styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
   });
   marker = new google.maps.Marker({
-    map,
-    label: { text: '👣', fontSize: '30px' },
-    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
-    zIndex: 999
+    map, label: { text: '👣', fontSize: '30px' },
+    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999
   });
   pathLine = new google.maps.Polyline({
     map, strokeColor: selectedTrackColor, strokeWeight: 6, strokeOpacity: 0.85
@@ -506,8 +472,7 @@ function initMap() {
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       var userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      map.setCenter(userPos);
-      marker.setPosition(userPos);
+      map.setCenter(userPos); marker.setPosition(userPos);
       setStatusBar('City Walker', 'var(--status-idle)');
     },
     function() { setStatusBar('City Walker', 'var(--status-idle)'); },
@@ -519,8 +484,7 @@ function focusOnMe() {
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       var userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      marker.setPosition(userPos);
-      map.panTo(userPos);
+      marker.setPosition(userPos); map.panTo(userPos);
     },
     function() { if (marker && marker.getPosition()) map.panTo(marker.getPosition()); },
     { enableHighAccuracy: true, timeout: 8000, maximumAge: 3000 }
@@ -546,8 +510,7 @@ async function snapToRoads(points) {
       });
       pathLine.setPath(walkPath);
       var last = walkPath[walkPath.length - 1];
-      marker.setPosition(last);
-      map.panTo(last);
+      marker.setPosition(last); map.panTo(last);
     }
   } catch (err) {
     console.warn('[Roads API] fallback:', err);
@@ -557,8 +520,7 @@ async function snapToRoads(points) {
 }
 async function flushRawBuffer() {
   if (rawGpsBuffer.length > 0) {
-    var remaining = rawGpsBuffer.slice();
-    rawGpsBuffer = [];
+    var remaining = rawGpsBuffer.slice(); rawGpsBuffer = [];
     await snapToRoads(remaining);
   }
 }
@@ -631,28 +593,25 @@ function startWalk() {
 
 
 /* ===================================================
-   [改版 v1.8.0] openEventCanvas()
+   [修復 v1.8.1] openEventCanvas() - nearbySearch
    
-   PSEUDO: 地標偵測流程改版
+   PSEUDO: Bug 2 根本原因
+   nearbySearch 回傳的結果裡，某些 place 物件的
+   geometry 欄位可能是 undefined（例如商家暫時關閉
+   或資料不完整的地點）
    
-   原本：NearbySearch 結果直接顯示為純文字
-   現在：
-   1. 顯示「偵測中...」
-   2. NearbySearch 取得最多 3 個地標
-   3. 每個地標渲染成可點選的 tag
-   4. 同時取得地標的精確座標（geometry.location）
-      供使用者綁定後吸附 icon 位置使用
-   5. 重置 selectedPlace = null（預設不綁定）
+   原本：直接呼叫 place.geometry.location.lat()
+   → 若 geometry 為 undefined 就爆 TypeError
+   → callback 整個中斷，UI 卡在「偵測中」
+   
+   修法：加入 null 檢查，過濾掉沒有 geometry 的結果
+   只保留有完整座標的地標才建立 tag
    =================================================== */
 function openEventCanvas() {
   document.getElementById('eventModal').style.display = 'flex';
-
-  /* PSEUDO: 重置地標選擇狀態 */
   selectedPlace = null;
   nearbyPlaces = [];
   document.getElementById('placeTags').innerHTML = '<span class="place-detecting">偵測中...</span>';
-
-  /* PSEUDO: 重置 icon 選擇器 */
   switchIconCategory(0);
   document.getElementById('selectedIconPreview').innerText = selectedIcon;
 
@@ -662,26 +621,32 @@ function openEventCanvas() {
     return;
   }
 
-  /* ===================================================
-     PSEUDO: NearbySearch 取得附近地標
-     radius: 80m（比之前的 50m 稍大，確保轉角的店也找得到）
-     fields 需要 geometry 才能拿到精確座標
-     =================================================== */
   placesService.nearbySearch({
-    location: currentPos,
-    radius: 80,
-    type: ['establishment']
+    location: currentPos, radius: 80, type: ['establishment']
   }, function(results, status) {
     var tagsContainer = document.getElementById('placeTags');
     tagsContainer.innerHTML = '';
 
-    if (status !== google.maps.places.PlacesServiceStatus.OK || results.length === 0) {
+    if (status !== google.maps.places.PlacesServiceStatus.OK || !results || results.length === 0) {
       tagsContainer.innerHTML = '<span class="place-detecting">（附近無地標）</span>';
       return;
     }
 
-    /* PSEUDO: 取前 3 個地標，建立 tag 並存入 nearbyPlaces */
-    var topResults = results.slice(0, 3);
+    /* ===================================================
+       [修復 v1.8.1] 過濾沒有 geometry 的結果
+       PSEUDO: 只保留有 geometry.location 的地標
+       避免 .lat() 呼叫爆 TypeError
+       =================================================== */
+    var validResults = results.filter(function(place) {
+      return place.geometry && place.geometry.location;
+    });
+
+    if (validResults.length === 0) {
+      tagsContainer.innerHTML = '<span class="place-detecting">（附近無地標）</span>';
+      return;
+    }
+
+    var topResults = validResults.slice(0, 3);
     topResults.forEach(function(place) {
       var placeData = {
         name: place.name,
@@ -691,86 +656,46 @@ function openEventCanvas() {
       };
       nearbyPlaces.push(placeData);
 
-      /* PSEUDO: 建立可點選的地標 tag */
       var tag = document.createElement('div');
       tag.className = 'place-tag';
       tag.innerText = '📍 ' + place.name;
-
       tag.onclick = function() {
-        /* PSEUDO: 單選邏輯
-           點選已選中的 → 取消綁定（selectedPlace = null）
-           點選未選中的 → 選中這個地標 */
         if (selectedPlace && selectedPlace.placeId === placeData.placeId) {
           selectedPlace = null;
           tag.classList.remove('selected');
         } else {
           selectedPlace = placeData;
-          /* 移除其他 tag 的選中狀態 */
-          document.querySelectorAll('.place-tag').forEach(function(t) {
-            t.classList.remove('selected');
-          });
+          document.querySelectorAll('.place-tag').forEach(function(t) { t.classList.remove('selected'); });
           tag.classList.add('selected');
         }
       };
-
       tagsContainer.appendChild(tag);
     });
   });
 }
 
-/* PSEUDO: 關閉事件彈窗並重置地標選擇 */
 function closeEventModal() {
   selectedPlace = null;
   document.getElementById('eventModal').style.display = 'none';
 }
 
-
-/* ===================================================
-   [改版 v1.8.0] saveEvent()
-   
-   PSEUDO: 事件儲存改版
-   
-   原本：pos 固定為使用者當下 GPS 座標
-   現在：
-   - 若使用者有選地標（selectedPlace != null）：
-     pos 改為地標的精確座標（吸附效果）
-     同時存入 placeName、placeId
-   - 若使用者沒選地標：
-     pos 維持使用者當下 GPS 座標
-     placeName、placeId 為空
-   =================================================== */
 function saveEvent() {
   var text = document.getElementById('eventText').value;
-
   var eventPos, placeName, placeId;
-
   if (selectedPlace) {
-    /* PSEUDO: 有選地標 → icon 吸附到地標座標 */
     eventPos = { lat: selectedPlace.lat, lng: selectedPlace.lng };
     placeName = selectedPlace.name;
     placeId = selectedPlace.placeId;
   } else {
-    /* PSEUDO: 沒選地標 → 使用使用者當下 GPS 位置 */
     eventPos = marker.getPosition().toJSON();
-    placeName = '';
-    placeId = '';
+    placeName = ''; placeId = '';
   }
-
-  eventsData.push({
-    text: text,
-    icon: selectedIcon,
-    pos: eventPos,
-    placeName: placeName,
-    placeId: placeId  /* [新增 v1.8.0] 儲存 place_id，為未來社群功能預留 */
-  });
-
+  eventsData.push({ text: text, icon: selectedIcon, pos: eventPos, placeName: placeName, placeId: placeId });
   createEventMarker(eventPos, selectedIcon, text, placeName);
-
   document.getElementById('eventText').value = '';
   selectedPlace = null;
   document.getElementById('eventModal').style.display = 'none';
 }
-
 
 async function endWalk() {
   navigator.geolocation.clearWatch(watchId);
