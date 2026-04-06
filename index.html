@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.8.5</title>
+<title>City Walker - v1.9.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -497,8 +497,23 @@ async function endWalk(){
           return c.types.includes('administrative_area_level_1')||c.types.includes('locality');
         });
         cityName=cityObj?cityObj.long_name:'未知城市';
+
+        /* PSEUDO: 從 eventsData 撈出有綁定地標的事件
+           用物件去除重複名稱，再以 / 分隔顯示
+           沒有任何綁定地標時，不顯示這行 */
+        var seenPlaces={}, placeNames=[];
+        eventsData.forEach(function(ev){
+          if(ev.placeName && !seenPlaces[ev.placeName]){
+            seenPlaces[ev.placeName]=true;
+            placeNames.push(ev.placeName);
+          }
+        });
+        var placeLine=placeNames.length>0
+          ? '<br>📍 停留地標：'+placeNames.join(' / ')
+          : '';
+
         document.getElementById('summaryBox').innerHTML=
-          '<strong>漫遊結算</strong><br>🏙️ 城市：'+cityName+'<br>👣 里程：'+totalDistance.toFixed(2)+' KM<br>⏱️ 時長：'+durationStr+'<br>📸 事件：'+eventsData.length+' 個';
+          '<strong>漫遊結算</strong><br>🏙️ 城市：'+cityName+'<br>👣 里程：'+totalDistance.toFixed(2)+' KM<br>⏱️ 時長：'+durationStr+'<br>📸 事件：'+eventsData.length+' 個'+placeLine;
       }
     });
   }
