@@ -3,202 +3,77 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.8.3</title>
+<title>City Walker - v1.8.4</title>
 <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg-warm: #F9F7F2;
-  --text-main: #333333;
-  --text-soft: #7D7D7D;
-  --accent-positive: #8FB9A8;
-  --accent-warm: #FEAD89;
-  --border-light: #EEEEEE;
-  --white: #FFFFFF;
-  --accent-pin: #FFD700;
-  --status-idle:     #F9F7F2;
-  --status-locating: #FFF3CD;
-  --status-walking:  #D4EDDA;
-  --status-paused:   #FFE5CC;
-  --status-ended:    #E2E8F0;
+  --bg-warm: #F9F7F2; --text-main: #333333; --text-soft: #7D7D7D;
+  --accent-positive: #8FB9A8; --accent-warm: #FEAD89;
+  --border-light: #EEEEEE; --white: #FFFFFF; --accent-pin: #FFD700;
+  --status-idle: #F9F7F2; --status-locating: #FFF3CD;
+  --status-walking: #D4EDDA; --status-paused: #FFE5CC; --status-ended: #E2E8F0;
 }
-body {
-  margin: 0; padding: 0;
-  font-family: 'Poly', 'Microsoft JhengHei', sans-serif;
-  background: var(--bg-warm); color: var(--text-main);
-  overflow: hidden; width: 100vw; height: 100vh;
-}
-.hidden { display: none !important; }
-.page {
-  height: 100vh; width: 100%;
-  position: absolute; top: 0; left: 0;
-  overflow-y: auto; padding-bottom: 120px;
-  box-sizing: border-box; z-index: 10;
-}
-#page-main { z-index: 20; overflow: hidden; }
-#page-list { z-index: 25; background: var(--bg-warm); padding-top: 60px; }
-#statusBar {
-  position: fixed; top: 0; width: 100%; height: 50px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: bold;
-  background: var(--status-idle); backdrop-filter: blur(5px);
-  z-index: 1000; border-bottom: 1px solid var(--border-light);
-  transition: background-color 0.5s ease; letter-spacing: 1px;
-}
-#map { height: 100vh; width: 100%; background: #e5e3df; }
-.map-controls {
-  position: fixed; right: 20px; bottom: 210px;
-  display: flex; flex-direction: column; gap: 12px; z-index: 1200;
-}
-.map-btn {
-  width: 50px; height: 50px; background: var(--white); border-radius: 50%;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; cursor: pointer; border: none;
-}
-#functionPanel {
-  position: fixed; bottom: 95px;
-  left: 50%; transform: translateX(-50%);
-  width: 85%; max-width: 400px;
-  background: var(--white); border-radius: 24px; padding: 20px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-  z-index: 1500; text-align: center;
-}
-#recordsContainer { width: 92%; max-width: 450px; margin: 0 auto; }
-.record-card {
-  background: var(--white); margin: 15px 0; padding: 22px;
-  border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-  position: relative; border-left: 6px solid var(--accent-positive);
-  cursor: pointer; display: block; box-sizing: border-box; text-align: left;
-}
-.record-card.is-pinned { border-left-color: var(--accent-pin); background: #FFFDF5; }
-.pin-icon { position: absolute; top: 18px; right: 18px; cursor: pointer; font-size: 22px; opacity: 0.3; }
-.delete-btn { position: absolute; bottom: 18px; right: 18px; cursor: pointer; font-size: 18px; opacity: 0.3; }
-#navBar {
-  position: fixed; bottom: 0; width: 100%; height: 75px;
-  background: var(--white); display: flex;
-  border-top: 1px solid var(--border-light);
-  z-index: 2000; padding-bottom: env(safe-area-inset-bottom);
-}
-.nav-item {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  font-size: 11px; color: var(--text-soft); cursor: pointer;
-}
-.nav-item.active { color: var(--text-main); font-weight: bold; }
-.btn-base {
-  padding: 16px 24px; font-size: 15px; font-weight: bold;
-  border: none; border-radius: 14px; cursor: pointer; width: 100%; outline: none;
-}
-.btn-main { background: var(--text-main); color: var(--white); }
-.btn-event { background: var(--accent-positive); color: var(--white); }
-#eventModal, #saveModal, #memoryBox {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.5);
-  display: none; align-items: center; justify-content: center;
-  z-index: 9999;
-}
-.modal-content {
-  background: var(--white); width: 92%; max-width: 400px;
-  border-radius: 28px; padding: 20px 16px;
-  box-sizing: border-box; max-height: 90vh; overflow-y: auto;
-}
-#memoryCloseBtn {
-  position: absolute; top: 16px; right: 16px;
-  font-size: 22px; color: var(--text-soft);
-  cursor: pointer; padding: 4px 8px; border-radius: 50%;
-  transition: background 0.2s;
-}
-#memoryCloseBtn:active { background: var(--bg-warm); }
-
-/* ===================================================
-   [v1.8.3] 使用者位置標記樣式
-   PSEUDO: AdvancedMarkerElement 用 HTML div 呈現
-   移除 mapId 衝突問題後，POI 隱藏改用 CSS 方式處理
-   =================================================== */
-.user-marker { font-size: 30px; line-height: 1; cursor: default; user-select: none; }
-
-.event-marker-div {
-  position: absolute; font-size: 28px; cursor: pointer;
-  transform: translate(-50%, -50%);
-  user-select: none; -webkit-user-select: none;
-  pointer-events: auto; z-index: 999;
-}
-#colorPicker {
-  position: fixed; top: 62px; left: 16px;
-  z-index: 1300;
-  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
-}
-#colorToggleBtn {
-  width: 38px; height: 38px; border-radius: 50%;
-  border: 3px solid var(--white);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
-  cursor: pointer; transition: transform 0.2s;
-}
-#colorToggleBtn:active { transform: scale(0.92); }
-#colorOptions {
-  display: none; flex-direction: column; gap: 8px;
-  background: var(--white); border-radius: 20px;
-  padding: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-}
-#colorOptions.open { display: flex; }
-.color-dot {
-  width: 34px; height: 34px; border-radius: 50%;
-  cursor: pointer; border: 3px solid transparent;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  transition: transform 0.15s, border-color 0.15s; flex-shrink: 0;
-}
-.color-dot:active { transform: scale(0.88); }
-.color-dot.selected { border-color: var(--white); transform: scale(1.18); box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
-#iconPickerSection { margin: 10px 0; }
-#iconCategoryTabs {
-  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px;
-  scrollbar-width: none; -ms-overflow-style: none;
-}
-#iconCategoryTabs::-webkit-scrollbar { display: none; }
-.icon-tab {
-  flex-shrink: 0; padding: 5px 10px; border-radius: 20px;
-  font-size: 11px; background: var(--bg-warm); color: var(--text-soft);
-  cursor: pointer; border: 1.5px solid transparent; transition: all 0.2s; white-space: nowrap;
-}
-.icon-tab.active { background: var(--white); color: var(--text-main); border-color: var(--accent-positive); font-weight: bold; }
-#iconGrid {
-  display: grid; grid-template-columns: repeat(5, 1fr);
-  gap: 4px; max-height: 130px; overflow-y: auto; padding: 2px 0;
-}
-.icon-cell {
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; padding: 4px; border-radius: 10px;
-  cursor: pointer; border: 2px solid transparent;
-  transition: background 0.15s; aspect-ratio: 1; min-width: 0;
-}
-.icon-cell:active { transform: scale(0.88); }
-.icon-cell.selected { background: var(--bg-warm); border-color: var(--accent-positive); }
-#selectedIconPreview { font-size: 26px; margin-left: auto; flex-shrink: 0; }
-#placeSection { margin: 8px 0 10px; }
-#placeLabel { font-size: 11px; color: var(--text-soft); margin-bottom: 6px; }
-#placeTags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; align-items: center; }
-.place-tag {
-  display: flex; align-items: center; gap: 4px;
-  padding: 5px 10px; border-radius: 20px;
-  font-size: 12px; background: var(--bg-warm); color: var(--text-main);
-  border: 1.5px solid var(--border-light);
-  cursor: pointer; transition: all 0.2s; white-space: nowrap;
-}
-.place-tag:active { transform: scale(0.95); }
-.place-tag.selected { background: #EEF6F3; border-color: var(--accent-positive); color: var(--accent-positive); font-weight: bold; }
-.place-detecting { font-size: 12px; color: var(--text-soft); font-style: italic; }
+body { margin:0; padding:0; font-family:'Poly','Microsoft JhengHei',sans-serif; background:var(--bg-warm); color:var(--text-main); overflow:hidden; width:100vw; height:100vh; }
+.hidden { display:none !important; }
+.page { height:100vh; width:100%; position:absolute; top:0; left:0; overflow-y:auto; padding-bottom:120px; box-sizing:border-box; z-index:10; }
+#page-main { z-index:20; overflow:hidden; }
+#page-list { z-index:25; background:var(--bg-warm); padding-top:60px; }
+#statusBar { position:fixed; top:0; width:100%; height:50px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; background:var(--status-idle); backdrop-filter:blur(5px); z-index:1000; border-bottom:1px solid var(--border-light); transition:background-color 0.5s ease; letter-spacing:1px; }
+#map { height:100vh; width:100%; background:#e5e3df; }
+.map-controls { position:fixed; right:20px; bottom:210px; display:flex; flex-direction:column; gap:12px; z-index:1200; }
+.map-btn { width:50px; height:50px; background:var(--white); border-radius:50%; box-shadow:0 4px 15px rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; border:none; }
+#functionPanel { position:fixed; bottom:95px; left:50%; transform:translateX(-50%); width:85%; max-width:400px; background:var(--white); border-radius:24px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.08); z-index:1500; text-align:center; }
+#recordsContainer { width:92%; max-width:450px; margin:0 auto; }
+.record-card { background:var(--white); margin:15px 0; padding:22px; border-radius:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05); position:relative; border-left:6px solid var(--accent-positive); cursor:pointer; display:block; box-sizing:border-box; text-align:left; }
+.record-card.is-pinned { border-left-color:var(--accent-pin); background:#FFFDF5; }
+.pin-icon { position:absolute; top:18px; right:18px; cursor:pointer; font-size:22px; opacity:0.3; }
+.delete-btn { position:absolute; bottom:18px; right:18px; cursor:pointer; font-size:18px; opacity:0.3; }
+#navBar { position:fixed; bottom:0; width:100%; height:75px; background:var(--white); display:flex; border-top:1px solid var(--border-light); z-index:2000; padding-bottom:env(safe-area-inset-bottom); }
+.nav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; color:var(--text-soft); cursor:pointer; }
+.nav-item.active { color:var(--text-main); font-weight:bold; }
+.btn-base { padding:16px 24px; font-size:15px; font-weight:bold; border:none; border-radius:14px; cursor:pointer; width:100%; outline:none; }
+.btn-main { background:var(--text-main); color:var(--white); }
+.btn-event { background:var(--accent-positive); color:var(--white); }
+#eventModal, #saveModal, #memoryBox { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:9999; }
+.modal-content { background:var(--white); width:92%; max-width:400px; border-radius:28px; padding:20px 16px; box-sizing:border-box; max-height:90vh; overflow-y:auto; }
+#memoryCloseBtn { position:absolute; top:16px; right:16px; font-size:22px; color:var(--text-soft); cursor:pointer; padding:4px 8px; border-radius:50%; transition:background 0.2s; }
+#memoryCloseBtn:active { background:var(--bg-warm); }
+.user-marker { font-size:30px; line-height:1; cursor:default; user-select:none; }
+.event-marker-div { position:absolute; font-size:28px; cursor:pointer; transform:translate(-50%,-50%); user-select:none; -webkit-user-select:none; pointer-events:auto; z-index:999; }
+#colorPicker { position:fixed; top:62px; left:16px; z-index:1300; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+#colorToggleBtn { width:38px; height:38px; border-radius:50%; border:3px solid var(--white); box-shadow:0 2px 8px rgba(0,0,0,0.18); cursor:pointer; transition:transform 0.2s; }
+#colorToggleBtn:active { transform:scale(0.92); }
+#colorOptions { display:none; flex-direction:column; gap:8px; background:var(--white); border-radius:20px; padding:10px; box-shadow:0 4px 20px rgba(0,0,0,0.12); }
+#colorOptions.open { display:flex; }
+.color-dot { width:34px; height:34px; border-radius:50%; cursor:pointer; border:3px solid transparent; box-shadow:0 2px 6px rgba(0,0,0,0.15); transition:transform 0.15s,border-color 0.15s; flex-shrink:0; }
+.color-dot:active { transform:scale(0.88); }
+.color-dot.selected { border-color:var(--white); transform:scale(1.18); box-shadow:0 3px 10px rgba(0,0,0,0.25); }
+#iconPickerSection { margin:10px 0; }
+#iconCategoryTabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; -ms-overflow-style:none; }
+#iconCategoryTabs::-webkit-scrollbar { display:none; }
+.icon-tab { flex-shrink:0; padding:5px 10px; border-radius:20px; font-size:11px; background:var(--bg-warm); color:var(--text-soft); cursor:pointer; border:1.5px solid transparent; transition:all 0.2s; white-space:nowrap; }
+.icon-tab.active { background:var(--white); color:var(--text-main); border-color:var(--accent-positive); font-weight:bold; }
+#iconGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; max-height:130px; overflow-y:auto; padding:2px 0; }
+.icon-cell { display:flex; align-items:center; justify-content:center; font-size:22px; padding:4px; border-radius:10px; cursor:pointer; border:2px solid transparent; transition:background 0.15s; aspect-ratio:1; min-width:0; }
+.icon-cell:active { transform:scale(0.88); }
+.icon-cell.selected { background:var(--bg-warm); border-color:var(--accent-positive); }
+#selectedIconPreview { font-size:26px; margin-left:auto; flex-shrink:0; }
+#placeSection { margin:8px 0 10px; }
+#placeLabel { font-size:11px; color:var(--text-soft); margin-bottom:6px; }
+#placeTags { display:flex; flex-wrap:wrap; gap:6px; min-height:32px; align-items:center; }
+.place-tag { display:flex; align-items:center; gap:4px; padding:5px 10px; border-radius:20px; font-size:12px; background:var(--bg-warm); color:var(--text-main); border:1.5px solid var(--border-light); cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+.place-tag:active { transform:scale(0.95); }
+.place-tag.selected { background:#EEF6F3; border-color:var(--accent-positive); color:var(--accent-positive); font-weight:bold; }
+.place-detecting { font-size:12px; color:var(--text-soft); font-style:italic; }
 </style>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 const firebaseConfig = {
-  apiKey: "AIzaSyDc460QtdfTv32gEPNPLVCMOxPz0hCWxbQ",
-  authDomain: "city-walk-project.firebaseapp.com",
-  projectId: "city-walk-project",
-  storageBucket: "city-walk-project.firebasestorage.app",
-  messagingSenderId: "190868537611",
-  appId: "1:190868537611:web:9a97031a9357f4d39be20e"
+  apiKey: "AIzaSyDc460QtdfTv32gEPNPLVCMOxPz0hCWxbQ", authDomain: "city-walk-project.firebaseapp.com",
+  projectId: "city-walk-project", storageBucket: "city-walk-project.firebasestorage.app",
+  messagingSenderId: "190868537611", appId: "1:190868537611:web:9a97031a9357f4d39be20e"
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -227,32 +102,32 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 </div>
 
 <div id="memoryBox" onclick="closeMemoryBox()">
-  <div class="modal-content" onclick="event.stopPropagation()" style="position:relative; text-align:center; padding-top:40px;">
+  <div class="modal-content" onclick="event.stopPropagation()" style="position:relative;text-align:center;padding-top:40px;">
     <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
-    <div id="memoryIcon" style="font-size:50px; margin-bottom:12px;">📸</div>
-    <div id="memoryPlace" style="font-size:12px; color:var(--text-soft); margin-bottom:6px;"></div>
-    <div id="memoryText" style="font-size:17px; color:#333; line-height:1.6; min-height:60px;"></div>
+    <div id="memoryIcon" style="font-size:50px;margin-bottom:12px;">📸</div>
+    <div id="memoryPlace" style="font-size:12px;color:var(--text-soft);margin-bottom:6px;"></div>
+    <div id="memoryText" style="font-size:17px;color:#333;line-height:1.6;min-height:60px;"></div>
   </div>
 </div>
 
 <div id="eventModal">
   <div class="modal-content">
-    <div style="font-weight:bold; font-size:18px; text-align:center; margin-bottom:10px;">紀錄這一刻</div>
+    <div style="font-weight:bold;font-size:18px;text-align:center;margin-bottom:10px;">紀錄這一刻</div>
     <div id="placeSection">
       <div id="placeLabel">📍 附近地標</div>
       <div id="placeTags"><span class="place-detecting">偵測中...</span></div>
     </div>
     <textarea id="eventText" placeholder="寫下心情..." maxlength="100"
-      style="width:100%; height:68px; border:1px solid #EEE; padding:10px; border-radius:12px; margin:0 0 10px; box-sizing:border-box; outline:none; resize:none; font-size:14px;"></textarea>
+      style="width:100%;height:68px;border:1px solid #EEE;padding:10px;border-radius:12px;margin:0 0 10px;box-sizing:border-box;outline:none;resize:none;font-size:14px;"></textarea>
     <div id="iconPickerSection">
-      <div style="display:flex; align-items:center; margin-bottom:8px;">
+      <div style="display:flex;align-items:center;margin-bottom:8px;">
         <div id="iconCategoryTabs"></div>
         <div id="selectedIconPreview">📸</div>
       </div>
       <div id="iconGrid"></div>
     </div>
-    <div style="display:flex; gap:10px; margin-top:12px;">
-      <button class="btn-base" style="background:#EEE; font-size:14px;" onclick="closeEventModal()">取消</button>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button class="btn-base" style="background:#EEE;font-size:14px;" onclick="closeEventModal()">取消</button>
       <button class="btn-base btn-event" style="font-size:14px;" onclick="saveEvent()">確認紀錄</button>
     </div>
   </div>
@@ -260,11 +135,11 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 
 <div id="saveModal">
   <div class="modal-content">
-    <div style="font-weight:bold; font-size:18px; text-align:center;">保存這趟漫遊</div>
+    <div style="font-weight:bold;font-size:18px;text-align:center;">保存這趟漫遊</div>
     <input type="text" id="routeName" placeholder="為這條路線命名..."
-      style="width:100%; border:1px solid #EEE; padding:12px; border-radius:12px; margin:15px 0; box-sizing:border-box;">
-    <div style="display:flex; gap:12px;">
-      <button class="btn-base" style="background:#EEE; color:#666;" onclick="document.getElementById('saveModal').style.display='none'">取消</button>
+      style="width:100%;border:1px solid #EEE;padding:12px;border-radius:12px;margin:15px 0;box-sizing:border-box;">
+    <div style="display:flex;gap:12px;">
+      <button class="btn-base" style="background:#EEE;color:#666;" onclick="document.getElementById('saveModal').style.display='none'">取消</button>
       <button class="btn-base btn-main" id="btnConfirmSave" onclick="executeCloudSave()">確認加入</button>
     </div>
   </div>
@@ -273,16 +148,14 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 <div id="page-main" class="page">
   <div id="map"></div>
   <div id="functionPanel">
-    <div id="state-init">
-      <button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button>
-    </div>
+    <div id="state-init"><button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button></div>
     <div id="state-recording" class="hidden">
       <button class="btn-base btn-event" onclick="openEventCanvas()">紀錄事件！</button>
-      <button class="btn-base" style="background:#f5f5f5; color:#666; margin-top:10px;" onclick="endWalk()">結束本次漫遊</button>
+      <button class="btn-base" style="background:#f5f5f5;color:#666;margin-top:10px;" onclick="endWalk()">結束本次漫遊</button>
     </div>
     <div id="state-finished" class="hidden">
-      <div id="encourageBox" style="font-style:italic; color:var(--accent-positive); font-size:14px; margin-bottom:12px; line-height:1.6;"></div>
-      <div id="summaryBox" style="background:#FCFAF7; border-radius:16px; padding:15px; margin-bottom:15px; text-align:left; font-size:14px; border:1px dashed var(--accent-positive);"></div>
+      <div id="encourageBox" style="font-style:italic;color:var(--accent-positive);font-size:14px;margin-bottom:12px;line-height:1.6;"></div>
+      <div id="summaryBox" style="background:#FCFAF7;border-radius:16px;padding:15px;margin-bottom:15px;text-align:left;font-size:14px;border:1px dashed var(--accent-positive);"></div>
       <button class="btn-base btn-event" onclick="openSaveModal()">加入我的路線清單</button>
       <button class="btn-base btn-main" style="margin-top:10px;" onclick="location.reload()">重新開始</button>
     </div>
@@ -290,7 +163,7 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 </div>
 
 <div id="page-list" class="page hidden">
-  <h2 style="text-align:center; letter-spacing:2px; margin-bottom:20px;">MY JOURNEYS</h2>
+  <h2 style="text-align:center;letter-spacing:2px;margin-bottom:20px;">MY JOURNEYS</h2>
   <div id="recordsContainer"></div>
 </div>
 
@@ -301,50 +174,45 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 
 <script>
 var map, userMarker, pathLine, watchId, geocoder;
-var walkPath = [], eventsData = [], totalDistance = 0;
-var startTime, durationStr, cityName = '未知城市', selectedIcon = '📸';
-var historyMarkers = [];
-var locatingTimer = null;
-var selectedTrackColor = '#333333';
-var rawGpsBuffer = [];
-var ROADS_API_KEY = 'AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
-var pauseWindowPoints = [], pauseWindowStart = null;
-var nearbyPlaces = [], selectedPlace = null;
+var walkPath=[], eventsData=[], totalDistance=0;
+var startTime, durationStr, cityName='未知城市', selectedIcon='📸';
+var historyMarkers=[], locatingTimer=null, selectedTrackColor='#333333';
+var rawGpsBuffer=[], ROADS_API_KEY='AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
+var pauseWindowPoints=[], pauseWindowStart=null;
+var nearbyPlaces=[], selectedPlace=null;
 
 var ICON_CATEGORIES = [
-  { name: '美食', emoji: '🍽️', icons: ['☕','🍔','🍜','🍣','🧁','🍺','🧃','🍦','🥐','🍱'] },
-  { name: '自然', emoji: '🌿', icons: ['🌸','🌳','🌊','🌙','☀️','🌧️','🍂','🌈','🏔️','🌺'] },
-  { name: '地點', emoji: '📍', icons: ['🏛️','🏪','🚉','🌉','🏠','🎭','🏟️','⛩️','🗼','🛣️'] },
-  { name: '心情', emoji: '💭', icons: ['✨','❤️','😊','🥹','😮','💡','🤔','😴','🥰','🎉'] },
-  { name: '活動', emoji: '🎯', icons: ['📸','🎵','🛍️','📖','🎨','🏃','🚲','⚽','🎮','🎤'] },
-  { name: '特別', emoji: '⭐', icons: ['⭐','🏆','💎','🎁','🔖','📌','🗓️','💫','🕐','🎊'] }
+  { name:'美食', emoji:'🍽️', icons:['☕','🍔','🍜','🍣','🧁','🍺','🧃','🍦','🥐','🍱'] },
+  { name:'自然', emoji:'🌿', icons:['🌸','🌳','🌊','🌙','☀️','🌧️','🍂','🌈','🏔️','🌺'] },
+  { name:'地點', emoji:'📍', icons:['🏛️','🏪','🚉','🌉','🏠','🎭','🏟️','⛩️','🗼','🛣️'] },
+  { name:'心情', emoji:'💭', icons:['✨','❤️','😊','🥹','😮','💡','🤔','😴','🥰','🎉'] },
+  { name:'活動', emoji:'🎯', icons:['📸','🎵','🛍️','📖','🎨','🏃','🚲','⚽','🎮','🎤'] },
+  { name:'特別', emoji:'⭐', icons:['⭐','🏆','💎','🎁','🔖','📌','🗓️','💫','🕐','🎊'] }
 ];
 function buildIconPicker() {
-  var tabContainer = document.getElementById('iconCategoryTabs');
-  tabContainer.innerHTML = '';
-  ICON_CATEGORIES.forEach(function(cat, idx) {
+  var tc = document.getElementById('iconCategoryTabs'); tc.innerHTML = '';
+  ICON_CATEGORIES.forEach(function(cat,idx) {
     var tab = document.createElement('div');
-    tab.className = 'icon-tab' + (idx === 0 ? ' active' : '');
-    tab.innerText = cat.emoji + ' ' + cat.name;
+    tab.className = 'icon-tab'+(idx===0?' active':'');
+    tab.innerText = cat.emoji+' '+cat.name;
     tab.onclick = function() { switchIconCategory(idx); };
-    tabContainer.appendChild(tab);
+    tc.appendChild(tab);
   });
   renderIconGrid(0);
 }
 function switchIconCategory(idx) {
-  document.querySelectorAll('.icon-tab').forEach(function(t, i) { t.classList.toggle('active', i === idx); });
+  document.querySelectorAll('.icon-tab').forEach(function(t,i){ t.classList.toggle('active',i===idx); });
   renderIconGrid(idx);
 }
 function renderIconGrid(idx) {
-  var grid = document.getElementById('iconGrid');
-  grid.innerHTML = '';
+  var grid = document.getElementById('iconGrid'); grid.innerHTML = '';
   ICON_CATEGORIES[idx].icons.forEach(function(emoji) {
     var cell = document.createElement('div');
-    cell.className = 'icon-cell' + (emoji === selectedIcon ? ' selected' : '');
+    cell.className = 'icon-cell'+(emoji===selectedIcon?' selected':'');
     cell.innerText = emoji;
     cell.onclick = function() {
       selectedIcon = emoji;
-      document.querySelectorAll('.icon-cell').forEach(function(c) { c.classList.remove('selected'); });
+      document.querySelectorAll('.icon-cell').forEach(function(c){ c.classList.remove('selected'); });
       cell.classList.add('selected');
       document.getElementById('selectedIconPreview').innerText = emoji;
     };
@@ -364,473 +232,396 @@ var ENCOURAGE_LIST = [
   '每次 City Walk，都是一次小小的冒險。','謝謝你今天也好好走路了。'
 ];
 function getDailyEncouragement() {
-  var today = new Date();
-  var seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-  return ENCOURAGE_LIST[seed % ENCOURAGE_LIST.length];
+  var today=new Date();
+  var seed=today.getFullYear()*10000+(today.getMonth()+1)*100+today.getDate();
+  return ENCOURAGE_LIST[seed%ENCOURAGE_LIST.length];
 }
-function setStatusBar(text, bgColor) {
-  var bar = document.getElementById('statusBar');
-  bar.innerText = text; bar.style.backgroundColor = bgColor || 'var(--status-idle)';
+function setStatusBar(text,bgColor) {
+  var bar=document.getElementById('statusBar');
+  bar.innerText=text; bar.style.backgroundColor=bgColor||'var(--status-idle)';
 }
-function closeMemoryBox() { document.getElementById('memoryBox').style.display = 'none'; }
+function closeMemoryBox() { document.getElementById('memoryBox').style.display='none'; }
 function toggleColorPicker() { document.getElementById('colorOptions').classList.toggle('open'); }
 function selectColor(el) {
-  selectedTrackColor = el.getAttribute('data-color');
-  document.getElementById('colorToggleBtn').style.backgroundColor = selectedTrackColor;
-  document.querySelectorAll('.color-dot').forEach(function(d) { d.classList.remove('selected'); });
+  selectedTrackColor=el.getAttribute('data-color');
+  document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
+  document.querySelectorAll('.color-dot').forEach(function(d){ d.classList.remove('selected'); });
   el.classList.add('selected');
-  if (pathLine) pathLine.setOptions({ strokeColor: selectedTrackColor });
+  if(pathLine) pathLine.setOptions({strokeColor:selectedTrackColor});
   document.getElementById('colorOptions').classList.remove('open');
 }
-document.addEventListener('click', function(e) {
-  var picker = document.getElementById('colorPicker');
-  if (picker && !picker.contains(e.target)) document.getElementById('colorOptions').classList.remove('open');
+document.addEventListener('click',function(e){
+  var picker=document.getElementById('colorPicker');
+  if(picker&&!picker.contains(e.target)) document.getElementById('colorOptions').classList.remove('open');
 });
 
-
-/* ===================================================
-   [修復 v1.8.3] initMap()
-
-   PSEUDO: 兩個問題同時修
-
-   問題一：mapId + styles 衝突
-   - 有 mapId 時，地圖樣式要透過 Cloud Console 設定
-   - 無法同時用 styles 陣列
-   - 解法：移除 mapId，改用 &map_ids 參數方式
-     但這樣 AdvancedMarkerElement 又無法用
-   
-   真正的解法：用 MAP_ID = 'DEMO_MAP_ID'
-   這是 Google 官方提供的測試用 mapId，不需要在
-   Cloud Console 額外設定，可直接使用 AdvancedMarkerElement
-   POI 隱藏改用 CSS 注入方式（因為 styles 無法用）
-   
-   問題二：styles 無法搭配 mapId
-   - 改用 CSS 隱藏 POI：注入 .gm-style img[src*="maps.gstatic"] 
-     這個方法不夠穩定
-   - 更好的方式：直接接受 POI 顯示，移除隱藏 POI 的限制
-     City Walk app 本來就需要看地標，隱藏反而不好
-   =================================================== */
 async function initMap() {
   var { Map } = await google.maps.importLibrary('maps');
   var { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
-
-  map = new Map(document.getElementById('map'), {
-    zoom: 17,
-    center: { lat: 25.0478, lng: 121.5170 },
-    disableDefaultUI: true,
-    mapId: 'DEMO_MAP_ID'
-    /* PSEUDO: 移除 styles，因為有 mapId 時不能同時設定
-       POI 保留顯示，對 City Walk app 來說反而有幫助 */
+  map = new Map(document.getElementById('map'),{
+    zoom:17, center:{lat:25.0478,lng:121.5170},
+    disableDefaultUI:true, mapId:'DEMO_MAP_ID'
   });
-
-  var markerDiv = document.createElement('div');
-  markerDiv.className = 'user-marker';
-  markerDiv.innerText = '👣';
-  userMarker = new AdvancedMarkerElement({ map: map, content: markerDiv, zIndex: 999 });
-
-  pathLine = new google.maps.Polyline({
-    map, strokeColor: selectedTrackColor, strokeWeight: 6, strokeOpacity: 0.85
-  });
-  geocoder = new google.maps.Geocoder();
-  document.getElementById('colorToggleBtn').style.backgroundColor = selectedTrackColor;
+  var markerDiv=document.createElement('div');
+  markerDiv.className='user-marker'; markerDiv.innerText='👣';
+  userMarker=new AdvancedMarkerElement({map:map,content:markerDiv,zIndex:999});
+  pathLine=new google.maps.Polyline({map,strokeColor:selectedTrackColor,strokeWeight:6,strokeOpacity:0.85});
+  geocoder=new google.maps.Geocoder();
+  document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
   buildIconPicker();
-
-  setStatusBar('📡 取得位置中...', 'var(--status-locating)');
+  setStatusBar('📡 取得位置中...','var(--status-locating)');
   navigator.geolocation.getCurrentPosition(
-    function(pos) {
-      var userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      map.setCenter(userPos); userMarker.position = userPos;
-      setStatusBar('City Walker', 'var(--status-idle)');
+    function(pos){
+      var p={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      map.setCenter(p); userMarker.position=p;
+      setStatusBar('City Walker','var(--status-idle)');
     },
-    function() { setStatusBar('City Walker', 'var(--status-idle)'); },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    function(){ setStatusBar('City Walker','var(--status-idle)'); },
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
   );
 }
-
-function getUserPosition() {
-  var pos = userMarker && userMarker.position;
-  if (!pos) return null;
-  if (typeof pos.lat === 'function') return { lat: pos.lat(), lng: pos.lng() };
-  return { lat: pos.lat, lng: pos.lng };
+function getUserPosition(){
+  var pos=userMarker&&userMarker.position;
+  if(!pos) return null;
+  if(typeof pos.lat==='function') return {lat:pos.lat(),lng:pos.lng()};
+  return {lat:pos.lat,lng:pos.lng};
 }
-
-function focusOnMe() {
+function focusOnMe(){
   navigator.geolocation.getCurrentPosition(
-    function(pos) {
-      var userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      userMarker.position = userPos; map.panTo(userPos);
-    },
-    function() { var p = getUserPosition(); if (p) map.panTo(p); },
-    { enableHighAccuracy: true, timeout: 8000, maximumAge: 3000 }
+    function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude}; userMarker.position=p; map.panTo(p);},
+    function(){var p=getUserPosition(); if(p) map.panTo(p);},
+    {enableHighAccuracy:true,timeout:8000,maximumAge:3000}
   );
 }
-function focusOnRouteStart() {
-  var p = pathLine.getPath().getArray();
-  if (p.length > 0) map.panTo(p[0]);
+function focusOnRouteStart(){
+  var p=pathLine.getPath().getArray(); if(p.length>0) map.panTo(p[0]);
 }
-
-async function snapToRoads(points) {
-  if (!points || points.length === 0) return;
-  var pathStr = points.map(function(p) { return p.lat + ',' + p.lng; }).join('|');
-  try {
-    var res = await fetch('https://roads.googleapis.com/v1/snapToRoads?path=' + encodeURIComponent(pathStr) + '&interpolate=true&key=' + ROADS_API_KEY);
-    var data = await res.json();
-    if (data.snappedPoints && data.snappedPoints.length > 0) {
-      data.snappedPoints.forEach(function(sp) {
-        walkPath.push({ lat: sp.location.latitude, lng: sp.location.longitude });
-      });
+async function snapToRoads(points){
+  if(!points||points.length===0) return;
+  var pathStr=points.map(function(p){return p.lat+','+p.lng;}).join('|');
+  try{
+    var res=await fetch('https://roads.googleapis.com/v1/snapToRoads?path='+encodeURIComponent(pathStr)+'&interpolate=true&key='+ROADS_API_KEY);
+    var data=await res.json();
+    if(data.snappedPoints&&data.snappedPoints.length>0){
+      data.snappedPoints.forEach(function(sp){ walkPath.push({lat:sp.location.latitude,lng:sp.location.longitude}); });
       pathLine.setPath(walkPath);
-      var last = walkPath[walkPath.length - 1];
-      userMarker.position = last; map.panTo(last);
+      var last=walkPath[walkPath.length-1]; userMarker.position=last; map.panTo(last);
     }
-  } catch (err) {
-    console.warn('[Roads API] fallback:', err);
-    points.forEach(function(p) { walkPath.push(p); });
-    pathLine.setPath(walkPath);
+  }catch(err){
+    console.warn('[Roads API] fallback:',err);
+    points.forEach(function(p){ walkPath.push(p); }); pathLine.setPath(walkPath);
   }
 }
-async function flushRawBuffer() {
-  if (rawGpsBuffer.length > 0) {
-    var remaining = rawGpsBuffer.slice(); rawGpsBuffer = [];
-    await snapToRoads(remaining);
+async function flushRawBuffer(){
+  if(rawGpsBuffer.length>0){
+    var r=rawGpsBuffer.slice(); rawGpsBuffer=[]; await snapToRoads(r);
   }
 }
-
-function startWalk() {
-  startTime = new Date();
+function startWalk(){
+  startTime=new Date();
   document.getElementById('state-init').classList.add('hidden');
   document.getElementById('state-recording').classList.remove('hidden');
-  setStatusBar('📡 取得定位狀態中', 'var(--status-locating)');
-  document.getElementById('colorPicker').style.display = 'none';
-  pathLine.setOptions({ strokeColor: selectedTrackColor, strokeOpacity: 0.85 });
-  pauseWindowPoints = []; pauseWindowStart = new Date();
-  locatingTimer = setTimeout(function() {
+  setStatusBar('📡 取得定位狀態中','var(--status-locating)');
+  document.getElementById('colorPicker').style.display='none';
+  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85});
+  pauseWindowPoints=[]; pauseWindowStart=new Date();
+  locatingTimer=setTimeout(function(){
     navigator.geolocation.clearWatch(watchId);
-    setStatusBar('⚠️ 定位失敗', 'var(--status-ended)');
+    setStatusBar('⚠️ 定位失敗','var(--status-ended)');
     document.getElementById('state-recording').classList.add('hidden');
     document.getElementById('state-finished').classList.remove('hidden');
-    document.getElementById('summaryBox').innerHTML = '<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';
-  }, 60000);
-  watchId = navigator.geolocation.watchPosition(function(pos) {
-    var newPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-    if (pos.coords.accuracy > 40) return;
-    var lastRaw = rawGpsBuffer.length > 0 ? rawGpsBuffer[rawGpsBuffer.length - 1] : (walkPath.length > 0 ? walkPath[walkPath.length - 1] : null);
-    if (lastRaw) {
-      var dist = google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(lastRaw.lat, lastRaw.lng), new google.maps.LatLng(newPoint.lat, newPoint.lng));
-      if (dist < 3 || dist > 80) return;
+    document.getElementById('summaryBox').innerHTML='<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';
+  },60000);
+  watchId=navigator.geolocation.watchPosition(function(pos){
+    var newPoint={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    if(pos.coords.accuracy>40) return;
+    var lastRaw=rawGpsBuffer.length>0?rawGpsBuffer[rawGpsBuffer.length-1]:(walkPath.length>0?walkPath[walkPath.length-1]:null);
+    if(lastRaw){
+      var dist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(lastRaw.lat,lastRaw.lng),new google.maps.LatLng(newPoint.lat,newPoint.lng));
+      if(dist<3||dist>80) return;
     }
-    if (locatingTimer) { clearTimeout(locatingTimer); locatingTimer = null; }
-    rawGpsBuffer.push(newPoint);
-    userMarker.position = newPoint;
-    if (rawGpsBuffer.length >= 5) { var batch = rawGpsBuffer.slice(); rawGpsBuffer = []; snapToRoads(batch); }
-    var now = new Date();
-    pauseWindowPoints.push({ point: newPoint, time: now });
-    pauseWindowPoints = pauseWindowPoints.filter(function(item) { return (now - item.time) <= 15000; });
-    var windowDist = 0;
-    if (pauseWindowPoints.length >= 2) {
-      var first = pauseWindowPoints[0].point;
-      var last = pauseWindowPoints[pauseWindowPoints.length - 1].point;
-      windowDist = google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(first.lat, first.lng), new google.maps.LatLng(last.lat, last.lng));
+    if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
+    rawGpsBuffer.push(newPoint); userMarker.position=newPoint;
+    if(rawGpsBuffer.length>=5){var batch=rawGpsBuffer.slice();rawGpsBuffer=[];snapToRoads(batch);}
+    var now=new Date();
+    pauseWindowPoints.push({point:newPoint,time:now});
+    pauseWindowPoints=pauseWindowPoints.filter(function(item){return(now-item.time)<=15000;});
+    var windowDist=0;
+    if(pauseWindowPoints.length>=2){
+      var first=pauseWindowPoints[0].point,last=pauseWindowPoints[pauseWindowPoints.length-1].point;
+      windowDist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(first.lat,first.lng),new google.maps.LatLng(last.lat,last.lng));
     }
-    var currentKm = walkPath.length > 1 ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000 : 0;
-    if (windowDist > 7) {
-      setStatusBar('🚶 漫步中・' + currentKm.toFixed(2) + ' km', 'var(--status-walking)');
-      pauseWindowPoints = [{ point: newPoint, time: now }]; pauseWindowStart = now;
-    } else if ((now - pauseWindowStart) >= 15000) {
-      setStatusBar('☕ 暫停一下...', 'var(--status-paused)');
-    } else if (currentKm > 0) {
-      setStatusBar('🚶 漫步中・' + currentKm.toFixed(2) + ' km', 'var(--status-walking)');
+    var currentKm=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
+    if(windowDist>7){
+      setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');
+      pauseWindowPoints=[{point:newPoint,time:now}];pauseWindowStart=now;
+    }else if((now-pauseWindowStart)>=15000){
+      setStatusBar('☕ 暫停一下...','var(--status-paused)');
+    }else if(currentKm>0){
+      setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');
     }
-  }, function(err) {
-    console.error('[GPS錯誤]', err);
-    setStatusBar('📡 取得定位狀態中', 'var(--status-locating)');
-  }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+  },function(err){
+    console.error('[GPS錯誤]',err);
+    setStatusBar('📡 取得定位狀態中','var(--status-locating)');
+  },{enableHighAccuracy:true,maximumAge:0,timeout:10000});
 }
 
 
 /* ===================================================
-   [修復 v1.8.3] openEventCanvas() - Place.searchNearby() 格式修正
+   [修復 v1.8.4] openEventCanvas() - Place.searchNearby 正確格式
 
-   PSEUDO: Bug 根本原因
-   Place.searchNearby() 的 locationRestriction.circle 格式：
-   
-   錯誤寫法（v1.8.2）：
-   locationRestriction: {
-     circle: { center: {lat, lng}, radius: 80 }  ← plain object，不接受
-   }
-   
-   正確寫法：
-   locationRestriction: new google.maps.Circle({
-     center: {lat, lng},
-     radius: 80
-   })
-   
-   即傳入 google.maps.Circle 物件，不是 plain object
+   查清楚的三個問題：
+
+   問題一：includedTypes 不支援 'establishment'
+   - 'establishment' 是 Table B 的值，只能出現在回傳結果
+   - includedTypes 只接受 Table A 的值（具體類別）
+   - 解法：改用多個具體 type，或直接不傳 includedTypes
+     不傳 includedTypes 代表回傳所有類型的地點
+
+   問題二：locationRestriction 格式
+   - JavaScript Maps API 直接傳 { center: LatLngLiteral, radius: number }
+   - 不需要 google.maps.Circle 物件（那是 REST API 的用法）
+
+   問題三：fields 格式
+   - JavaScript API 用 fields 陣列，值是 camelCase 字串
+   - 正確值：'displayName', 'location', 'id'
    =================================================== */
-async function openEventCanvas() {
-  document.getElementById('eventModal').style.display = 'flex';
-  selectedPlace = null; nearbyPlaces = [];
-  document.getElementById('placeTags').innerHTML = '<span class="place-detecting">偵測中...</span>';
+async function openEventCanvas(){
+  document.getElementById('eventModal').style.display='flex';
+  selectedPlace=null; nearbyPlaces=[];
+  document.getElementById('placeTags').innerHTML='<span class="place-detecting">偵測中...</span>';
   switchIconCategory(0);
-  document.getElementById('selectedIconPreview').innerText = selectedIcon;
+  document.getElementById('selectedIconPreview').innerText=selectedIcon;
 
-  var currentPos = getUserPosition();
-  if (!currentPos) {
-    document.getElementById('placeTags').innerHTML = '<span class="place-detecting">（無法取得位置）</span>';
+  var currentPos=getUserPosition();
+  if(!currentPos){
+    document.getElementById('placeTags').innerHTML='<span class="place-detecting">（無法取得位置）</span>';
     return;
   }
 
-  try {
+  try{
     var { Place } = await google.maps.importLibrary('places');
 
-    /* ===================================================
-       PSEUDO: 正確的 locationRestriction 格式
-       用 new google.maps.Circle() 建立圓形限制範圍物件
-       center 接受 LatLngLiteral {lat, lng}
-       radius 單位是公尺
-       =================================================== */
-    var searchCircle = new google.maps.Circle({
-      center: currentPos,
-      radius: 80
-    });
-
-    var request = {
-      fields: ['displayName', 'location', 'id'],
-      locationRestriction: searchCircle,
-      includedTypes: ['establishment'],
-      maxResultCount: 5
+    var request={
+      fields:['displayName','location','id'],
+      locationRestriction:{
+        /* PSEUDO: 正確格式：直接傳 plain object { center, radius }
+           center 是 LatLngLiteral {lat, lng}
+           radius 單位公尺，上限 50000 */
+        center: currentPos,
+        radius: 100
+      }
+      /* PSEUDO: 不傳 includedTypes，讓 API 回傳所有類型的地點
+         因為 'establishment' 不在 Table A，不能作為 filter
+         不傳的話等同於搜尋所有地點，反而結果更完整 */
     };
 
-    var response = await Place.searchNearby(request);
-    var tagsContainer = document.getElementById('placeTags');
-    tagsContainer.innerHTML = '';
+    var { places } = await Place.searchNearby(request);
+    var tagsContainer=document.getElementById('placeTags');
+    tagsContainer.innerHTML='';
 
-    if (!response.places || response.places.length === 0) {
-      tagsContainer.innerHTML = '<span class="place-detecting">（附近無地標）</span>';
+    if(!places||places.length===0){
+      tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';
       return;
     }
 
-    response.places.slice(0, 3).forEach(function(place) {
-      if (!place.location) return;
-      var placeData = {
+    places.slice(0,3).forEach(function(place){
+      if(!place.location) return;
+      var placeData={
         name: place.displayName,
         placeId: place.id,
         lat: place.location.lat(),
         lng: place.location.lng()
       };
       nearbyPlaces.push(placeData);
-      var tag = document.createElement('div');
-      tag.className = 'place-tag';
-      tag.innerText = '📍 ' + place.displayName;
-      tag.onclick = function() {
-        if (selectedPlace && selectedPlace.placeId === placeData.placeId) {
-          selectedPlace = null; tag.classList.remove('selected');
-        } else {
-          selectedPlace = placeData;
-          document.querySelectorAll('.place-tag').forEach(function(t) { t.classList.remove('selected'); });
+      var tag=document.createElement('div');
+      tag.className='place-tag';
+      tag.innerText='📍 '+place.displayName;
+      tag.onclick=function(){
+        if(selectedPlace&&selectedPlace.placeId===placeData.placeId){
+          selectedPlace=null; tag.classList.remove('selected');
+        }else{
+          selectedPlace=placeData;
+          document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});
           tag.classList.add('selected');
         }
       };
       tagsContainer.appendChild(tag);
     });
 
-    if (tagsContainer.children.length === 0) {
-      tagsContainer.innerHTML = '<span class="place-detecting">（附近無地標）</span>';
+    if(tagsContainer.children.length===0){
+      tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';
     }
-  } catch (err) {
-    console.error('[Places API 錯誤]', err);
-    document.getElementById('placeTags').innerHTML = '<span class="place-detecting">（地標偵測失敗）</span>';
+  }catch(err){
+    console.error('[Places API 錯誤]',err);
+    document.getElementById('placeTags').innerHTML='<span class="place-detecting">（地標偵測失敗）</span>';
   }
 }
 
-function closeEventModal() {
-  selectedPlace = null;
-  document.getElementById('eventModal').style.display = 'none';
-}
-function saveEvent() {
-  var text = document.getElementById('eventText').value;
-  var eventPos, placeName, placeId;
-  if (selectedPlace) {
-    eventPos = { lat: selectedPlace.lat, lng: selectedPlace.lng };
-    placeName = selectedPlace.name; placeId = selectedPlace.placeId;
-  } else {
-    eventPos = getUserPosition() || { lat: 0, lng: 0 };
-    placeName = ''; placeId = '';
+function closeEventModal(){ selectedPlace=null; document.getElementById('eventModal').style.display='none'; }
+function saveEvent(){
+  var text=document.getElementById('eventText').value;
+  var eventPos,placeName,placeId;
+  if(selectedPlace){
+    eventPos={lat:selectedPlace.lat,lng:selectedPlace.lng};
+    placeName=selectedPlace.name; placeId=selectedPlace.placeId;
+  }else{
+    eventPos=getUserPosition()||{lat:0,lng:0};
+    placeName=''; placeId='';
   }
-  eventsData.push({ text: text, icon: selectedIcon, pos: eventPos, placeName: placeName, placeId: placeId });
-  createEventMarker(eventPos, selectedIcon, text, placeName);
-  document.getElementById('eventText').value = '';
-  selectedPlace = null;
-  document.getElementById('eventModal').style.display = 'none';
+  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId});
+  createEventMarker(eventPos,selectedIcon,text,placeName);
+  document.getElementById('eventText').value='';
+  selectedPlace=null;
+  document.getElementById('eventModal').style.display='none';
 }
 
-async function endWalk() {
+async function endWalk(){
   navigator.geolocation.clearWatch(watchId);
-  if (locatingTimer) { clearTimeout(locatingTimer); locatingTimer = null; }
-  setStatusBar('✅ 漫遊結束', 'var(--status-ended)');
+  if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
+  setStatusBar('✅ 漫遊結束','var(--status-ended)');
   document.getElementById('state-recording').classList.add('hidden');
   document.getElementById('state-finished').classList.remove('hidden');
-  document.getElementById('encourageBox').innerText = '「' + getDailyEncouragement() + '」';
+  document.getElementById('encourageBox').innerText='「'+getDailyEncouragement()+'」';
   await flushRawBuffer();
-  totalDistance = walkPath.length > 1 ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000 : 0;
-  durationStr = Math.floor(Math.abs(new Date() - startTime) / 60000) + ' 分鐘';
-  if (walkPath.length > 0) {
-    geocoder.geocode({ location: walkPath[walkPath.length - 1] }, function(results, status) {
-      if (status === 'OK' && results[0]) {
-        var cityObj = results[0].address_components.find(function(c) {
-          return c.types.includes('administrative_area_level_1') || c.types.includes('locality');
+  totalDistance=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
+  durationStr=Math.floor(Math.abs(new Date()-startTime)/60000)+' 分鐘';
+  if(walkPath.length>0){
+    geocoder.geocode({location:walkPath[walkPath.length-1]},function(results,status){
+      if(status==='OK'&&results[0]){
+        var cityObj=results[0].address_components.find(function(c){
+          return c.types.includes('administrative_area_level_1')||c.types.includes('locality');
         });
-        cityName = cityObj ? cityObj.long_name : '未知城市';
-        document.getElementById('summaryBox').innerHTML =
-          '<strong>漫遊結算</strong><br>🏙️ 城市：' + cityName + '<br>👣 里程：' + totalDistance.toFixed(2) + ' KM<br>⏱️ 時長：' + durationStr + '<br>📸 事件：' + eventsData.length + ' 個';
+        cityName=cityObj?cityObj.long_name:'未知城市';
+        document.getElementById('summaryBox').innerHTML=
+          '<strong>漫遊結算</strong><br>🏙️ 城市：'+cityName+'<br>👣 里程：'+totalDistance.toFixed(2)+' KM<br>⏱️ 時長：'+durationStr+'<br>📸 事件：'+eventsData.length+' 個';
       }
     });
   }
 }
 
-async function executeCloudSave() {
-  var btn = document.getElementById('btnConfirmSave');
-  if (btn) btn.disabled = true;
-  try {
-    await window.api.addDoc(window.api.collection(window.db, 'walk_records'), {
-      name: document.getElementById('routeName').value || '未命名漫遊',
-      city: cityName, distance: totalDistance, duration: durationStr,
-      path: walkPath, events: eventsData,
-      trackColor: selectedTrackColor, isPinned: false,
-      createdAt: window.api.serverTimestamp()
+async function executeCloudSave(){
+  var btn=document.getElementById('btnConfirmSave'); if(btn) btn.disabled=true;
+  try{
+    await window.api.addDoc(window.api.collection(window.db,'walk_records'),{
+      name:document.getElementById('routeName').value||'未命名漫遊',
+      city:cityName,distance:totalDistance,duration:durationStr,
+      path:walkPath,events:eventsData,trackColor:selectedTrackColor,
+      isPinned:false,createdAt:window.api.serverTimestamp()
     });
     location.reload();
-  } catch (e) { alert('儲存失敗'); if (btn) btn.disabled = false; }
+  }catch(e){alert('儲存失敗');if(btn) btn.disabled=false;}
 }
 
-function createEventMarker(pos, icon, text, placeName) {
-  function EmojiOverlay(position, icon, text, placeName) {
-    this.position_ = new google.maps.LatLng(position.lat, position.lng);
-    this.icon_ = icon; this.text_ = text; this.placeName_ = placeName || '';
-    this.div_ = null; this.setMap(map);
+function createEventMarker(pos,icon,text,placeName){
+  function EmojiOverlay(position,icon,text,placeName){
+    this.position_=new google.maps.LatLng(position.lat,position.lng);
+    this.icon_=icon;this.text_=text;this.placeName_=placeName||'';
+    this.div_=null;this.setMap(map);
   }
-  EmojiOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
-  EmojiOverlay.prototype.onAdd = function() {
-    var div = document.createElement('div');
-    div.className = 'event-marker-div';
-    div.innerText = this.icon_;
-    var ci = this.icon_, ct = this.text_, cp = this.placeName_;
-    function showMemory(e) {
-      e.stopPropagation(); if (e.preventDefault) e.preventDefault();
-      document.getElementById('memoryIcon').innerText = ci || '📸';
-      document.getElementById('memoryText').innerText = ct || '那一天，在這裡留下了足跡...';
-      document.getElementById('memoryPlace').innerText = cp ? ('📍 ' + cp) : '';
-      document.getElementById('memoryBox').style.display = 'flex';
+  EmojiOverlay.prototype=Object.create(google.maps.OverlayView.prototype);
+  EmojiOverlay.prototype.onAdd=function(){
+    var div=document.createElement('div');
+    div.className='event-marker-div';div.innerText=this.icon_;
+    var ci=this.icon_,ct=this.text_,cp=this.placeName_;
+    function showMemory(e){
+      e.stopPropagation();if(e.preventDefault)e.preventDefault();
+      document.getElementById('memoryIcon').innerText=ci||'📸';
+      document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';
+      document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';
+      document.getElementById('memoryBox').style.display='flex';
     }
-    div.addEventListener('click', showMemory);
-    div.addEventListener('touchstart', showMemory, { passive: false });
-    this.div_ = div;
-    this.getPanes().overlayMouseTarget.appendChild(div);
+    div.addEventListener('click',showMemory);
+    div.addEventListener('touchstart',showMemory,{passive:false});
+    this.div_=div;this.getPanes().overlayMouseTarget.appendChild(div);
   };
-  EmojiOverlay.prototype.draw = function() {
-    var pt = this.getProjection().fromLatLngToDivPixel(this.position_);
-    if (this.div_ && pt) { this.div_.style.left = pt.x + 'px'; this.div_.style.top = pt.y + 'px'; }
+  EmojiOverlay.prototype.draw=function(){
+    var pt=this.getProjection().fromLatLngToDivPixel(this.position_);
+    if(this.div_&&pt){this.div_.style.left=pt.x+'px';this.div_.style.top=pt.y+'px';}
   };
-  EmojiOverlay.prototype.onRemove = function() {
-    if (this.div_) { this.div_.parentNode.removeChild(this.div_); this.div_ = null; }
+  EmojiOverlay.prototype.onRemove=function(){
+    if(this.div_){this.div_.parentNode.removeChild(this.div_);this.div_=null;}
   };
-  return new EmojiOverlay(pos, icon, text, placeName);
+  return new EmojiOverlay(pos,icon,text,placeName);
 }
 
-async function fetchRecords() {
-  var container = document.getElementById('recordsContainer');
-  if (!container) return;
-  container.innerHTML = '<p style="text-align:center;padding:20px;">載入中...</p>';
-  try {
-    var snap = await window.api.getDocs(window.api.collection(window.db, 'walk_records'));
-    window.currentDocs = [];
-    snap.forEach(function(d) { window.currentDocs.push(Object.assign({ id: d.id }, d.data())); });
-    window.currentDocs.sort(function(a, b) {
-      return (b.isPinned - a.isPinned) || ((b.createdAt && b.createdAt.seconds || 0) - (a.createdAt && a.createdAt.seconds || 0));
+async function fetchRecords(){
+  var container=document.getElementById('recordsContainer');
+  if(!container) return;
+  container.innerHTML='<p style="text-align:center;padding:20px;">載入中...</p>';
+  try{
+    var snap=await window.api.getDocs(window.api.collection(window.db,'walk_records'));
+    window.currentDocs=[];
+    snap.forEach(function(d){window.currentDocs.push(Object.assign({id:d.id},d.data()));});
+    window.currentDocs.sort(function(a,b){
+      return(b.isPinned-a.isPinned)||((b.createdAt&&b.createdAt.seconds||0)-(a.createdAt&&a.createdAt.seconds||0));
     });
-    container.innerHTML = '';
-    window.currentDocs.forEach(function(data) {
-      var cardColor = data.trackColor || 'var(--accent-positive)';
-      var card = document.createElement('div');
-      card.className = 'record-card ' + (data.isPinned ? 'is-pinned' : '');
-      card.style.borderLeftColor = data.isPinned ? 'var(--accent-pin)' : cardColor;
-      card.onclick = function() { loadSavedRoute(data.id); };
-      card.innerHTML =
-        '<div class="pin-icon" onclick="togglePin(event,\'' + data.id + '\',' + data.isPinned + ')">📌</div>' +
-        '<div class="delete-btn" onclick="deleteRecord(event,\'' + data.id + '\')">🗑️</div>' +
-        '<div style="font-size:12px;color:var(--text-soft);">' + data.city + '</div>' +
-        '<div style="font-size:16px;font-weight:bold;margin:4px 0;">' + data.name + '</div>' +
-        '<div style="font-size:13px;color:var(--text-soft);">👣 ' + data.distance.toFixed(2) + ' km &nbsp;⏱️ ' + data.duration + '</div>';
+    container.innerHTML='';
+    window.currentDocs.forEach(function(data){
+      var cardColor=data.trackColor||'var(--accent-positive)';
+      var card=document.createElement('div');
+      card.className='record-card '+(data.isPinned?'is-pinned':'');
+      card.style.borderLeftColor=data.isPinned?'var(--accent-pin)':cardColor;
+      card.onclick=function(){loadSavedRoute(data.id);};
+      card.innerHTML=
+        '<div class="pin-icon" onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">📌</div>'+
+        '<div class="delete-btn" onclick="deleteRecord(event,\''+data.id+'\')">🗑️</div>'+
+        '<div style="font-size:12px;color:var(--text-soft);">'+data.city+'</div>'+
+        '<div style="font-size:16px;font-weight:bold;margin:4px 0;">'+data.name+'</div>'+
+        '<div style="font-size:13px;color:var(--text-soft);">👣 '+data.distance.toFixed(2)+' km &nbsp;⏱️ '+data.duration+'</div>';
       container.appendChild(card);
     });
-  } catch (e) { console.error(e); container.innerHTML = '<p style="text-align:center;color:red;">載入失敗</p>'; }
+  }catch(e){console.error(e);container.innerHTML='<p style="text-align:center;color:red;">載入失敗</p>';}
 }
-
-function loadSavedRoute(id) {
-  var data = window.currentDocs.find(function(d) { return d.id === id; });
-  if (!data) return;
-  switchPage('main'); pathLine.setPath([]);
-  historyMarkers.forEach(function(m) { m.setMap(null); }); historyMarkers = [];
-  var pts = data.path.map(function(p) { return { lat: p.lat, lng: p.lng }; });
+function loadSavedRoute(id){
+  var data=window.currentDocs.find(function(d){return d.id===id;});
+  if(!data) return;
+  switchPage('main');pathLine.setPath([]);
+  historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];
+  var pts=data.path.map(function(p){return{lat:p.lat,lng:p.lng};});
   pathLine.setPath(pts);
-  pathLine.setOptions({ strokeColor: data.trackColor || '#FEAD89', strokeOpacity: 0.85, strokeWeight: 6 });
-  if (data.events) {
-    data.events.forEach(function(ev) {
-      historyMarkers.push(createEventMarker(ev.pos, ev.icon, ev.text, ev.placeName || ''));
+  pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
+  if(data.events){
+    data.events.forEach(function(ev){
+      historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||''));
     });
   }
   map.panTo(pts[0]);
   document.getElementById('btnFocusRoute').classList.remove('hidden');
 }
-
-async function deleteRecord(e, id) {
+async function deleteRecord(e,id){
   e.stopPropagation();
-  if (!confirm('確定要刪除嗎？')) return;
-  await window.api.deleteDoc(window.api.doc(window.db, 'walk_records', id));
+  if(!confirm('確定要刪除嗎？')) return;
+  await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));
   fetchRecords();
 }
-async function togglePin(e, id, status) {
+async function togglePin(e,id,status){
   e.stopPropagation();
-  await window.api.updateDoc(window.api.doc(window.db, 'walk_records', id), { isPinned: !status });
+  await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});
   fetchRecords();
 }
-function switchPage(p) {
-  document.querySelectorAll('.page').forEach(function(page) { page.classList.add('hidden'); });
-  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
-  var targetPage = document.getElementById('page-' + p);
-  var targetNav = document.getElementById('nav-' + p);
-  if (targetPage) targetPage.classList.remove('hidden');
-  if (targetNav) targetNav.classList.add('active');
-  var mapControls = document.querySelector('.map-controls');
-  var colorPicker = document.getElementById('colorPicker');
-  var isInit = !document.getElementById('state-init').classList.contains('hidden');
-  if (p === 'list') {
-    if (mapControls) mapControls.style.display = 'none';
-    if (colorPicker) colorPicker.style.display = 'none';
-  } else {
-    if (mapControls) mapControls.style.display = 'flex';
-    if (colorPicker) colorPicker.style.display = isInit ? 'flex' : 'none';
-  }
-  if (p === 'list') fetchRecords();
+function switchPage(p){
+  document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  var tp=document.getElementById('page-'+p),tn=document.getElementById('nav-'+p);
+  if(tp) tp.classList.remove('hidden');
+  if(tn) tn.classList.add('active');
+  var mc=document.querySelector('.map-controls'),cp=document.getElementById('colorPicker');
+  var isInit=!document.getElementById('state-init').classList.contains('hidden');
+  if(p==='list'){if(mc)mc.style.display='none';if(cp)cp.style.display='none';}
+  else{if(mc)mc.style.display='flex';if(cp)cp.style.display=isInit?'flex':'none';}
+  if(p==='list') fetchRecords();
 }
-function openSaveModal() { document.getElementById('saveModal').style.display = 'flex'; }
+function openSaveModal(){document.getElementById('saveModal').style.display='flex';}
 
-window.onload = initMap;
-window.focusOnMe = focusOnMe;
-window.focusOnRouteStart = focusOnRouteStart;
-window.openEventCanvas = openEventCanvas;
-window.closeEventModal = closeEventModal;
-window.saveEvent = saveEvent;
-window.openSaveModal = openSaveModal;
-window.executeCloudSave = executeCloudSave;
-window.switchPage = switchPage;
-window.closeMemoryBox = closeMemoryBox;
-window.deleteRecord = deleteRecord;
-window.togglePin = togglePin;
-window.toggleColorPicker = toggleColorPicker;
-window.selectColor = selectColor;
-window.endWalk = endWalk;
-window.startWalk = startWalk;
+window.onload=initMap;
+window.focusOnMe=focusOnMe; window.focusOnRouteStart=focusOnRouteStart;
+window.openEventCanvas=openEventCanvas; window.closeEventModal=closeEventModal;
+window.saveEvent=saveEvent; window.openSaveModal=openSaveModal;
+window.executeCloudSave=executeCloudSave; window.switchPage=switchPage;
+window.closeMemoryBox=closeMemoryBox; window.deleteRecord=deleteRecord;
+window.togglePin=togglePin; window.toggleColorPicker=toggleColorPicker;
+window.selectColor=selectColor; window.endWalk=endWalk; window.startWalk=startWalk;
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async" async defer></script>
