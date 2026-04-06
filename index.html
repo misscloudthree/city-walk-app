@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.10.1</title>
+<title>City Walker - v1.12.0</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -34,6 +34,41 @@ body {
 .record-card.is-pinned { border-left-color:var(--accent-pin); background:#FFFDF5; }
 .pin-icon { position:absolute; top:18px; right:18px; cursor:pointer; font-size:22px; opacity:0.3; }
 .delete-btn { position:absolute; bottom:18px; right:18px; cursor:pointer; font-size:18px; opacity:0.3; }
+
+/* ===================================================
+   [新增 v1.12.0] 分享按鈕樣式
+   PSEUDO: 放在卡片左下角，小巧不搶眼
+   =================================================== */
+.share-btn {
+  position:absolute; bottom:18px; left:22px;
+  font-size:12px; color:var(--accent-positive);
+  cursor:pointer; opacity:0.8;
+  font-family:'Caveat','Microsoft JhengHei',sans-serif;
+  font-size:14px; letter-spacing:1px;
+}
+.share-btn:active { opacity:1; }
+
+/* ===================================================
+   [新增 v1.12.0] 分享卡片預覽 Modal
+   =================================================== */
+#shareCardModal {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.7);
+  display:none; align-items:center; justify-content:center;
+  z-index:9999; flex-direction:column; gap:16px;
+}
+#shareCardModal canvas {
+  max-width:90vw; max-height:70vh;
+  border-radius:4px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+#shareCardBtns {
+  display:flex; gap:12px;
+}
+#shareCardBtns button {
+  padding:12px 24px; border-radius:14px; border:none;
+  font-size:14px; font-weight:bold; cursor:pointer;
+}
 #navBar { position:fixed; bottom:0; width:100%; height:75px; background:var(--white); display:flex; border-top:1px solid var(--border-light); z-index:2000; padding-bottom:env(safe-area-inset-bottom); }
 .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; color:var(--text-soft); cursor:pointer; }
 .nav-item.active { color:var(--text-main); font-weight:bold; }
@@ -236,6 +271,11 @@ window.storageApi = { ref, uploadBytes, getDownloadURL };
 <div class="map-controls">
   <button class="map-btn" onclick="focusOnMe()">📍</button>
   <button class="map-btn hidden" id="btnFocusRoute" onclick="focusOnRouteStart()">🛣️</button>
+  <!-- [新增 v1.11.0] 清除帶入路線的 X 按鈕
+       PSEUDO: 點擊後移除地圖上的舊路線和事件標記
+       只有帶入舊路線後才顯示，和 btnFocusRoute 同步 -->
+  <button class="map-btn hidden" id="btnClearRoute" onclick="clearLoadedRoute()"
+    style="font-size:16px; color:var(--text-soft);">✕</button>
 </div>
 
 <!-- ===================================================
@@ -354,6 +394,18 @@ window.storageApi = { ref, uploadBytes, getDownloadURL };
       <button class="btn-base btn-event" onclick="openSaveModal()">加入我的路線清單</button>
       <button class="btn-base btn-main" style="margin-top:10px;" onclick="location.reload()">重新開始</button>
     </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     [新增 v1.12.0] IG 分享卡片預覽 Modal
+     PSEUDO: 生成後顯示 canvas 預覽，提供下載按鈕
+     =================================================== -->
+<div id="shareCardModal" onclick="closeShareCard()">
+  <canvas id="shareCardCanvas" onclick="event.stopPropagation()"></canvas>
+  <div id="shareCardBtns" onclick="event.stopPropagation()">
+    <button style="background:#EEE;color:#666;" onclick="closeShareCard()">關閉</button>
+    <button style="background:var(--accent-positive);color:white;" onclick="downloadShareCard()">⬇ 下載圖片</button>
   </div>
 </div>
 
@@ -842,6 +894,8 @@ async function fetchRecords(){
       card.innerHTML=
         '<div class="pin-icon" onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">📌</div>'+
         '<div class="delete-btn" onclick="deleteRecord(event,\''+data.id+'\')">🗑️</div>'+
+        /* [新增 v1.12.0] IG 分享按鈕 */
+        '<div class="share-btn" onclick="openShareCard(event,\''+data.id+'\')">✦ 分享</div>'+
         '<div style="font-size:12px;color:var(--text-soft);">'+data.city+'</div>'+
         '<div style="font-size:16px;font-weight:bold;margin:4px 0;">'+data.name+'</div>'+
         '<div style="font-size:13px;color:var(--text-soft);">👣 '+data.distance.toFixed(2)+' km &nbsp;⏱️ '+data.duration+'</div>';
@@ -862,11 +916,313 @@ function loadSavedRoute(id){
       historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||''));
     });
   }
-  map.panTo(pts[0]);document.getElementById('btnFocusRoute').classList.remove('hidden');
+  map.panTo(pts[0]);
+  document.getElementById('btnFocusRoute').classList.remove('hidden');
+  document.getElementById('btnClearRoute').classList.remove('hidden');
+}
+
+/* ===================================================
+   [新增 v1.11.0] clearLoadedRoute()
+   PSEUDO: 清除地圖上帶入的舊路線
+   1. 清除 Polyline 路徑
+   2. 移除所有事件 OverlayView 標記
+   3. 隱藏路線起點按鈕和 X 按鈕
+   注意：只清除畫面，不影響 Firebase 資料
+   =================================================== */
+function clearLoadedRoute(){
+  pathLine.setPath([]);
+  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85,strokeWeight:6});
+  historyMarkers.forEach(function(m){m.setMap(null);});
+  historyMarkers=[];
+  document.getElementById('btnFocusRoute').classList.add('hidden');
+  document.getElementById('btnClearRoute').classList.add('hidden');
 }
 
 async function deleteRecord(e,id){e.stopPropagation();if(!confirm('確定要刪除嗎？'))return;await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));fetchRecords();}
 async function togglePin(e,id,status){e.stopPropagation();await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});fetchRecords();}
+
+
+/* ===================================================
+   [新增 v1.12.0] IG 分享卡片 - Canvas 繪製
+
+   PSEUDO: 卡片結構（1080 x 1350px，IG 直式比例 4:5）
+   ┌─────────────────────────────┐
+   │  CITY WALKER        ✦ logo │ ← 頂部品牌列（深色）
+   │─────────────────────────────│
+   │                             │
+   │  [路線軌跡 SVG 線條]        │ ← 米色背景，純軌跡
+   │                             │
+   │─────────────────────────────│
+   │  城市名・日期               │
+   │  👣 1.23 km  ⏱ 32 分鐘   │
+   │  📍 地標 / 地標            │
+   │  [照片縮圖堆疊]             │
+   └─────────────────────────────┘
+   =================================================== */
+
+function openShareCard(e, id) {
+  e.stopPropagation();
+  var data = window.currentDocs.find(function(d){ return d.id === id; });
+  if (!data) return;
+  document.getElementById('shareCardModal').style.display = 'flex';
+  generateShareCard(data);
+}
+
+function closeShareCard() {
+  document.getElementById('shareCardModal').style.display = 'none';
+}
+
+function downloadShareCard() {
+  var canvas = document.getElementById('shareCardCanvas');
+  var link = document.createElement('a');
+  /* PSEUDO: 用城市名和日期當檔名 */
+  link.download = 'citywalk-' + (window._shareCardData && window._shareCardData.city || 'route') + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+async function generateShareCard(data) {
+  window._shareCardData = data;
+  var canvas = document.getElementById('shareCardCanvas');
+  var W = 1080, H = 1350;
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+
+  /* ===================================================
+     PSEUDO: 色彩定義
+     =================================================== */
+  var BG       = '#F5F0E8'; /* 米色背景（拍立得感） */
+  var DARK     = '#2C2C2C'; /* 深色（頂部列、文字） */
+  var GREEN    = '#8FB9A8'; /* 主題綠（軌跡、強調） */
+  var SOFT     = '#7D7D7D'; /* 次要文字 */
+  var WHITE    = '#FFFFFF';
+
+  /* ===================================================
+     PSEUDO: Step 1 - 底色
+     =================================================== */
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  /* ===================================================
+     PSEUDO: Step 2 - 頂部品牌列（深色橫條）
+     =================================================== */
+  ctx.fillStyle = DARK;
+  ctx.fillRect(0, 0, W, 120);
+  ctx.fillStyle = WHITE;
+  ctx.font = 'bold 44px "Arial", sans-serif';
+  ctx.letterSpacing = '6px';
+  ctx.fillText('CITY WALKER', 60, 78);
+  /* 右側小標記 */
+  ctx.font = '28px "Arial", sans-serif';
+  ctx.fillStyle = GREEN;
+  ctx.textAlign = 'right';
+  ctx.fillText('✦ city walk', W - 60, 78);
+  ctx.textAlign = 'left';
+
+  /* ===================================================
+     PSEUDO: Step 3 - 路線軌跡繪製
+     把 GPS 座標正規化到 Canvas 座標系
+     軌跡區域：y 140 ~ y 820，左右各留 80px
+     =================================================== */
+  var pts = data.path;
+  if (pts && pts.length > 1) {
+    /* PSEUDO: 找出座標的邊界框 */
+    var minLat = pts[0].lat, maxLat = pts[0].lat;
+    var minLng = pts[0].lng, maxLng = pts[0].lng;
+    pts.forEach(function(p) {
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lng < minLng) minLng = p.lng;
+      if (p.lng > maxLng) maxLng = p.lng;
+    });
+
+    var PAD = 80; /* 軌跡區域邊距 */
+    var TX = PAD, TY = 160;
+    var TW = W - PAD * 2, TH = 620;
+
+    var latRange = maxLat - minLat || 0.001;
+    var lngRange = maxLng - minLng || 0.001;
+    /* PSEUDO: 等比例縮放，保持軌跡比例 */
+    var scale = Math.min(TW / lngRange, TH / latRange) * 0.85;
+    var offX = TX + (TW - lngRange * scale) / 2;
+    var offY = TY + (TH - latRange * scale) / 2;
+
+    function toX(lng) { return offX + (lng - minLng) * scale; }
+    function toY(lat) { return offY + (maxLat - lat) * scale; } /* lat 軸反轉 */
+
+    /* PSEUDO: 軌跡主線 */
+    ctx.beginPath();
+    ctx.moveTo(toX(pts[0].lng), toY(pts[0].lat));
+    pts.forEach(function(p) { ctx.lineTo(toX(p.lng), toY(p.lat)); });
+    ctx.strokeStyle = data.trackColor || GREEN;
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.9;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    /* PSEUDO: 起點圓點 */
+    ctx.beginPath();
+    ctx.arc(toX(pts[0].lng), toY(pts[0].lat), 14, 0, Math.PI * 2);
+    ctx.fillStyle = WHITE;
+    ctx.fill();
+    ctx.strokeStyle = data.trackColor || GREEN;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    /* PSEUDO: 終點圓點（實心） */
+    var last = pts[pts.length - 1];
+    ctx.beginPath();
+    ctx.arc(toX(last.lng), toY(last.lat), 14, 0, Math.PI * 2);
+    ctx.fillStyle = data.trackColor || GREEN;
+    ctx.fill();
+
+    /* PSEUDO: 事件 Icon 繪製在軌跡上 */
+    if (data.events) {
+      data.events.forEach(function(ev) {
+        if (!ev.pos) return;
+        var ex = toX(ev.pos.lng), ey = toY(ev.pos.lat);
+        ctx.font = '32px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ev.icon || '📍', ex, ey - 8);
+        ctx.textAlign = 'left';
+      });
+    }
+  }
+
+  /* ===================================================
+     PSEUDO: Step 4 - 分隔線
+     =================================================== */
+  ctx.strokeStyle = DARK;
+  ctx.globalAlpha = 0.12;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(60, 820); ctx.lineTo(W - 60, 820); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  /* ===================================================
+     PSEUDO: Step 5 - 城市、日期
+     =================================================== */
+  var dateStr = data.createdAt && data.createdAt.seconds
+    ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit'})
+    : new Date().toLocaleDateString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit'});
+
+  ctx.fillStyle = DARK;
+  ctx.font = 'bold 52px "Arial", sans-serif';
+  ctx.fillText(data.city || '未知城市', 60, 900);
+
+  ctx.fillStyle = SOFT;
+  ctx.font = '32px "Arial", sans-serif';
+  ctx.fillText(dateStr, 60, 950);
+
+  /* ===================================================
+     PSEUDO: Step 6 - 里程、時長
+     =================================================== */
+  ctx.fillStyle = DARK;
+  ctx.font = 'bold 40px "Arial", sans-serif';
+  ctx.fillText('👣  ' + (data.distance || 0).toFixed(2) + ' km', 60, 1030);
+  ctx.fillText('⏱  ' + (data.duration || '—'), 420, 1030);
+
+  /* ===================================================
+     PSEUDO: Step 7 - 打卡地標清單
+     =================================================== */
+  var seenPlaces = {}, placeNames = [];
+  if (data.events) {
+    data.events.forEach(function(ev) {
+      if (ev.placeName && !seenPlaces[ev.placeName]) {
+        seenPlaces[ev.placeName] = true;
+        var short = ev.placeName.length > 10 ? ev.placeName.slice(0, 10) + '...' : ev.placeName;
+        placeNames.push(short);
+      }
+    });
+  }
+  if (placeNames.length > 0) {
+    ctx.fillStyle = SOFT;
+    ctx.font = '30px "Arial", sans-serif';
+    ctx.fillText('📍  ' + placeNames.join('  /  '), 60, 1090);
+  }
+
+  /* ===================================================
+     PSEUDO: Step 8 - 照片縮圖堆疊（拍立得感）
+     有 photoUrl 的事件最多取 3 張，錯落排列
+     照片需要先用 Image 物件非同步載入
+     =================================================== */
+  var photoUrls = [];
+  if (data.events) {
+    data.events.forEach(function(ev) {
+      if (ev.photoUrl && photoUrls.length < 3) photoUrls.push(ev.photoUrl);
+    });
+  }
+
+  if (photoUrls.length > 0) {
+    var photoPromises = photoUrls.map(function(url) {
+      return new Promise(function(resolve) {
+        var img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() { resolve(img); };
+        img.onerror = function() { resolve(null); };
+        img.src = url;
+      });
+    });
+
+    var images = await Promise.all(photoPromises);
+    /* PSEUDO: 照片堆疊，從右側錯落排列，每張略微旋轉 */
+    var photoW = 200, photoH = 200, photoPad = 14, photoBottom = 14;
+    var rotations = [-3, 2, -1.5];
+    var startX = W - 60;
+
+    images.forEach(function(img, i) {
+      if (!img) return;
+      var rot = (rotations[i] || 0) * Math.PI / 180;
+      var px = startX - (images.length - i) * (photoW + 16);
+      var py = H - 60 - photoH - photoBottom;
+
+      ctx.save();
+      ctx.translate(px + photoW / 2, py + (photoH + photoPad * 2) / 2);
+      ctx.rotate(rot);
+      /* 拍立得白框 */
+      ctx.fillStyle = WHITE;
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
+      ctx.shadowBlur = 12;
+      ctx.fillRect(-photoW / 2 - photoPad, -(photoH + photoPad * 2) / 2, photoW + photoPad * 2, photoH + photoPad * 3);
+      ctx.shadowBlur = 0;
+      /* 照片 */
+      ctx.drawImage(img, -photoW / 2, -(photoH + photoPad * 2) / 2 + photoPad, photoW, photoH);
+      ctx.restore();
+    });
+  }
+
+  /* ===================================================
+     PSEUDO: Step 9 - 底部路線名稱
+     =================================================== */
+  ctx.fillStyle = DARK;
+  ctx.globalAlpha = 0.5;
+  ctx.font = '26px "Arial", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(data.name || '', W / 2, H - 36);
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
+function openShareCard(e, id) {
+  e.stopPropagation();
+  var data = window.currentDocs && window.currentDocs.find(function(d){ return d.id === id; });
+  if (!data) return;
+  window._shareCardData = data;
+  document.getElementById('shareCardModal').style.display = 'flex';
+  /* PSEUDO: 顯示生成中提示 */
+  var canvas = document.getElementById('shareCardCanvas');
+  var ctx = canvas.getContext('2d');
+  canvas.width = 540; canvas.height = 675;
+  ctx.fillStyle = '#F5F0E8';
+  ctx.fillRect(0, 0, 540, 675);
+  ctx.fillStyle = '#8FB9A8';
+  ctx.font = 'bold 28px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('生成卡片中...', 270, 340);
+  /* PSEUDO: 非同步生成完整卡片 */
+  generateShareCard(data);
+}
 
 function switchPage(p){
   document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});
@@ -891,6 +1247,8 @@ window.togglePin=togglePin; window.toggleColorPicker=toggleColorPicker;
 window.selectColor=selectColor; window.endWalk=endWalk; window.startWalk=startWalk;
 window.openCamera=openCamera; window.handlePhotoSelected=handlePhotoSelected;
 window.retakePhoto=retakePhoto; window.cancelPhoto=cancelPhoto; window.confirmPhoto=confirmPhoto;
+window.clearLoadedRoute=clearLoadedRoute;
+window.openShareCard=openShareCard; window.closeShareCard=closeShareCard; window.downloadShareCard=downloadShareCard;
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async" async defer></script>
