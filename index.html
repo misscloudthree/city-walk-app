@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.8.1</title>
+<title>City Walker - v1.8.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -91,31 +91,17 @@ body {
 }
 .btn-main { background: var(--text-main); color: var(--white); }
 .btn-event { background: var(--accent-positive); color: var(--white); }
-
 #eventModal, #saveModal, #memoryBox {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.5);
   display: none; align-items: center; justify-content: center;
   z-index: 9999;
 }
-
-/* ===================================================
-   [修復 v1.8.1] modal-content
-   PSEUDO: 原本 padding:25px 在小螢幕上擠壓 icon grid
-   改為左右 padding 縮小到 16px，給 grid 更多橫向空間
-   同時加 max-height + overflow-y 避免內容超出螢幕
-   =================================================== */
 .modal-content {
-  background: var(--white);
-  width: 92%;           /* 略微加寬 */
-  max-width: 400px;
-  border-radius: 28px;
-  padding: 20px 16px;   /* 左右從 25px 縮到 16px */
-  box-sizing: border-box;
-  max-height: 90vh;     /* 防止超出螢幕高度 */
-  overflow-y: auto;
+  background: var(--white); width: 92%; max-width: 400px;
+  border-radius: 28px; padding: 20px 16px;
+  box-sizing: border-box; max-height: 90vh; overflow-y: auto;
 }
-
 #memoryCloseBtn {
   position: absolute; top: 16px; right: 16px;
   font-size: 22px; color: var(--text-soft);
@@ -123,6 +109,20 @@ body {
   transition: background 0.2s;
 }
 #memoryCloseBtn:active { background: var(--bg-warm); }
+
+/* ===================================================
+   [修復 v1.8.2] AdvancedMarkerElement 自訂樣式
+   PSEUDO: 使用者位置標記改為 HTML 元素
+   AdvancedMarkerElement 接受 HTML element 作為 content
+   =================================================== */
+.user-marker {
+  font-size: 30px;
+  line-height: 1;
+  cursor: default;
+  user-select: none;
+}
+
+/* OverlayView 事件標記 */
 .event-marker-div {
   position: absolute; font-size: 28px; cursor: pointer;
   transform: translate(-50%, -50%);
@@ -178,36 +178,16 @@ body {
   background: var(--white); color: var(--text-main);
   border-color: var(--accent-positive); font-weight: bold;
 }
-
-/* ===================================================
-   [修復 v1.8.1] Icon Grid
-   PSEUDO: Bug 1 根本原因
-   原本 font-size:24px + padding:5px，在 92% 寬的 modal 裡
-   5 欄合計寬度超過容器，第五欄被擠出去
-   
-   修法：
-   - 用 grid-template-columns: repeat(5, 1fr) 讓每欄自動等寬
-   - font-size 縮到 22px
-   - padding 改成 4px
-   - aspect-ratio:1 確保每格是正方形
-   關鍵：不設固定寬度，讓 grid 自己分配
-   =================================================== */
 #iconGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 5 欄等寬，自動分配 */
-  gap: 4px;
-  max-height: 130px;
-  overflow-y: auto;
-  padding: 2px 0;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px; max-height: 130px; overflow-y: auto; padding: 2px 0;
 }
 .icon-cell {
   display: flex; align-items: center; justify-content: center;
-  font-size: 22px;  /* 從 24px 縮小 */
-  padding: 4px;     /* 從 5px 縮小 */
-  border-radius: 10px;
+  font-size: 22px; padding: 4px; border-radius: 10px;
   cursor: pointer; border: 2px solid transparent;
-  transition: background 0.15s; aspect-ratio: 1;
-  min-width: 0;     /* 防止 grid item 撐開超出欄寬 */
+  transition: background 0.15s; aspect-ratio: 1; min-width: 0;
 }
 .icon-cell:active { transform: scale(0.88); }
 .icon-cell.selected { background: var(--bg-warm); border-color: var(--accent-positive); }
@@ -286,17 +266,12 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 <div id="eventModal">
   <div class="modal-content">
     <div style="font-weight:bold; font-size:18px; text-align:center; margin-bottom:10px;">紀錄這一刻</div>
-
     <div id="placeSection">
       <div id="placeLabel">📍 附近地標</div>
-      <div id="placeTags">
-        <span class="place-detecting">偵測中...</span>
-      </div>
+      <div id="placeTags"><span class="place-detecting">偵測中...</span></div>
     </div>
-
     <textarea id="eventText" placeholder="寫下心情..." maxlength="100"
       style="width:100%; height:68px; border:1px solid #EEE; padding:10px; border-radius:12px; margin:0 0 10px; box-sizing:border-box; outline:none; resize:none; font-size:14px;"></textarea>
-
     <div id="iconPickerSection">
       <div style="display:flex; align-items:center; margin-bottom:8px;">
         <div id="iconCategoryTabs"></div>
@@ -304,7 +279,6 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
       </div>
       <div id="iconGrid"></div>
     </div>
-
     <div style="display:flex; gap:10px; margin-top:12px;">
       <button class="btn-base" style="background:#EEE; font-size:14px;" onclick="closeEventModal()">取消</button>
       <button class="btn-base btn-event" style="font-size:14px;" onclick="saveEvent()">確認紀錄</button>
@@ -355,7 +329,13 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 
 
 <script>
-var map, marker, pathLine, watchId, geocoder, placesService;
+/* ===================================================
+   PSEUDO: 全域變數
+   [修復 v1.8.2]
+   - userMarker：改用 AdvancedMarkerElement（取代 google.maps.Marker）
+   - 移除 placesService（舊版），改用新版 Place.searchNearby()
+   =================================================== */
+var map, userMarker, pathLine, watchId, geocoder;
 var walkPath = [], eventsData = [], totalDistance = 0;
 var startTime, durationStr, cityName = '未知城市', selectedIcon = '📸';
 var historyMarkers = [];
@@ -387,14 +367,10 @@ function buildIconPicker() {
   });
   renderIconGrid(0);
 }
-
 function switchIconCategory(idx) {
-  document.querySelectorAll('.icon-tab').forEach(function(tab, i) {
-    tab.classList.toggle('active', i === idx);
-  });
+  document.querySelectorAll('.icon-tab').forEach(function(tab, i) { tab.classList.toggle('active', i === idx); });
   renderIconGrid(idx);
 }
-
 function renderIconGrid(idx) {
   var grid = document.getElementById('iconGrid');
   grid.innerHTML = '';
@@ -450,29 +426,58 @@ document.addEventListener('click', function(e) {
   if (picker && !picker.contains(e.target)) document.getElementById('colorOptions').classList.remove('open');
 });
 
-function initMap() {
-  map = new google.maps.Map(document.getElementById('map'), {
-    zoom: 17, center: { lat: 25.0478, lng: 121.5170 },
+
+/* ===================================================
+   [修復 v1.8.2] initMap()
+   
+   PSEUDO: 兩個重大改動
+   
+   1. google.maps.Marker → AdvancedMarkerElement
+      - 需要在 Google Maps script 加 &v=beta 或 &v=weekly
+      - AdvancedMarkerElement 接受 HTML element 作為 content
+      - 使用者位置標記改為 div 包住 emoji
+   
+   2. 移除 PlacesService 初始化
+      - 改用新版 Place.searchNearby()（在 openEventCanvas 裡呼叫）
+      - 不需要在 initMap 預先初始化
+   =================================================== */
+async function initMap() {
+  const { Map } = await google.maps.importLibrary('maps');
+  const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
+
+  map = new Map(document.getElementById('map'), {
+    zoom: 17,
+    center: { lat: 25.0478, lng: 121.5170 },
     disableDefaultUI: true,
+    mapId: 'city_walker_map', /* AdvancedMarkerElement 需要 mapId */
     styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
   });
-  marker = new google.maps.Marker({
-    map, label: { text: '👣', fontSize: '30px' },
-    icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 }, zIndex: 999
+
+  /* PSEUDO: 使用者位置標記，用 HTML div 包住 emoji */
+  var markerDiv = document.createElement('div');
+  markerDiv.className = 'user-marker';
+  markerDiv.innerText = '👣';
+
+  userMarker = new AdvancedMarkerElement({
+    map: map,
+    content: markerDiv,
+    zIndex: 999
   });
+
   pathLine = new google.maps.Polyline({
     map, strokeColor: selectedTrackColor, strokeWeight: 6, strokeOpacity: 0.85
   });
   geocoder = new google.maps.Geocoder();
-  placesService = new google.maps.places.PlacesService(map);
   document.getElementById('colorToggleBtn').style.backgroundColor = selectedTrackColor;
   buildIconPicker();
 
+  /* 開啟即自動定位 */
   setStatusBar('📡 取得位置中...', 'var(--status-locating)');
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       var userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      map.setCenter(userPos); marker.setPosition(userPos);
+      map.setCenter(userPos);
+      userMarker.position = userPos;
       setStatusBar('City Walker', 'var(--status-idle)');
     },
     function() { setStatusBar('City Walker', 'var(--status-idle)'); },
@@ -480,13 +485,32 @@ function initMap() {
   );
 }
 
+
+/* ===================================================
+   PSEUDO: 取得使用者目前位置的輔助函式
+   AdvancedMarkerElement 用 .position 取得座標
+   =================================================== */
+function getUserPosition() {
+  var pos = userMarker && userMarker.position;
+  if (!pos) return null;
+  /* position 可能是 LatLng 物件或 LatLngLiteral */
+  if (typeof pos.lat === 'function') {
+    return { lat: pos.lat(), lng: pos.lng() };
+  }
+  return { lat: pos.lat, lng: pos.lng };
+}
+
 function focusOnMe() {
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       var userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      marker.setPosition(userPos); map.panTo(userPos);
+      userMarker.position = userPos;
+      map.panTo(userPos);
     },
-    function() { if (marker && marker.getPosition()) map.panTo(marker.getPosition()); },
+    function() {
+      var p = getUserPosition();
+      if (p) map.panTo(p);
+    },
     { enableHighAccuracy: true, timeout: 8000, maximumAge: 3000 }
   );
 }
@@ -510,7 +534,8 @@ async function snapToRoads(points) {
       });
       pathLine.setPath(walkPath);
       var last = walkPath[walkPath.length - 1];
-      marker.setPosition(last); map.panTo(last);
+      userMarker.position = last;
+      map.panTo(last);
     }
   } catch (err) {
     console.warn('[Roads API] fallback:', err);
@@ -558,7 +583,7 @@ function startWalk() {
     }
     if (locatingTimer) { clearTimeout(locatingTimer); locatingTimer = null; }
     rawGpsBuffer.push(newPoint);
-    marker.setPosition(newPoint);
+    userMarker.position = newPoint;
     if (rawGpsBuffer.length >= 5) {
       var batch = rawGpsBuffer.slice(); rawGpsBuffer = [];
       snapToRoads(batch);
@@ -593,21 +618,19 @@ function startWalk() {
 
 
 /* ===================================================
-   [修復 v1.8.1] openEventCanvas() - nearbySearch
+   [修復 v1.8.2] openEventCanvas() - 換用新版 Places API
    
-   PSEUDO: Bug 2 根本原因
-   nearbySearch 回傳的結果裡，某些 place 物件的
-   geometry 欄位可能是 undefined（例如商家暫時關閉
-   或資料不完整的地點）
+   PSEUDO: 舊版 PlacesService.nearbySearch() 已停用
+   改用新版 Place.searchNearby()
    
-   原本：直接呼叫 place.geometry.location.lat()
-   → 若 geometry 為 undefined 就爆 TypeError
-   → callback 整個中斷，UI 卡在「偵測中」
-   
-   修法：加入 null 檢查，過濾掉沒有 geometry 的結果
-   只保留有完整座標的地標才建立 tag
+   新版 API 差異：
+   - 需要 import { Place } from google.maps.places
+   - 參數改為 { fields, locationRestriction, includedTypes }
+   - locationRestriction 用 Circle { center, radius }
+   - 回傳 { places } 陣列，每個 place 有 .location（LatLng）
+   - .location 直接是 LatLng 物件，呼叫 .lat() 和 .lng()
    =================================================== */
-function openEventCanvas() {
+async function openEventCanvas() {
   document.getElementById('eventModal').style.display = 'flex';
   selectedPlace = null;
   nearbyPlaces = [];
@@ -615,50 +638,52 @@ function openEventCanvas() {
   switchIconCategory(0);
   document.getElementById('selectedIconPreview').innerText = selectedIcon;
 
-  var currentPos = marker.getPosition();
-  if (!currentPos || !placesService) {
+  var currentPos = getUserPosition();
+  if (!currentPos) {
     document.getElementById('placeTags').innerHTML = '<span class="place-detecting">（無法取得位置）</span>';
     return;
   }
 
-  placesService.nearbySearch({
-    location: currentPos, radius: 80, type: ['establishment']
-  }, function(results, status) {
+  try {
+    /* PSEUDO: 動態 import 新版 Places library */
+    const { Place } = await google.maps.importLibrary('places');
+
+    var request = {
+      fields: ['displayName', 'location', 'id'], /* 只取需要的欄位，節省配額 */
+      locationRestriction: {
+        circle: {
+          center: currentPos,
+          radius: 80
+        }
+      },
+      includedTypes: ['establishment'],
+      maxResultCount: 5
+    };
+
+    var response = await Place.searchNearby(request);
     var tagsContainer = document.getElementById('placeTags');
     tagsContainer.innerHTML = '';
 
-    if (status !== google.maps.places.PlacesServiceStatus.OK || !results || results.length === 0) {
+    if (!response.places || response.places.length === 0) {
       tagsContainer.innerHTML = '<span class="place-detecting">（附近無地標）</span>';
       return;
     }
 
-    /* ===================================================
-       [修復 v1.8.1] 過濾沒有 geometry 的結果
-       PSEUDO: 只保留有 geometry.location 的地標
-       避免 .lat() 呼叫爆 TypeError
-       =================================================== */
-    var validResults = results.filter(function(place) {
-      return place.geometry && place.geometry.location;
-    });
+    /* PSEUDO: 取前 3 個，建立可選取的 tag */
+    response.places.slice(0, 3).forEach(function(place) {
+      if (!place.location) return; /* 防禦：沒有座標的跳過 */
 
-    if (validResults.length === 0) {
-      tagsContainer.innerHTML = '<span class="place-detecting">（附近無地標）</span>';
-      return;
-    }
-
-    var topResults = validResults.slice(0, 3);
-    topResults.forEach(function(place) {
       var placeData = {
-        name: place.name,
-        placeId: place.place_id,
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng()
+        name: place.displayName,
+        placeId: place.id,
+        lat: place.location.lat(),
+        lng: place.location.lng()
       };
       nearbyPlaces.push(placeData);
 
       var tag = document.createElement('div');
       tag.className = 'place-tag';
-      tag.innerText = '📍 ' + place.name;
+      tag.innerText = '📍 ' + place.displayName;
       tag.onclick = function() {
         if (selectedPlace && selectedPlace.placeId === placeData.placeId) {
           selectedPlace = null;
@@ -671,7 +696,15 @@ function openEventCanvas() {
       };
       tagsContainer.appendChild(tag);
     });
-  });
+
+    if (tagsContainer.children.length === 0) {
+      tagsContainer.innerHTML = '<span class="place-detecting">（附近無地標）</span>';
+    }
+
+  } catch (err) {
+    console.error('[Places API 錯誤]', err);
+    document.getElementById('placeTags').innerHTML = '<span class="place-detecting">（地標偵測失敗）</span>';
+  }
 }
 
 function closeEventModal() {
@@ -687,7 +720,7 @@ function saveEvent() {
     placeName = selectedPlace.name;
     placeId = selectedPlace.placeId;
   } else {
-    eventPos = marker.getPosition().toJSON();
+    eventPos = getUserPosition() || { lat: 0, lng: 0 };
     placeName = ''; placeId = '';
   }
   eventsData.push({ text: text, icon: selectedIcon, pos: eventPos, placeName: placeName, placeId: placeId });
@@ -744,6 +777,10 @@ async function executeCloudSave() {
   }
 }
 
+/* ===================================================
+   PSEUDO: createEventMarker() - OverlayView 自製標記
+   這部分不需要改動，OverlayView 仍然有效
+   =================================================== */
 function createEventMarker(pos, icon, text, placeName) {
   function EmojiOverlay(position, icon, text, placeName) {
     this.position_ = new google.maps.LatLng(position.lat, position.lng);
@@ -882,6 +919,21 @@ window.endWalk = endWalk;
 window.startWalk = startWalk;
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&callback=initMap&libraries=places,geometry" async defer></script>
+<!-- ===================================================
+     [修復 v1.8.2] Google Maps Script 改動
+     
+     PSEUDO: 兩個重要改動
+     1. 加入 &v=weekly → 啟用最新版 Maps JS API
+        AdvancedMarkerElement 和新版 Places API 都需要這個
+     2. 移除 callback=initMap → 改用 async initMap()
+        因為 initMap 現在是 async function（用了 await importLibrary）
+        不能直接用 callback 方式呼叫
+        改為 window.onload = initMap 在上面已設定
+     =================================================== -->
+<script
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async"
+  async defer>
+</script>
+
 </body>
 </html>
