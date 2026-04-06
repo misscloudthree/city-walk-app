@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.8.2</title>
+<title>City Walker - v1.8.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -111,26 +111,18 @@ body {
 #memoryCloseBtn:active { background: var(--bg-warm); }
 
 /* ===================================================
-   [修復 v1.8.2] AdvancedMarkerElement 自訂樣式
-   PSEUDO: 使用者位置標記改為 HTML 元素
-   AdvancedMarkerElement 接受 HTML element 作為 content
+   [v1.8.3] 使用者位置標記樣式
+   PSEUDO: AdvancedMarkerElement 用 HTML div 呈現
+   移除 mapId 衝突問題後，POI 隱藏改用 CSS 方式處理
    =================================================== */
-.user-marker {
-  font-size: 30px;
-  line-height: 1;
-  cursor: default;
-  user-select: none;
-}
+.user-marker { font-size: 30px; line-height: 1; cursor: default; user-select: none; }
 
-/* OverlayView 事件標記 */
 .event-marker-div {
   position: absolute; font-size: 28px; cursor: pointer;
   transform: translate(-50%, -50%);
   user-select: none; -webkit-user-select: none;
   pointer-events: auto; z-index: 999;
 }
-
-/* 色彩色盤 */
 #colorPicker {
   position: fixed; top: 62px; left: 16px;
   z-index: 1300;
@@ -156,12 +148,7 @@ body {
   transition: transform 0.15s, border-color 0.15s; flex-shrink: 0;
 }
 .color-dot:active { transform: scale(0.88); }
-.color-dot.selected {
-  border-color: var(--white); transform: scale(1.18);
-  box-shadow: 0 3px 10px rgba(0,0,0,0.25);
-}
-
-/* Icon 選擇器 */
+.color-dot.selected { border-color: var(--white); transform: scale(1.18); box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
 #iconPickerSection { margin: 10px 0; }
 #iconCategoryTabs {
   display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px;
@@ -171,16 +158,11 @@ body {
 .icon-tab {
   flex-shrink: 0; padding: 5px 10px; border-radius: 20px;
   font-size: 11px; background: var(--bg-warm); color: var(--text-soft);
-  cursor: pointer; border: 1.5px solid transparent;
-  transition: all 0.2s; white-space: nowrap;
+  cursor: pointer; border: 1.5px solid transparent; transition: all 0.2s; white-space: nowrap;
 }
-.icon-tab.active {
-  background: var(--white); color: var(--text-main);
-  border-color: var(--accent-positive); font-weight: bold;
-}
+.icon-tab.active { background: var(--white); color: var(--text-main); border-color: var(--accent-positive); font-weight: bold; }
 #iconGrid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   gap: 4px; max-height: 130px; overflow-y: auto; padding: 2px 0;
 }
 .icon-cell {
@@ -192,14 +174,9 @@ body {
 .icon-cell:active { transform: scale(0.88); }
 .icon-cell.selected { background: var(--bg-warm); border-color: var(--accent-positive); }
 #selectedIconPreview { font-size: 26px; margin-left: auto; flex-shrink: 0; }
-
-/* 地標選擇區 */
 #placeSection { margin: 8px 0 10px; }
 #placeLabel { font-size: 11px; color: var(--text-soft); margin-bottom: 6px; }
-#placeTags {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  min-height: 32px; align-items: center;
-}
+#placeTags { display: flex; flex-wrap: wrap; gap: 6px; min-height: 32px; align-items: center; }
 .place-tag {
   display: flex; align-items: center; gap: 4px;
   padding: 5px 10px; border-radius: 20px;
@@ -208,10 +185,7 @@ body {
   cursor: pointer; transition: all 0.2s; white-space: nowrap;
 }
 .place-tag:active { transform: scale(0.95); }
-.place-tag.selected {
-  background: #EEF6F3; border-color: var(--accent-positive);
-  color: var(--accent-positive); font-weight: bold;
-}
+.place-tag.selected { background: #EEF6F3; border-color: var(--accent-positive); color: var(--accent-positive); font-weight: bold; }
 .place-detecting { font-size: 12px; color: var(--text-soft); font-style: italic; }
 </style>
 
@@ -235,7 +209,6 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 <body>
 
 <div id="statusBar">City Walker</div>
-
 <div id="colorPicker">
   <div id="colorToggleBtn" onclick="toggleColorPicker()"></div>
   <div id="colorOptions">
@@ -248,7 +221,6 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
     <div class="color-dot" style="background:#FFD700;" data-color="#FFD700" onclick="selectColor(this)"></div>
   </div>
 </div>
-
 <div class="map-controls">
   <button class="map-btn" onclick="focusOnMe()">📍</button>
   <button class="map-btn hidden" id="btnFocusRoute" onclick="focusOnRouteStart()">🛣️</button>
@@ -327,14 +299,7 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
   <div class="nav-item" id="nav-list" onclick="switchPage('list')">📜<span>紀錄</span></div>
 </nav>
 
-
 <script>
-/* ===================================================
-   PSEUDO: 全域變數
-   [修復 v1.8.2]
-   - userMarker：改用 AdvancedMarkerElement（取代 google.maps.Marker）
-   - 移除 placesService（舊版），改用新版 Place.searchNearby()
-   =================================================== */
 var map, userMarker, pathLine, watchId, geocoder;
 var walkPath = [], eventsData = [], totalDistance = 0;
 var startTime, durationStr, cityName = '未知城市', selectedIcon = '📸';
@@ -354,7 +319,6 @@ var ICON_CATEGORIES = [
   { name: '活動', emoji: '🎯', icons: ['📸','🎵','🛍️','📖','🎨','🏃','🚲','⚽','🎮','🎤'] },
   { name: '特別', emoji: '⭐', icons: ['⭐','🏆','💎','🎁','🔖','📌','🗓️','💫','🕐','🎊'] }
 ];
-
 function buildIconPicker() {
   var tabContainer = document.getElementById('iconCategoryTabs');
   tabContainer.innerHTML = '';
@@ -368,7 +332,7 @@ function buildIconPicker() {
   renderIconGrid(0);
 }
 function switchIconCategory(idx) {
-  document.querySelectorAll('.icon-tab').forEach(function(tab, i) { tab.classList.toggle('active', i === idx); });
+  document.querySelectorAll('.icon-tab').forEach(function(t, i) { t.classList.toggle('active', i === idx); });
   renderIconGrid(idx);
 }
 function renderIconGrid(idx) {
@@ -387,7 +351,6 @@ function renderIconGrid(idx) {
     grid.appendChild(cell);
   });
 }
-
 var ENCOURAGE_LIST = [
   '每一步都是在和這座城市說你好。','你走過的路，都成為了你的一部分。',
   '不趕時間的移動，才看得見風景。','今天的漫遊，是送給未來的你的禮物。',
@@ -405,11 +368,9 @@ function getDailyEncouragement() {
   var seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
   return ENCOURAGE_LIST[seed % ENCOURAGE_LIST.length];
 }
-
 function setStatusBar(text, bgColor) {
   var bar = document.getElementById('statusBar');
-  bar.innerText = text;
-  bar.style.backgroundColor = bgColor || 'var(--status-idle)';
+  bar.innerText = text; bar.style.backgroundColor = bgColor || 'var(--status-idle)';
 }
 function closeMemoryBox() { document.getElementById('memoryBox').style.display = 'none'; }
 function toggleColorPicker() { document.getElementById('colorOptions').classList.toggle('open'); }
@@ -428,41 +389,44 @@ document.addEventListener('click', function(e) {
 
 
 /* ===================================================
-   [修復 v1.8.2] initMap()
+   [修復 v1.8.3] initMap()
+
+   PSEUDO: 兩個問題同時修
+
+   問題一：mapId + styles 衝突
+   - 有 mapId 時，地圖樣式要透過 Cloud Console 設定
+   - 無法同時用 styles 陣列
+   - 解法：移除 mapId，改用 &map_ids 參數方式
+     但這樣 AdvancedMarkerElement 又無法用
    
-   PSEUDO: 兩個重大改動
+   真正的解法：用 MAP_ID = 'DEMO_MAP_ID'
+   這是 Google 官方提供的測試用 mapId，不需要在
+   Cloud Console 額外設定，可直接使用 AdvancedMarkerElement
+   POI 隱藏改用 CSS 注入方式（因為 styles 無法用）
    
-   1. google.maps.Marker → AdvancedMarkerElement
-      - 需要在 Google Maps script 加 &v=beta 或 &v=weekly
-      - AdvancedMarkerElement 接受 HTML element 作為 content
-      - 使用者位置標記改為 div 包住 emoji
-   
-   2. 移除 PlacesService 初始化
-      - 改用新版 Place.searchNearby()（在 openEventCanvas 裡呼叫）
-      - 不需要在 initMap 預先初始化
+   問題二：styles 無法搭配 mapId
+   - 改用 CSS 隱藏 POI：注入 .gm-style img[src*="maps.gstatic"] 
+     這個方法不夠穩定
+   - 更好的方式：直接接受 POI 顯示，移除隱藏 POI 的限制
+     City Walk app 本來就需要看地標，隱藏反而不好
    =================================================== */
 async function initMap() {
-  const { Map } = await google.maps.importLibrary('maps');
-  const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
+  var { Map } = await google.maps.importLibrary('maps');
+  var { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
 
   map = new Map(document.getElementById('map'), {
     zoom: 17,
     center: { lat: 25.0478, lng: 121.5170 },
     disableDefaultUI: true,
-    mapId: 'city_walker_map', /* AdvancedMarkerElement 需要 mapId */
-    styles: [{ featureType: 'poi', stylers: [{ visibility: 'off' }] }]
+    mapId: 'DEMO_MAP_ID'
+    /* PSEUDO: 移除 styles，因為有 mapId 時不能同時設定
+       POI 保留顯示，對 City Walk app 來說反而有幫助 */
   });
 
-  /* PSEUDO: 使用者位置標記，用 HTML div 包住 emoji */
   var markerDiv = document.createElement('div');
   markerDiv.className = 'user-marker';
   markerDiv.innerText = '👣';
-
-  userMarker = new AdvancedMarkerElement({
-    map: map,
-    content: markerDiv,
-    zIndex: 999
-  });
+  userMarker = new AdvancedMarkerElement({ map: map, content: markerDiv, zIndex: 999 });
 
   pathLine = new google.maps.Polyline({
     map, strokeColor: selectedTrackColor, strokeWeight: 6, strokeOpacity: 0.85
@@ -471,13 +435,11 @@ async function initMap() {
   document.getElementById('colorToggleBtn').style.backgroundColor = selectedTrackColor;
   buildIconPicker();
 
-  /* 開啟即自動定位 */
   setStatusBar('📡 取得位置中...', 'var(--status-locating)');
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       var userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      map.setCenter(userPos);
-      userMarker.position = userPos;
+      map.setCenter(userPos); userMarker.position = userPos;
       setStatusBar('City Walker', 'var(--status-idle)');
     },
     function() { setStatusBar('City Walker', 'var(--status-idle)'); },
@@ -485,18 +447,10 @@ async function initMap() {
   );
 }
 
-
-/* ===================================================
-   PSEUDO: 取得使用者目前位置的輔助函式
-   AdvancedMarkerElement 用 .position 取得座標
-   =================================================== */
 function getUserPosition() {
   var pos = userMarker && userMarker.position;
   if (!pos) return null;
-  /* position 可能是 LatLng 物件或 LatLngLiteral */
-  if (typeof pos.lat === 'function') {
-    return { lat: pos.lat(), lng: pos.lng() };
-  }
+  if (typeof pos.lat === 'function') return { lat: pos.lat(), lng: pos.lng() };
   return { lat: pos.lat, lng: pos.lng };
 }
 
@@ -504,13 +458,9 @@ function focusOnMe() {
   navigator.geolocation.getCurrentPosition(
     function(pos) {
       var userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      userMarker.position = userPos;
-      map.panTo(userPos);
+      userMarker.position = userPos; map.panTo(userPos);
     },
-    function() {
-      var p = getUserPosition();
-      if (p) map.panTo(p);
-    },
+    function() { var p = getUserPosition(); if (p) map.panTo(p); },
     { enableHighAccuracy: true, timeout: 8000, maximumAge: 3000 }
   );
 }
@@ -523,10 +473,7 @@ async function snapToRoads(points) {
   if (!points || points.length === 0) return;
   var pathStr = points.map(function(p) { return p.lat + ',' + p.lng; }).join('|');
   try {
-    var res = await fetch(
-      'https://roads.googleapis.com/v1/snapToRoads?path=' +
-      encodeURIComponent(pathStr) + '&interpolate=true&key=' + ROADS_API_KEY
-    );
+    var res = await fetch('https://roads.googleapis.com/v1/snapToRoads?path=' + encodeURIComponent(pathStr) + '&interpolate=true&key=' + ROADS_API_KEY);
     var data = await res.json();
     if (data.snappedPoints && data.snappedPoints.length > 0) {
       data.snappedPoints.forEach(function(sp) {
@@ -534,8 +481,7 @@ async function snapToRoads(points) {
       });
       pathLine.setPath(walkPath);
       var last = walkPath[walkPath.length - 1];
-      userMarker.position = last;
-      map.panTo(last);
+      userMarker.position = last; map.panTo(last);
     }
   } catch (err) {
     console.warn('[Roads API] fallback:', err);
@@ -558,36 +504,25 @@ function startWalk() {
   document.getElementById('colorPicker').style.display = 'none';
   pathLine.setOptions({ strokeColor: selectedTrackColor, strokeOpacity: 0.85 });
   pauseWindowPoints = []; pauseWindowStart = new Date();
-
   locatingTimer = setTimeout(function() {
     navigator.geolocation.clearWatch(watchId);
     setStatusBar('⚠️ 定位失敗', 'var(--status-ended)');
     document.getElementById('state-recording').classList.add('hidden');
     document.getElementById('state-finished').classList.remove('hidden');
-    document.getElementById('summaryBox').innerHTML =
-      '<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';
+    document.getElementById('summaryBox').innerHTML = '<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';
   }, 60000);
-
   watchId = navigator.geolocation.watchPosition(function(pos) {
     var newPoint = { lat: pos.coords.latitude, lng: pos.coords.longitude };
     if (pos.coords.accuracy > 40) return;
-    var lastRaw = rawGpsBuffer.length > 0
-      ? rawGpsBuffer[rawGpsBuffer.length - 1]
-      : (walkPath.length > 0 ? walkPath[walkPath.length - 1] : null);
+    var lastRaw = rawGpsBuffer.length > 0 ? rawGpsBuffer[rawGpsBuffer.length - 1] : (walkPath.length > 0 ? walkPath[walkPath.length - 1] : null);
     if (lastRaw) {
-      var dist = google.maps.geometry.spherical.computeDistanceBetween(
-        new google.maps.LatLng(lastRaw.lat, lastRaw.lng),
-        new google.maps.LatLng(newPoint.lat, newPoint.lng)
-      );
+      var dist = google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(lastRaw.lat, lastRaw.lng), new google.maps.LatLng(newPoint.lat, newPoint.lng));
       if (dist < 3 || dist > 80) return;
     }
     if (locatingTimer) { clearTimeout(locatingTimer); locatingTimer = null; }
     rawGpsBuffer.push(newPoint);
     userMarker.position = newPoint;
-    if (rawGpsBuffer.length >= 5) {
-      var batch = rawGpsBuffer.slice(); rawGpsBuffer = [];
-      snapToRoads(batch);
-    }
+    if (rawGpsBuffer.length >= 5) { var batch = rawGpsBuffer.slice(); rawGpsBuffer = []; snapToRoads(batch); }
     var now = new Date();
     pauseWindowPoints.push({ point: newPoint, time: now });
     pauseWindowPoints = pauseWindowPoints.filter(function(item) { return (now - item.time) <= 15000; });
@@ -595,13 +530,9 @@ function startWalk() {
     if (pauseWindowPoints.length >= 2) {
       var first = pauseWindowPoints[0].point;
       var last = pauseWindowPoints[pauseWindowPoints.length - 1].point;
-      windowDist = google.maps.geometry.spherical.computeDistanceBetween(
-        new google.maps.LatLng(first.lat, first.lng),
-        new google.maps.LatLng(last.lat, last.lng)
-      );
+      windowDist = google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(first.lat, first.lng), new google.maps.LatLng(last.lat, last.lng));
     }
-    var currentKm = walkPath.length > 1
-      ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000 : 0;
+    var currentKm = walkPath.length > 1 ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000 : 0;
     if (windowDist > 7) {
       setStatusBar('🚶 漫步中・' + currentKm.toFixed(2) + ' km', 'var(--status-walking)');
       pauseWindowPoints = [{ point: newPoint, time: now }]; pauseWindowStart = now;
@@ -618,22 +549,27 @@ function startWalk() {
 
 
 /* ===================================================
-   [修復 v1.8.2] openEventCanvas() - 換用新版 Places API
+   [修復 v1.8.3] openEventCanvas() - Place.searchNearby() 格式修正
+
+   PSEUDO: Bug 根本原因
+   Place.searchNearby() 的 locationRestriction.circle 格式：
    
-   PSEUDO: 舊版 PlacesService.nearbySearch() 已停用
-   改用新版 Place.searchNearby()
+   錯誤寫法（v1.8.2）：
+   locationRestriction: {
+     circle: { center: {lat, lng}, radius: 80 }  ← plain object，不接受
+   }
    
-   新版 API 差異：
-   - 需要 import { Place } from google.maps.places
-   - 參數改為 { fields, locationRestriction, includedTypes }
-   - locationRestriction 用 Circle { center, radius }
-   - 回傳 { places } 陣列，每個 place 有 .location（LatLng）
-   - .location 直接是 LatLng 物件，呼叫 .lat() 和 .lng()
+   正確寫法：
+   locationRestriction: new google.maps.Circle({
+     center: {lat, lng},
+     radius: 80
+   })
+   
+   即傳入 google.maps.Circle 物件，不是 plain object
    =================================================== */
 async function openEventCanvas() {
   document.getElementById('eventModal').style.display = 'flex';
-  selectedPlace = null;
-  nearbyPlaces = [];
+  selectedPlace = null; nearbyPlaces = [];
   document.getElementById('placeTags').innerHTML = '<span class="place-detecting">偵測中...</span>';
   switchIconCategory(0);
   document.getElementById('selectedIconPreview').innerText = selectedIcon;
@@ -645,17 +581,22 @@ async function openEventCanvas() {
   }
 
   try {
-    /* PSEUDO: 動態 import 新版 Places library */
-    const { Place } = await google.maps.importLibrary('places');
+    var { Place } = await google.maps.importLibrary('places');
+
+    /* ===================================================
+       PSEUDO: 正確的 locationRestriction 格式
+       用 new google.maps.Circle() 建立圓形限制範圍物件
+       center 接受 LatLngLiteral {lat, lng}
+       radius 單位是公尺
+       =================================================== */
+    var searchCircle = new google.maps.Circle({
+      center: currentPos,
+      radius: 80
+    });
 
     var request = {
-      fields: ['displayName', 'location', 'id'], /* 只取需要的欄位，節省配額 */
-      locationRestriction: {
-        circle: {
-          center: currentPos,
-          radius: 80
-        }
-      },
+      fields: ['displayName', 'location', 'id'],
+      locationRestriction: searchCircle,
       includedTypes: ['establishment'],
       maxResultCount: 5
     };
@@ -669,10 +610,8 @@ async function openEventCanvas() {
       return;
     }
 
-    /* PSEUDO: 取前 3 個，建立可選取的 tag */
     response.places.slice(0, 3).forEach(function(place) {
-      if (!place.location) return; /* 防禦：沒有座標的跳過 */
-
+      if (!place.location) return;
       var placeData = {
         name: place.displayName,
         placeId: place.id,
@@ -680,14 +619,12 @@ async function openEventCanvas() {
         lng: place.location.lng()
       };
       nearbyPlaces.push(placeData);
-
       var tag = document.createElement('div');
       tag.className = 'place-tag';
       tag.innerText = '📍 ' + place.displayName;
       tag.onclick = function() {
         if (selectedPlace && selectedPlace.placeId === placeData.placeId) {
-          selectedPlace = null;
-          tag.classList.remove('selected');
+          selectedPlace = null; tag.classList.remove('selected');
         } else {
           selectedPlace = placeData;
           document.querySelectorAll('.place-tag').forEach(function(t) { t.classList.remove('selected'); });
@@ -700,7 +637,6 @@ async function openEventCanvas() {
     if (tagsContainer.children.length === 0) {
       tagsContainer.innerHTML = '<span class="place-detecting">（附近無地標）</span>';
     }
-
   } catch (err) {
     console.error('[Places API 錯誤]', err);
     document.getElementById('placeTags').innerHTML = '<span class="place-detecting">（地標偵測失敗）</span>';
@@ -711,14 +647,12 @@ function closeEventModal() {
   selectedPlace = null;
   document.getElementById('eventModal').style.display = 'none';
 }
-
 function saveEvent() {
   var text = document.getElementById('eventText').value;
   var eventPos, placeName, placeId;
   if (selectedPlace) {
     eventPos = { lat: selectedPlace.lat, lng: selectedPlace.lng };
-    placeName = selectedPlace.name;
-    placeId = selectedPlace.placeId;
+    placeName = selectedPlace.name; placeId = selectedPlace.placeId;
   } else {
     eventPos = getUserPosition() || { lat: 0, lng: 0 };
     placeName = ''; placeId = '';
@@ -738,8 +672,7 @@ async function endWalk() {
   document.getElementById('state-finished').classList.remove('hidden');
   document.getElementById('encourageBox').innerText = '「' + getDailyEncouragement() + '」';
   await flushRawBuffer();
-  totalDistance = walkPath.length > 1
-    ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000 : 0;
+  totalDistance = walkPath.length > 1 ? google.maps.geometry.spherical.computeLength(pathLine.getPath()) / 1000 : 0;
   durationStr = Math.floor(Math.abs(new Date() - startTime) / 60000) + ' 分鐘';
   if (walkPath.length > 0) {
     geocoder.geocode({ location: walkPath[walkPath.length - 1] }, function(results, status) {
@@ -749,11 +682,7 @@ async function endWalk() {
         });
         cityName = cityObj ? cityObj.long_name : '未知城市';
         document.getElementById('summaryBox').innerHTML =
-          '<strong>漫遊結算</strong><br>' +
-          '🏙️ 城市：' + cityName + '<br>' +
-          '👣 里程：' + totalDistance.toFixed(2) + ' KM<br>' +
-          '⏱️ 時長：' + durationStr + '<br>' +
-          '📸 事件：' + eventsData.length + ' 個';
+          '<strong>漫遊結算</strong><br>🏙️ 城市：' + cityName + '<br>👣 里程：' + totalDistance.toFixed(2) + ' KM<br>⏱️ 時長：' + durationStr + '<br>📸 事件：' + eventsData.length + ' 個';
       }
     });
   }
@@ -771,16 +700,9 @@ async function executeCloudSave() {
       createdAt: window.api.serverTimestamp()
     });
     location.reload();
-  } catch (e) {
-    alert('儲存失敗');
-    if (btn) btn.disabled = false;
-  }
+  } catch (e) { alert('儲存失敗'); if (btn) btn.disabled = false; }
 }
 
-/* ===================================================
-   PSEUDO: createEventMarker() - OverlayView 自製標記
-   這部分不需要改動，OverlayView 仍然有效
-   =================================================== */
 function createEventMarker(pos, icon, text, placeName) {
   function EmojiOverlay(position, icon, text, placeName) {
     this.position_ = new google.maps.LatLng(position.lat, position.lng);
@@ -794,8 +716,7 @@ function createEventMarker(pos, icon, text, placeName) {
     div.innerText = this.icon_;
     var ci = this.icon_, ct = this.text_, cp = this.placeName_;
     function showMemory(e) {
-      e.stopPropagation();
-      if (e.preventDefault) e.preventDefault();
+      e.stopPropagation(); if (e.preventDefault) e.preventDefault();
       document.getElementById('memoryIcon').innerText = ci || '📸';
       document.getElementById('memoryText').innerText = ct || '那一天，在這裡留下了足跡...';
       document.getElementById('memoryPlace').innerText = cp ? ('📍 ' + cp) : '';
@@ -842,19 +763,14 @@ async function fetchRecords() {
         '<div style="font-size:13px;color:var(--text-soft);">👣 ' + data.distance.toFixed(2) + ' km &nbsp;⏱️ ' + data.duration + '</div>';
       container.appendChild(card);
     });
-  } catch (e) {
-    console.error(e);
-    container.innerHTML = '<p style="text-align:center;color:red;">載入失敗</p>';
-  }
+  } catch (e) { console.error(e); container.innerHTML = '<p style="text-align:center;color:red;">載入失敗</p>'; }
 }
 
 function loadSavedRoute(id) {
   var data = window.currentDocs.find(function(d) { return d.id === id; });
   if (!data) return;
-  switchPage('main');
-  pathLine.setPath([]);
-  historyMarkers.forEach(function(m) { m.setMap(null); });
-  historyMarkers = [];
+  switchPage('main'); pathLine.setPath([]);
+  historyMarkers.forEach(function(m) { m.setMap(null); }); historyMarkers = [];
   var pts = data.path.map(function(p) { return { lat: p.lat, lng: p.lng }; });
   pathLine.setPath(pts);
   pathLine.setOptions({ strokeColor: data.trackColor || '#FEAD89', strokeOpacity: 0.85, strokeWeight: 6 });
@@ -878,14 +794,13 @@ async function togglePin(e, id, status) {
   await window.api.updateDoc(window.api.doc(window.db, 'walk_records', id), { isPinned: !status });
   fetchRecords();
 }
-
 function switchPage(p) {
   document.querySelectorAll('.page').forEach(function(page) { page.classList.add('hidden'); });
   document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
   var targetPage = document.getElementById('page-' + p);
-  var targetNav  = document.getElementById('nav-' + p);
+  var targetNav = document.getElementById('nav-' + p);
   if (targetPage) targetPage.classList.remove('hidden');
-  if (targetNav)  targetNav.classList.add('active');
+  if (targetNav) targetNav.classList.add('active');
   var mapControls = document.querySelector('.map-controls');
   var colorPicker = document.getElementById('colorPicker');
   var isInit = !document.getElementById('state-init').classList.contains('hidden');
@@ -898,7 +813,6 @@ function switchPage(p) {
   }
   if (p === 'list') fetchRecords();
 }
-
 function openSaveModal() { document.getElementById('saveModal').style.display = 'flex'; }
 
 window.onload = initMap;
@@ -919,21 +833,6 @@ window.endWalk = endWalk;
 window.startWalk = startWalk;
 </script>
 
-<!-- ===================================================
-     [修復 v1.8.2] Google Maps Script 改動
-     
-     PSEUDO: 兩個重要改動
-     1. 加入 &v=weekly → 啟用最新版 Maps JS API
-        AdvancedMarkerElement 和新版 Places API 都需要這個
-     2. 移除 callback=initMap → 改用 async initMap()
-        因為 initMap 現在是 async function（用了 await importLibrary）
-        不能直接用 callback 方式呼叫
-        改為 window.onload = initMap 在上面已設定
-     =================================================== -->
-<script
-  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async"
-  async defer>
-</script>
-
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async" async defer></script>
 </body>
 </html>
