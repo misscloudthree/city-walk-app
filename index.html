@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.12.3</title>
+<title>City Walker - v1.12.4</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -1191,13 +1191,15 @@ function generateShareCard(data, photoIndex) {
 
   /* ===================================================
      PSEUDO: Step 7 - 打卡地標清單
+     [修改 v1.12.4] 垂直換行排列，最多顯示 3 個
+     每個地標一行，截斷 12 字，右邊界 x<580 避開右下照片
      =================================================== */
   var seenPlaces = {}, placeNames = [];
   if (data.events) {
     data.events.forEach(function(ev) {
-      if (ev.placeName && !seenPlaces[ev.placeName]) {
+      if (ev.placeName && !seenPlaces[ev.placeName] && placeNames.length < 3) {
         seenPlaces[ev.placeName] = true;
-        var short = ev.placeName.length > 10 ? ev.placeName.slice(0, 10) + '...' : ev.placeName;
+        var short = ev.placeName.length > 12 ? ev.placeName.slice(0, 12) + '...' : ev.placeName;
         placeNames.push(short);
       }
     });
@@ -1205,29 +1207,31 @@ function generateShareCard(data, photoIndex) {
   if (placeNames.length > 0) {
     ctx.fillStyle = SOFT;
     ctx.font = '30px "Arial", sans-serif';
-    ctx.fillText('📍  ' + placeNames.join('  /  '), 60, 1090);
+    placeNames.forEach(function(name, i) {
+      ctx.fillText('📍  ' + name, 60, 1075 + i * 52);
+    });
   }
 
   /* ===================================================
      PSEUDO: Step 8 - 單張照片（拍立得感）
-     [修改 v1.12.3] 改為單張，使用預載好的 _shareCardPhotos[]
-     photoIndex 指定要顯示第幾張，右下角拍立得風格
+     [修改 v1.12.4] 照片往右下角移，避免與地標文字重疊
+     照片區：右側 x≈680起，垂直置中於地標行 y≈1060~1270
      =================================================== */
   var photos = window._shareCardPhotos || [];
   var idx = (typeof photoIndex === 'number' && photoIndex >= 0) ? photoIndex : 0;
   var selectedImg = photos[idx] || null;
 
   if (selectedImg) {
-    /* PSEUDO: 拍立得白框，右下角固定位置 */
-    var photoW = 280, photoH = 280, photoPad = 16;
-    var px = W - 60 - photoW - photoPad * 2; /* 右側對齊 */
-    var py = H - 80 - photoH - photoPad * 3; /* 底部對齊 */
-    var rot = -2.5 * Math.PI / 180;          /* 略微旋轉 */
+    var photoW = 260, photoH = 260, photoPad = 16;
+    /* PSEUDO: 固定右下角，底部留 90px（給路線名稱），往右對齊 */
+    var px = W - 60 - photoW - photoPad * 2;  /* x ≈ 676，不碰左側地標文字 */
+    var py = H - 90 - photoH - photoPad * 3;  /* 底部往上推，y ≈ 896 → 白框頂 */
+    /* PSEUDO: 白框實際高 = photoH + photoPad*3 = 260+48 = 308，底部 ≈ 1204，不超出 Step9 */
+    var rot = -2.5 * Math.PI / 180;
 
     ctx.save();
     ctx.translate(px + (photoW + photoPad * 2) / 2, py + (photoH + photoPad * 3) / 2);
     ctx.rotate(rot);
-    /* 白框陰影 */
     ctx.shadowColor = 'rgba(0,0,0,0.22)';
     ctx.shadowBlur = 18;
     ctx.fillStyle = WHITE;
@@ -1235,10 +1239,9 @@ function generateShareCard(data, photoIndex) {
       -(photoW / 2 + photoPad),
       -(photoH / 2 + photoPad),
       photoW + photoPad * 2,
-      photoH + photoPad * 3  /* 拍立得底部留白較多 */
+      photoH + photoPad * 3
     );
     ctx.shadowBlur = 0;
-    /* 照片本體 */
     ctx.drawImage(selectedImg, -photoW / 2, -(photoH / 2 + photoPad) + photoPad, photoW, photoH);
     ctx.restore();
   }
