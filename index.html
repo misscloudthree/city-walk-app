@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.13.0</title>
+<title>City Walker - v1.14.0</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -310,10 +310,11 @@ body {
 }
 </style>
 
-<!-- PSEUDO: Firebase 初始化，新增 Storage 相關 import -->
+<!-- [新增 v1.14.0] Firebase Auth + Firestore 初始化 -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDc460QtdfTv32gEPNPLVCMOxPz0hCWxbQ",
@@ -325,8 +326,23 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 window.db = db;
-window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTimestamp };
+window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTimestamp, query, where };
+
+/* PSEUDO: 匿名登入，取得穩定 uid
+   onAuthStateChanged 確保 uid 就緒後才允許存取 Firestore
+   uid 存入 window.currentUid 供全域使用 */
+signInAnonymously(auth).catch(function(err){
+  console.warn('[Auth] 匿名登入失敗:', err);
+});
+onAuthStateChanged(auth, function(user){
+  if(user){
+    window.currentUid = user.uid;
+    /* PSEUDO: Auth 就緒後通知 App 可以開始撈容量 */
+    if(window._authReadyCallback) window._authReadyCallback();
+  }
+});
 </script>
 </head>
 <body>
@@ -459,7 +475,15 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 <div id="page-main" class="page">
   <div id="map"></div>
   <div id="functionPanel">
-    <div id="state-init"><button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button></div>
+    <div id="state-init">
+      <!-- [新增 v1.14.0] 地圖容量提示，滿了才顯示 -->
+      <div id="capacityWarning" class="hidden"
+        style="background:#FFF3CD;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#856404;line-height:1.5;text-align:left;">
+        🎒 <strong>地圖背包已滿（<span id="capacityCount">3</span>/3）</strong><br>
+        <span style="font-size:12px;">走完後請至「我的路線」刪除舊紀錄才能儲存新路線</span>
+      </div>
+      <button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button>
+    </div>
     <div id="state-recording" class="hidden">
       <button class="btn-base btn-event" onclick="openEventCanvas()">紀錄事件！</button>
       <button class="btn-base" style="background:#f5f5f5;color:#666;margin-top:10px;" onclick="endWalk()">結束本次漫遊</button>
@@ -467,7 +491,14 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
     <div id="state-finished" class="hidden">
       <div id="encourageBox" style="font-style:italic;color:var(--accent-positive);font-size:14px;margin-bottom:12px;line-height:1.6;"></div>
       <div id="summaryBox" style="background:#FCFAF7;border-radius:16px;padding:15px;margin-bottom:15px;text-align:left;font-size:14px;border:1px dashed var(--accent-positive);"></div>
-      <button class="btn-base btn-event" onclick="openSaveModal()">加入我的路線清單</button>
+      <!-- [新增 v1.14.0] 地圖背包滿時顯示此提示，隱藏儲存按鈕 -->
+      <div id="capacityFullMsg" class="hidden"
+        style="background:#FFF3CD;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#856404;line-height:1.6;text-align:left;">
+        🎒 <strong>地圖背包已滿（3/3）</strong><br>
+        請切換到「我的路線」刪除一條舊路線，再回來儲存這趟漫遊。<br>
+        <span style="font-size:12px;color:#6c757d;">⚡ 本次漫遊資料暫存中，切換頁面不會消失</span>
+      </div>
+      <button class="btn-base btn-event" id="btnSaveRoute" onclick="openSaveModal()">加入我的路線清單</button>
       <button class="btn-base btn-main" style="margin-top:10px;" onclick="location.reload()">重新開始</button>
     </div>
   </div>
@@ -499,7 +530,7 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
     <div class="stats-grid">
       <div class="stat-item">
         <div class="stat-value" id="statRoutes">—</div>
-        <div class="stat-label">🗺 條路線</div>
+        <div class="stat-label">🗺 地圖紀錄</div>
       </div>
       <div class="stat-item">
         <div class="stat-value" id="statKm">—</div>
@@ -512,6 +543,16 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
       <div class="stat-item">
         <div class="stat-value" id="statEvents">—</div>
         <div class="stat-label">📸 個事件</div>
+      </div>
+    </div>
+    <!-- [新增 v1.14.0] 地圖背包容量條 -->
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-light);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:11px;letter-spacing:1px;color:var(--text-soft);text-transform:uppercase;">🎒 地圖背包容量</span>
+        <span style="font-size:12px;font-weight:bold;color:var(--text-main);" id="capacityLabel">— / 3</span>
+      </div>
+      <div style="background:var(--border-light);border-radius:99px;height:6px;overflow:hidden;">
+        <div id="capacityBar" style="height:100%;border-radius:99px;background:var(--accent-positive);width:0%;transition:width 0.4s ease;"></div>
       </div>
     </div>
   </div>
@@ -543,7 +584,7 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
 
 <nav id="navBar">
   <div class="nav-item active" id="nav-main" onclick="switchPage('main')">📍<span>漫遊</span></div>
-  <div class="nav-item" id="nav-list" onclick="switchPage('list')">📜<span>紀錄</span></div>
+  <div class="nav-item" id="nav-list" onclick="switchPage('list')">🗺<span>我的路線</span></div>
 </nav>
 
 <script>
@@ -554,6 +595,14 @@ var historyMarkers=[], locatingTimer=null, selectedTrackColor='#333333';
 var rawGpsBuffer=[], ROADS_API_KEY='AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
 var pauseWindowPoints=[], pauseWindowStart=null;
 var nearbyPlaces=[], selectedPlace=null;
+
+/* ===================================================
+   [新增 v1.14.0] 地圖容量相關變數
+   MAP_CAPACITY：初始地圖背包上限（測試期固定 3）
+   currentMapCount：目前已儲存的地圖紀錄數（Auth 就緒後載入）
+   =================================================== */
+var MAP_CAPACITY = 3;
+var currentMapCount = 0;
 
 /* ===================================================
    [新增 v1.10.0] 照片相關全域變數
@@ -651,6 +700,55 @@ async function initMap(){
     function(){setStatusBar('City Walker','var(--status-idle)');},
     {enableHighAccuracy:true,timeout:10000,maximumAge:0}
   );
+  /* PSEUDO: Auth 就緒後立刻載入容量，若 uid 已到位直接執行 */
+  window._authReadyCallback = loadMapCapacity;
+  if(window.currentUid) loadMapCapacity();
+}
+
+/* ===================================================
+   [新增 v1.14.0] 地圖容量系統
+
+   loadMapCapacity()
+   PSEUDO: Auth 就緒後呼叫，查詢此 uid 的路線數
+   更新 currentMapCount，並更新主頁提示 UI
+
+   updateCapacityUI()
+   PSEUDO: 根據 currentMapCount 決定是否顯示警告
+   - 主頁（state-init）：背包滿才顯示橘色提示
+   - 結算頁（state-finished）：滿了隱藏儲存按鈕、顯示提示
+
+   checkCapacityBeforeSave()
+   PSEUDO: executeCloudSave 前再次確認容量（防止 race condition）
+   =================================================== */
+async function loadMapCapacity(){
+  if(!window.currentUid||!window.db)return;
+  try{
+    var q=window.api.query(
+      window.api.collection(window.db,'walk_records'),
+      window.api.where('userId','==',window.currentUid)
+    );
+    var snap=await window.api.getDocs(q);
+    currentMapCount=snap.size;
+    updateCapacityUI();
+  }catch(e){console.warn('[Capacity] 載入失敗:',e);}
+}
+
+function updateCapacityUI(){
+  var isFull=(currentMapCount>=MAP_CAPACITY);
+  /* 主頁警告 */
+  var warning=document.getElementById('capacityWarning');
+  var countEl=document.getElementById('capacityCount');
+  if(warning){
+    warning.classList.toggle('hidden',!isFull);
+    if(countEl)countEl.innerText=currentMapCount;
+  }
+  /* 結算頁（如果目前在 finished 狀態） */
+  var btnSave=document.getElementById('btnSaveRoute');
+  var fullMsg=document.getElementById('capacityFullMsg');
+  if(btnSave&&fullMsg){
+    btnSave.classList.toggle('hidden',isFull);
+    fullMsg.classList.toggle('hidden',!isFull);
+  }
 }
 function getUserPosition(){
   var pos=userMarker&&userMarker.position;
@@ -897,6 +995,8 @@ async function endWalk(){
   document.getElementById('state-recording').classList.add('hidden');
   document.getElementById('state-finished').classList.remove('hidden');
   document.getElementById('encourageBox').innerText='「'+getDailyEncouragement()+'」';
+  /* [v1.14.0] 顯示結算頁時同步更新容量 UI */
+  updateCapacityUI();
   await flushRawBuffer();
   totalDistance=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
   durationStr=Math.floor(Math.abs(new Date()-startTime)/60000)+' 分鐘';
@@ -928,13 +1028,21 @@ async function endWalk(){
 }
 
 async function executeCloudSave(){
+  /* [v1.14.0] 儲存前再次確認容量（使用者可能在另一頁刪了路線） */
+  await loadMapCapacity();
+  if(currentMapCount>=MAP_CAPACITY){
+    document.getElementById('saveModal').style.display='none';
+    updateCapacityUI();
+    return;
+  }
   var btn=document.getElementById('btnConfirmSave');if(btn)btn.disabled=true;
   try{
     await window.api.addDoc(window.api.collection(window.db,'walk_records'),{
       name:document.getElementById('routeName').value||'未命名漫遊',
       city:cityName,distance:totalDistance,duration:durationStr,
       path:walkPath,events:eventsData,trackColor:selectedTrackColor,
-      isPinned:false,createdAt:window.api.serverTimestamp()
+      isPinned:false,createdAt:window.api.serverTimestamp(),
+      userId:window.currentUid||'anonymous'  /* [v1.14.0] 綁定使用者 uid */
     });
     location.reload();
   }catch(e){alert('儲存失敗');if(btn)btn.disabled=false;}
@@ -999,7 +1107,13 @@ async function fetchRecords(){
   if(!container)return;
   container.innerHTML='<p style="text-align:center;padding:20px;">載入中...</p>';
   try{
-    var snap=await window.api.getDocs(window.api.collection(window.db,'walk_records'));
+    /* [v1.14.0] 只撈自己的路線（userId == currentUid） */
+    var uid=window.currentUid||'anonymous';
+    var q=window.api.query(
+      window.api.collection(window.db,'walk_records'),
+      window.api.where('userId','==',uid)
+    );
+    var snap=await window.api.getDocs(q);
     window.currentDocs=[];
     snap.forEach(function(d){window.currentDocs.push(Object.assign({id:d.id},d.data()));});
     /* PSEUDO: 排序：釘選優先，其次時間倒序 */
@@ -1013,7 +1127,7 @@ async function fetchRecords(){
 }
 
 function renderStats(docs){
-  /* PSEUDO: 統計全部資料（不受篩選影響，反映真實總覽） */
+  /* PSEUDO: 統計全部資料（不受篩選影響） */
   var totalKm=0, cities={}, totalEvents=0;
   docs.forEach(function(d){
     totalKm+=(d.distance||0);
@@ -1024,6 +1138,16 @@ function renderStats(docs){
   document.getElementById('statKm').innerText=totalKm.toFixed(1);
   document.getElementById('statCities').innerText=Object.keys(cities).length;
   document.getElementById('statEvents').innerText=totalEvents;
+  /* [v1.14.0] 更新地圖背包容量條 */
+  currentMapCount=docs.length;
+  var pct=Math.min(100,Math.round((currentMapCount/MAP_CAPACITY)*100));
+  var label=document.getElementById('capacityLabel');
+  var bar=document.getElementById('capacityBar');
+  if(label)label.innerText=currentMapCount+' / '+MAP_CAPACITY;
+  if(bar){
+    bar.style.width=pct+'%';
+    bar.style.background=(currentMapCount>=MAP_CAPACITY)?'#FEAD89':'var(--accent-positive)';
+  }
 }
 
 function buildCityFilter(docs){
@@ -1195,7 +1319,14 @@ function clearLoadedRoute(){
   document.getElementById('btnClearRoute').classList.add('hidden');
 }
 
-async function deleteRecord(e,id){e.stopPropagation();if(!confirm('確定要刪除嗎？'))return;await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));fetchRecords();}
+async function deleteRecord(e,id){
+  e.stopPropagation();
+  if(!confirm('確定要刪除嗎？'))return;
+  await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));
+  /* [v1.14.0] 刪除後重新計算容量，讓主頁提示即時更新 */
+  await loadMapCapacity();
+  fetchRecords();
+}
 async function togglePin(e,id,status){e.stopPropagation();await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});fetchRecords();}
 
 
@@ -1557,6 +1688,7 @@ window.retakePhoto=retakePhoto; window.cancelPhoto=cancelPhoto; window.confirmPh
 window.clearLoadedRoute=clearLoadedRoute;
 window.applyFilters=applyFilters; window.clearFilters=clearFilters;
 window.openShareCard=openShareCard; window.closeShareCard=closeShareCard; window.downloadShareCard=downloadShareCard; window.cycleSharePhoto=cycleSharePhoto;
+window.loadMapCapacity=loadMapCapacity; window.updateCapacityUI=updateCapacityUI;
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async" async defer></script>
