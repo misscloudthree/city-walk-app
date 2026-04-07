@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.12.2</title>
+<title>City Walker - v1.12.3</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -399,7 +399,12 @@ window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTim
      PSEUDO: 生成後顯示 canvas 預覽，提供下載按鈕
      =================================================== -->
 <div id="shareCardModal" onclick="closeShareCard()">
-  <canvas id="shareCardCanvas" onclick="event.stopPropagation()"></canvas>
+  <canvas id="shareCardCanvas"
+    onclick="event.stopPropagation(); cycleSharePhoto()"
+    style="cursor:pointer;"></canvas>
+  <div id="sharePhotoHint" style="color:rgba(255,255,255,0.7);font-size:13px;letter-spacing:1px;display:none;">
+    點擊照片換一張 &nbsp;<span id="sharePhotoIndex"></span>
+  </div>
   <div id="shareCardBtns" onclick="event.stopPropagation()">
     <button style="background:#EEE;color:#666;" onclick="closeShareCard()">關閉</button>
     <button style="background:var(--accent-positive);color:white;" onclick="downloadShareCard()">⬇ 下載圖片</button>
@@ -939,12 +944,87 @@ async function togglePin(e,id,status){e.stopPropagation();await window.api.updat
    └─────────────────────────────┘
    =================================================== */
 
-function openShareCard(e, id) {
+/* ===================================================
+   [新增 v1.12.3] 點擊換照片
+   PSEUDO:
+   - openShareCard 開 Modal 時，先把所有照片預載好存進
+     window._shareCardPhotos[]，之後換張只做 canvas 重繪
+   - window._shareCardPhotoIndex 追蹤目前顯示第幾張
+   - cycleSharePhoto() 點 canvas 時 index+1 循環，呼叫
+     generateShareCard(data, index) 重繪（不重新載圖）
+   =================================================== */
+async function openShareCard(e, id) {
   e.stopPropagation();
   var data = window.currentDocs.find(function(d){ return d.id === id; });
   if (!data) return;
+  window._shareCardData = data;
+  window._shareCardPhotoIndex = 0;
+
+  /* PSEUDO: 收集所有照片 URL */
+  var photoUrls = [];
+  if (data.events) {
+    data.events.forEach(function(ev) {
+      if (ev.photoUrl) photoUrls.push(ev.photoUrl);
+    });
+  }
+
+  /* PSEUDO: 顯示 Modal，先畫 loading 畫面 */
   document.getElementById('shareCardModal').style.display = 'flex';
-  generateShareCard(data);
+  var canvas = document.getElementById('shareCardCanvas');
+  canvas.width = 1080; canvas.height = 1350;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#F5F0E8';
+  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillStyle = '#8FB9A8';
+  ctx.font = 'bold 52px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('生成卡片中...', 540, 675);
+  ctx.textAlign = 'left';
+
+  /* PSEUDO: 預載所有照片（只做一次 fetch），存進全域陣列 */
+  if (photoUrls.length > 0) {
+    var loadedImgs = await Promise.all(photoUrls.map(function(url) {
+      return new Promise(function(resolve) {
+        var img = new Image();
+        img.onload = function() { resolve(img); };
+        img.onerror = function() { resolve(null); };
+        img.src = url;
+      });
+    }));
+    /* PSEUDO: 過濾掉載入失敗的（null） */
+    window._shareCardPhotos = loadedImgs.filter(function(img) { return img !== null; });
+  } else {
+    window._shareCardPhotos = [];
+  }
+
+  /* PSEUDO: 更新換張提示 UI */
+  var hint = document.getElementById('sharePhotoHint');
+  if (window._shareCardPhotos.length > 1) {
+    hint.style.display = 'block';
+    document.getElementById('sharePhotoIndex').innerText =
+      '1 / ' + window._shareCardPhotos.length;
+  } else {
+    hint.style.display = 'none';
+  }
+
+  /* PSEUDO: 用預載好的圖直接繪製，不再重新 fetch */
+  generateShareCard(data, 0);
+}
+
+function cycleSharePhoto() {
+  var photos = window._shareCardPhotos;
+  if (!photos || photos.length <= 1) return; /* 只有 0 或 1 張不需切換 */
+  var data = window._shareCardData;
+  if (!data) return;
+
+  window._shareCardPhotoIndex = (window._shareCardPhotoIndex + 1) % photos.length;
+  var idx = window._shareCardPhotoIndex;
+
+  /* PSEUDO: 更新頁碼提示 */
+  document.getElementById('sharePhotoIndex').innerText =
+    (idx + 1) + ' / ' + photos.length;
+
+  generateShareCard(data, idx);
 }
 
 function closeShareCard() {
@@ -960,7 +1040,14 @@ function downloadShareCard() {
   link.click();
 }
 
-async function generateShareCard(data) {
+/* ===================================================
+   [修改 v1.12.3] generateShareCard(data, photoIndex)
+   PSEUDO: 新增 photoIndex 參數
+   - 使用 window._shareCardPhotos[] 預載圖（不重新 fetch）
+   - 只繪製 photoIndex 指定的單張照片（拍立得風格）
+   - photoIndex 省略或無照片時，照片區空白
+   =================================================== */
+function generateShareCard(data, photoIndex) {
   window._shareCardData = data;
   var canvas = document.getElementById('shareCardCanvas');
   var W = 1080, H = 1350;
@@ -1122,52 +1209,38 @@ async function generateShareCard(data) {
   }
 
   /* ===================================================
-     PSEUDO: Step 8 - 照片縮圖堆疊（拍立得感）
-     有 photoUrl 的事件最多取 3 張，錯落排列
-     照片需要先用 Image 物件非同步載入
+     PSEUDO: Step 8 - 單張照片（拍立得感）
+     [修改 v1.12.3] 改為單張，使用預載好的 _shareCardPhotos[]
+     photoIndex 指定要顯示第幾張，右下角拍立得風格
      =================================================== */
-  var photoUrls = [];
-  if (data.events) {
-    data.events.forEach(function(ev) {
-      if (ev.photoUrl && photoUrls.length < 3) photoUrls.push(ev.photoUrl);
-    });
-  }
+  var photos = window._shareCardPhotos || [];
+  var idx = (typeof photoIndex === 'number' && photoIndex >= 0) ? photoIndex : 0;
+  var selectedImg = photos[idx] || null;
 
-  if (photoUrls.length > 0) {
-    var photoPromises = photoUrls.map(function(url) {
-      return new Promise(function(resolve) {
-        var img = new Image();
-        img.onload = function() { resolve(img); };
-        img.onerror = function() { resolve(null); };
-        img.src = url;
-      });
-    });
+  if (selectedImg) {
+    /* PSEUDO: 拍立得白框，右下角固定位置 */
+    var photoW = 280, photoH = 280, photoPad = 16;
+    var px = W - 60 - photoW - photoPad * 2; /* 右側對齊 */
+    var py = H - 80 - photoH - photoPad * 3; /* 底部對齊 */
+    var rot = -2.5 * Math.PI / 180;          /* 略微旋轉 */
 
-    var images = await Promise.all(photoPromises);
-    /* PSEUDO: 照片堆疊，從右側錯落排列，每張略微旋轉 */
-    var photoW = 200, photoH = 200, photoPad = 14, photoBottom = 14;
-    var rotations = [-3, 2, -1.5];
-    var startX = W - 60;
-
-    images.forEach(function(img, i) {
-      if (!img) return;
-      var rot = (rotations[i] || 0) * Math.PI / 180;
-      var px = startX - (images.length - i) * (photoW + 16);
-      var py = H - 60 - photoH - photoBottom;
-
-      ctx.save();
-      ctx.translate(px + photoW / 2, py + (photoH + photoPad * 2) / 2);
-      ctx.rotate(rot);
-      /* 拍立得白框 */
-      ctx.fillStyle = WHITE;
-      ctx.shadowColor = 'rgba(0,0,0,0.2)';
-      ctx.shadowBlur = 12;
-      ctx.fillRect(-photoW / 2 - photoPad, -(photoH + photoPad * 2) / 2, photoW + photoPad * 2, photoH + photoPad * 3);
-      ctx.shadowBlur = 0;
-      /* 照片 */
-      ctx.drawImage(img, -photoW / 2, -(photoH + photoPad * 2) / 2 + photoPad, photoW, photoH);
-      ctx.restore();
-    });
+    ctx.save();
+    ctx.translate(px + (photoW + photoPad * 2) / 2, py + (photoH + photoPad * 3) / 2);
+    ctx.rotate(rot);
+    /* 白框陰影 */
+    ctx.shadowColor = 'rgba(0,0,0,0.22)';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = WHITE;
+    ctx.fillRect(
+      -(photoW / 2 + photoPad),
+      -(photoH / 2 + photoPad),
+      photoW + photoPad * 2,
+      photoH + photoPad * 3  /* 拍立得底部留白較多 */
+    );
+    ctx.shadowBlur = 0;
+    /* 照片本體 */
+    ctx.drawImage(selectedImg, -photoW / 2, -(photoH / 2 + photoPad) + photoPad, photoW, photoH);
+    ctx.restore();
   }
 
   /* ===================================================
@@ -1206,7 +1279,7 @@ window.selectColor=selectColor; window.endWalk=endWalk; window.startWalk=startWa
 window.openCamera=openCamera; window.handlePhotoSelected=handlePhotoSelected;
 window.retakePhoto=retakePhoto; window.cancelPhoto=cancelPhoto; window.confirmPhoto=confirmPhoto;
 window.clearLoadedRoute=clearLoadedRoute;
-window.openShareCard=openShareCard; window.closeShareCard=closeShareCard; window.downloadShareCard=downloadShareCard;
+window.openShareCard=openShareCard; window.closeShareCard=closeShareCard; window.downloadShareCard=downloadShareCard; window.cycleSharePhoto=cycleSharePhoto;
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async" async defer></script>
