@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.14.2</title>
+<title>City Walker - v1.15.0</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -310,11 +310,19 @@ body {
 }
 </style>
 
-<!-- [新增 v1.14.0] Firebase Auth + Firestore 初始化 -->
+<!-- [改版 v1.15.0] Firebase Auth + Firestore + Storage 初始化 -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+/* [新增 v1.15.0] Firebase Storage SDK
+   PSEUDO: 引入三個函式：
+   - getStorage：取得 Storage 實例
+   - ref：建立檔案參照（路徑物件）
+   - uploadBytes：上傳 Blob 到指定路徑
+   - getDownloadURL：取得可公開存取的下載 URL
+   - deleteObject：刪除 Storage 上的檔案 */
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDc460QtdfTv32gEPNPLVCMOxPz0hCWxbQ",
@@ -327,7 +335,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+/* [新增 v1.15.0] Storage 實例掛到 window，供全域函式使用 */
+const storage = getStorage(app);
 window.db = db;
+window.storage = storage;
+window.storageApi = { ref, uploadBytes, getDownloadURL, deleteObject };
 window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTimestamp, query, where };
 
 /* PSEUDO: 匿名登入，取得穩定 uid
@@ -411,9 +423,10 @@ onAuthStateChanged(auth, function(user){
     <div id="memoryIcon" style="font-size:50px;margin-bottom:8px;">📸</div>
     <div id="memoryPlace" style="font-size:12px;color:var(--text-soft);margin-bottom:6px;"></div>
     <!-- 拍立得照片區，有照片才顯示 -->
+    <!-- [改版 v1.15.0] crossOrigin="anonymous"：Storage URL 需要此屬性才能正確載入 -->
     <div id="memoryPolaroid" class="hidden">
       <div class="polaroid-wrap">
-        <img id="memoryPhoto" src="" alt="記憶照片">
+        <img id="memoryPhoto" src="" alt="記憶照片" crossorigin="anonymous">
       </div>
     </div>
     <div id="memoryText" style="color:#333;line-height:1.7;min-height:40px;margin-top:8px;"></div>
@@ -1019,14 +1032,58 @@ function closeEventModal(){
    2. 沒有照片 → photoUrl 為空字串
    上傳時顯示「上傳中...」避免使用者重複點擊
    =================================================== */
+/* ===================================================
+   [改版 v1.15.0] saveEvent()
+   PSEUDO: 照片上傳流程改為 Firebase Storage
+
+   流程：
+   1. 若有照片（selectedPhotoBlob 不為 null）
+      a. 建立 Storage 路徑：photos/{uid}/{timestamp}_{random}.jpg
+      b. 上傳 Blob → 取得 downloadURL
+      c. downloadURL 存入 photoUrl
+   2. 上傳期間 button disabled + 文字改「上傳中...」
+   3. 失敗時 fallback：photoUrl = ''（不含照片），事件仍儲存
+   4. 舊 Base64 路徑完全移除
+
+   相容性：
+   - 舊資料 photoUrl 為 'data:...' → img src 直接用，不受影響
+   - 新資料 photoUrl 為 'https://...' → Canvas 需 crossOrigin
+   =================================================== */
 async function saveEvent() {
   var text=document.getElementById('eventText').value;
   var eventPos,placeName,placeId;
   if(selectedPlace){eventPos={lat:selectedPlace.lat,lng:selectedPlace.lng};placeName=selectedPlace.name;placeId=selectedPlace.placeId;}
   else{eventPos=getUserPosition()||{lat:0,lng:0};placeName='';placeId='';}
 
-  /* [修復 v1.12.2] 直接存 Base64 DataURL，不上傳 Storage，解決 Canvas CORS 問題 */
-  var photoUrl = selectedPhotoDataUrl || '';
+  var photoUrl = '';
+
+  /* PSEUDO: 有照片才執行上傳流程 */
+  if(selectedPhotoBlob && window.storage && window.storageApi && window.currentUid){
+    var confirmBtn = document.querySelector('#eventModal .btn-event');
+    var originalText = confirmBtn ? confirmBtn.innerText : '';
+    if(confirmBtn){ confirmBtn.disabled=true; confirmBtn.innerText='上傳中...'; }
+
+    try{
+      /* PSEUDO: 路徑格式 photos/{uid}/{timestamp}_{隨機4碼}.jpg
+         timestamp 確保唯一性，隨機碼防同毫秒衝突 */
+      var timestamp = Date.now();
+      var rand = Math.floor(Math.random()*9000+1000);
+      var filePath = 'photos/' + window.currentUid + '/' + timestamp + '_' + rand + '.jpg';
+      var fileRef = window.storageApi.ref(window.storage, filePath);
+
+      /* PSEUDO: 上傳 Blob，metadata 指定 contentType */
+      await window.storageApi.uploadBytes(fileRef, selectedPhotoBlob, { contentType:'image/jpeg' });
+
+      /* PSEUDO: 取得公開下載 URL */
+      photoUrl = await window.storageApi.getDownloadURL(fileRef);
+    }catch(err){
+      /* PSEUDO: 上傳失敗 → fallback 不含照片，事件照常儲存，不中斷流程 */
+      console.warn('[Storage] 照片上傳失敗，以無照片方式儲存:', err);
+      photoUrl = '';
+    }finally{
+      if(confirmBtn){ confirmBtn.disabled=false; confirmBtn.innerText=originalText; }
+    }
+  }
 
   eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl});
   createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl);
@@ -1367,9 +1424,48 @@ function clearLoadedRoute(){
   document.getElementById('btnClearRoute').classList.add('hidden');
 }
 
+/* ===================================================
+   [改版 v1.15.0] deleteRecord()
+   PSEUDO: 刪除路線時同步清除 Storage 上的照片
+
+   流程：
+   1. 找出該路線的所有 events，過濾出 photoUrl 為 Storage URL（https://）
+   2. 對每個 URL 呼叫 deleteObject()（失敗不中斷，只 console.warn）
+   3. 接著刪除 Firestore 文件
+   4. 更新容量 + 重整列表
+
+   為什麼先刪 Storage 再刪 Firestore？
+   - Firestore 刪了就找不到 URL 了，所以順序不能反過來
+   - Storage 刪失敗只是孤兒檔案，不影響使用者體驗
+   =================================================== */
 async function deleteRecord(e,id){
   e.stopPropagation();
   if(!confirm('確定要刪除嗎？'))return;
+
+  /* PSEUDO: 找出此路線的資料，準備清理 Storage 照片 */
+  var data = window.currentDocs && window.currentDocs.find(function(d){ return d.id === id; });
+  if(data && data.events && window.storage && window.storageApi){
+    var deletePromises = [];
+    data.events.forEach(function(ev){
+      /* PSEUDO: 只刪 Storage URL，Base64 不需處理（存在瀏覽器記憶體，沒有 Storage 檔案） */
+      if(ev.photoUrl && ev.photoUrl.startsWith('https://')){
+        try{
+          var fileRef = window.storageApi.ref(window.storage, ev.photoUrl);
+          deletePromises.push(
+            window.storageApi.deleteObject(fileRef).catch(function(err){
+              console.warn('[Storage] 照片刪除失敗（忽略，繼續刪路線）:', err);
+            })
+          );
+        }catch(err){
+          console.warn('[Storage] ref 建立失敗:', err);
+        }
+      }
+    });
+    /* PSEUDO: 等待所有照片刪除完畢（失敗已被 catch 吸收，不會 throw） */
+    if(deletePromises.length > 0) await Promise.all(deletePromises);
+  }
+
+  /* PSEUDO: 刪除 Firestore 文件 */
   await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));
   /* [v1.14.0] 刪除後重新計算容量，讓主頁提示即時更新 */
   await loadMapCapacity();
@@ -1433,11 +1529,16 @@ async function openShareCard(e, id) {
   ctx.fillText('生成卡片中...', 540, 675);
   ctx.textAlign = 'left';
 
-  /* PSEUDO: 預載所有照片（只做一次 fetch），存進全域陣列 */
+  /* PSEUDO: 預載所有照片（只做一次 fetch），存進全域陣列
+     [改版 v1.15.0] 加入 crossOrigin = 'anonymous'
+     - Storage URL（https://）：需要此設定才能繪製進 Canvas，否則 tainted canvas
+     - Base64（data:）：設定後仍可正常顯示，不受影響
+     - 兩種格式統一處理，不需分支判斷 */
   if (photoUrls.length > 0) {
     var loadedImgs = await Promise.all(photoUrls.map(function(url) {
       return new Promise(function(resolve) {
         var img = new Image();
+        img.crossOrigin = 'anonymous';
         img.onload = function() { resolve(img); };
         img.onerror = function() { resolve(null); };
         img.src = url;
