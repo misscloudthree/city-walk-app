@@ -1,0 +1,1745 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>City Walker - v1.14.1</title>
+<!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-warm: #F9F7F2; --text-main: #333333; --text-soft: #7D7D7D;
+  --accent-positive: #8FB9A8; --accent-warm: #FEAD89;
+  --border-light: #EEEEEE; --white: #FFFFFF; --accent-pin: #FFD700;
+  --status-idle: #F9F7F2; --status-locating: #FFF3CD;
+  --status-walking: #D4EDDA; --status-paused: #FFE5CC; --status-ended: #E2E8F0;
+}
+body {
+  margin:0; padding:0;
+  font-family:'Poly','Microsoft JhengHei',sans-serif;
+  background:var(--bg-warm); color:var(--text-main);
+  overflow:hidden; width:100vw; height:100vh;
+}
+.hidden { display:none !important; }
+.page { height:100vh; width:100%; position:absolute; top:0; left:0; overflow-y:auto; padding-bottom:120px; box-sizing:border-box; z-index:10; }
+#page-main { z-index:20; overflow:hidden; }
+#page-list { z-index:25; background:var(--bg-warm); padding-top:60px; }
+#statusBar { position:fixed; top:0; width:100%; height:50px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:bold; background:var(--status-idle); backdrop-filter:blur(5px); z-index:1000; border-bottom:1px solid var(--border-light); transition:background-color 0.5s ease; letter-spacing:1px; }
+#map { height:100vh; width:100%; background:#e5e3df; }
+.map-controls { position:fixed; right:20px; bottom:210px; display:flex; flex-direction:column; gap:12px; z-index:1200; }
+.map-btn { width:50px; height:50px; background:var(--white); border-radius:50%; box-shadow:0 4px 15px rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; border:none; }
+#functionPanel { position:fixed; bottom:95px; left:50%; transform:translateX(-50%); width:85%; max-width:400px; background:var(--white); border-radius:24px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.08); z-index:1500; text-align:center; }
+#recordsContainer { width:92%; max-width:450px; margin:0 auto; }
+.record-card { background:var(--white); margin:15px 0; padding:22px 22px 52px 22px; border-radius:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05); position:relative; border-left:6px solid var(--accent-positive); cursor:pointer; display:block; box-sizing:border-box; text-align:left; }
+.record-card.is-pinned { border-left-color:var(--accent-pin); background:#FFFDF5; }
+.pin-icon { position:absolute; top:18px; right:18px; cursor:pointer; font-size:22px; opacity:0.3; }
+.delete-btn { position:absolute; bottom:18px; right:18px; cursor:pointer; font-size:18px; opacity:0.3; }
+
+/* ===================================================
+   [新增 v1.13.0] 紀錄頁 - 個人統計區
+   =================================================== */
+#statsPanel {
+  width:92%; max-width:450px; margin:0 auto 16px;
+  background:var(--white); border-radius:20px;
+  padding:18px 20px; box-sizing:border-box;
+  box-shadow:0 4px 15px rgba(0,0,0,0.05);
+}
+#statsPanel .stats-title {
+  font-size:11px; letter-spacing:2px; color:var(--text-soft);
+  margin-bottom:14px; text-transform:uppercase;
+}
+#statsPanel .stats-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:12px;
+}
+#statsPanel .stat-item {
+  display:flex; flex-direction:column; gap:2px;
+}
+#statsPanel .stat-value {
+  font-size:22px; font-weight:bold; color:var(--text-main);
+  font-family:'Poly',sans-serif;
+}
+#statsPanel .stat-label {
+  font-size:11px; color:var(--text-soft); letter-spacing:0.5px;
+}
+
+/* ===================================================
+   [新增 v1.13.0] 紀錄頁 - 篩選列
+   =================================================== */
+#filterBar {
+  width:92%; max-width:450px; margin:0 auto 16px;
+  display:flex; gap:8px; box-sizing:border-box;
+  overflow-x:auto; padding-bottom:2px;
+  scrollbar-width:none; -ms-overflow-style:none;
+}
+#filterBar::-webkit-scrollbar { display:none; }
+.filter-select {
+  flex-shrink:0;
+  padding:8px 12px; border-radius:20px;
+  font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif;
+  background:var(--white); color:var(--text-main);
+  border:1.5px solid var(--border-light);
+  cursor:pointer; outline:none;
+  appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237D7D7D'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center;
+  padding-right:28px;
+}
+.filter-select.active {
+  border-color:var(--accent-positive); color:var(--accent-positive);
+  font-weight:bold;
+}
+#filterCount {
+  flex-shrink:0; align-self:center;
+  font-size:12px; color:var(--text-soft); white-space:nowrap;
+}
+#clearFilterBtn {
+  flex-shrink:0; padding:8px 12px; border-radius:20px;
+  font-size:12px; background:transparent; color:var(--text-soft);
+  border:1.5px solid var(--border-light); cursor:pointer;
+  display:none;
+}
+#clearFilterBtn.visible { display:block; }
+
+/* ===================================================
+   [新增 v1.13.0] 紀錄頁 - 城市分組 Header
+   =================================================== */
+.city-group-header {
+  width:92%; max-width:450px; margin:8px auto 0;
+  font-size:11px; letter-spacing:2px; color:var(--text-soft);
+  text-transform:uppercase; padding:0 4px;
+  display:flex; align-items:center; gap:8px;
+}
+.city-group-header::after {
+  content:''; flex:1; height:1px; background:var(--border-light);
+}
+
+/* ===================================================
+   [新增 v1.12.0] 分享按鈕樣式
+   PSEUDO: 放在卡片左下角，小巧不搶眼
+   =================================================== */
+.share-btn {
+  display:inline-block;
+  margin-top:10px;
+  font-size:14px; color:var(--accent-positive);
+  cursor:pointer; opacity:0.85;
+  font-family:'Caveat','Microsoft JhengHei',sans-serif;
+  letter-spacing:1px;
+}
+.share-btn:active { opacity:1; }
+
+/* ===================================================
+   [新增 v1.12.0] 分享卡片預覽 Modal
+   =================================================== */
+#shareCardModal {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.7);
+  display:none; align-items:center; justify-content:center;
+  z-index:9999; flex-direction:column; gap:16px;
+}
+#shareCardModal canvas {
+  max-width:90vw; max-height:70vh;
+  border-radius:4px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+#shareCardBtns {
+  display:flex; gap:12px;
+}
+#shareCardBtns button {
+  padding:12px 24px; border-radius:14px; border:none;
+  font-size:14px; font-weight:bold; cursor:pointer;
+}
+#navBar { position:fixed; bottom:0; width:100%; height:75px; background:var(--white); display:flex; border-top:1px solid var(--border-light); z-index:2000; padding-bottom:env(safe-area-inset-bottom); }
+.nav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; color:var(--text-soft); cursor:pointer; }
+.nav-item.active { color:var(--text-main); font-weight:bold; }
+.btn-base { padding:16px 24px; font-size:15px; font-weight:bold; border:none; border-radius:14px; cursor:pointer; width:100%; outline:none; }
+.btn-main { background:var(--text-main); color:var(--white); }
+.btn-event { background:var(--accent-positive); color:var(--white); }
+
+#eventModal, #saveModal, #memoryBox, #photoConfirmModal {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.5);
+  display:none; align-items:center; justify-content:center; z-index:9999;
+}
+.modal-content { background:var(--white); width:92%; max-width:400px; border-radius:28px; padding:20px 16px; box-sizing:border-box; max-height:90vh; overflow-y:auto; }
+#memoryCloseBtn { position:absolute; top:16px; right:16px; font-size:22px; color:var(--text-soft); cursor:pointer; padding:4px 8px; border-radius:50%; transition:background 0.2s; }
+#memoryCloseBtn:active { background:var(--bg-warm); }
+.user-marker { font-size:30px; line-height:1; cursor:default; user-select:none; }
+.event-marker-div { position:absolute; font-size:28px; cursor:pointer; transform:translate(-50%,-50%); user-select:none; -webkit-user-select:none; pointer-events:auto; z-index:999; }
+#colorPicker { position:fixed; top:62px; left:16px; z-index:1300; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
+#colorToggleBtn { width:38px; height:38px; border-radius:50%; border:3px solid var(--white); box-shadow:0 2px 8px rgba(0,0,0,0.18); cursor:pointer; transition:transform 0.2s; }
+#colorToggleBtn:active { transform:scale(0.92); }
+#colorOptions { display:none; flex-direction:column; gap:8px; background:var(--white); border-radius:20px; padding:10px; box-shadow:0 4px 20px rgba(0,0,0,0.12); }
+#colorOptions.open { display:flex; }
+.color-dot { width:34px; height:34px; border-radius:50%; cursor:pointer; border:3px solid transparent; box-shadow:0 2px 6px rgba(0,0,0,0.15); transition:transform 0.15s,border-color 0.15s; flex-shrink:0; }
+.color-dot:active { transform:scale(0.88); }
+.color-dot.selected { border-color:var(--white); transform:scale(1.18); box-shadow:0 3px 10px rgba(0,0,0,0.25); }
+
+/* Icon 選擇器 */
+#iconPickerSection { margin:10px 0; }
+#iconCategoryTabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; -ms-overflow-style:none; }
+#iconCategoryTabs::-webkit-scrollbar { display:none; }
+.icon-tab { flex-shrink:0; padding:5px 10px; border-radius:20px; font-size:11px; background:var(--bg-warm); color:var(--text-soft); cursor:pointer; border:1.5px solid transparent; transition:all 0.2s; white-space:nowrap; }
+.icon-tab.active { background:var(--white); color:var(--text-main); border-color:var(--accent-positive); font-weight:bold; }
+#iconGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; max-height:120px; overflow-y:auto; padding:2px 0; }
+.icon-cell { display:flex; align-items:center; justify-content:center; font-size:22px; padding:4px; border-radius:10px; cursor:pointer; border:2px solid transparent; transition:background 0.15s; aspect-ratio:1; min-width:0; }
+.icon-cell:active { transform:scale(0.88); }
+.icon-cell.selected { background:var(--bg-warm); border-color:var(--accent-positive); }
+#selectedIconPreview { font-size:26px; margin-left:auto; flex-shrink:0; }
+
+/* 地標選擇區 */
+#placeSection { margin:6px 0 8px; }
+#placeLabel { font-size:11px; color:var(--text-soft); margin-bottom:6px; }
+#placeTags { display:flex; flex-wrap:wrap; gap:6px; min-height:28px; align-items:center; }
+.place-tag { display:flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; font-size:12px; background:var(--bg-warm); color:var(--text-main); border:1.5px solid var(--border-light); cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+.place-tag:active { transform:scale(0.95); }
+.place-tag.selected { background:#EEF6F3; border-color:var(--accent-positive); color:var(--accent-positive); font-weight:bold; }
+.place-detecting { font-size:12px; color:var(--text-soft); font-style:italic; }
+
+/* ===================================================
+   [新增 v1.10.0] 手寫字體應用
+   PSEUDO: Caveat 用於事件輸入框和回憶視窗內文
+   讓整體有手帳、日記的質感
+   中文字仍 fallback 到微軟正黑體（Caveat 不支援中文）
+   =================================================== */
+#eventText {
+  font-family: 'Caveat', 'Microsoft JhengHei', sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.6;
+}
+#memoryText {
+  font-family: 'Caveat', 'Microsoft JhengHei', sans-serif !important;
+  font-size: 19px !important;
+  line-height: 1.7;
+}
+
+/* ===================================================
+   [新增 v1.10.0] 照片相關 UI
+
+   相機按鈕區：緊接在 icon 選擇器下方
+   =================================================== */
+#photoSection {
+  margin: 8px 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* PSEUDO: 相機按鈕，點擊後觸發隱藏的 file input */
+#cameraBtn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 20px;
+  font-size: 13px; background: var(--bg-warm);
+  color: var(--text-soft); border: 1.5px solid var(--border-light);
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.2s;
+}
+#cameraBtn:active { background: #EEF6F3; border-color: var(--accent-positive); }
+
+/* PSEUDO: 已選照片的縮圖預覽（小版，在事件視窗內） */
+#photoPreviewThumb {
+  width: 48px; height: 48px;
+  border-radius: 8px; object-fit: cover;
+  border: 2px solid var(--accent-positive);
+  cursor: pointer; display: none;
+}
+
+/* ===================================================
+   [新增 v1.10.0] 照片確認視窗（photoConfirmModal）
+   PSEUDO: 使用者拍完或選完照片後進入這個畫面
+   顯示照片預覽，提供三個選項：
+   - 🔄 重拍：重新觸發 file input
+   - ✕ 取消：不帶照片，回事件頁
+   - ✓ 使用這張：確認帶入，回事件頁
+   =================================================== */
+#photoConfirmImg {
+  width: 100%; max-height: 280px;
+  object-fit: contain;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+/* ===================================================
+   [改版 v1.10.1] 拍立得照片樣式（回憶視窗）
+   PSEUDO: 米色背景 + 膠帶貼著的手帳質感
+   - 米色背景（#F5F0E8）比純白更溫暖
+   - 底部留更多空白（拍立得特徵）
+   - 微微旋轉增加手感
+   - ::before 偽元素模擬透明膠帶貼在頂部
+   =================================================== */
+.polaroid-wrap {
+  background: #F5F0E8;  /* 米色 */
+  padding: 10px 10px 32px 10px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+  border-radius: 2px;
+  display: inline-block;
+  margin: 20px auto 8px; /* 上方留空間給膠帶 */
+  transform: rotate(-1.5deg);
+  max-width: 240px;
+  position: relative;
+}
+
+/* PSEUDO: 膠帶效果
+   用 ::before 在照片頂部中央貼一條半透明膠帶
+   膠帶顏色：淡黃半透明，模擬透明膠帶的視覺 */
+.polaroid-wrap::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(1deg); /* 膠帶略微歪斜 */
+  width: 60px;
+  height: 22px;
+  background: rgba(255, 235, 150, 0.65); /* 淡黃半透明 */
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  /* 模擬膠帶的細紋理 */
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 4px,
+    rgba(255,255,255,0.15) 4px,
+    rgba(255,255,255,0.15) 5px
+  );
+}
+
+.polaroid-wrap img {
+  width: 100%; max-height: 200px;
+  object-fit: cover; display: block;
+  border-radius: 1px;
+}
+</style>
+
+<!-- [新增 v1.14.0] Firebase Auth + Firestore 初始化 -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDc460QtdfTv32gEPNPLVCMOxPz0hCWxbQ",
+  authDomain: "city-walk-project.firebaseapp.com",
+  projectId: "city-walk-project",
+  storageBucket: "city-walk-project.firebasestorage.app",
+  messagingSenderId: "190868537611",
+  appId: "1:190868537611:web:9a97031a9357f4d39be20e"
+};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+window.db = db;
+window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTimestamp, query, where };
+
+/* PSEUDO: 匿名登入，取得穩定 uid
+   onAuthStateChanged 確保 uid 就緒後才允許存取 Firestore
+   uid 存入 window.currentUid 供全域使用 */
+signInAnonymously(auth).catch(function(err){
+  console.warn('[Auth] 匿名登入失敗:', err);
+});
+onAuthStateChanged(auth, function(user){
+  if(user){
+    window.currentUid = user.uid;
+    /* PSEUDO: Auth 就緒後通知 App 可以開始撈容量 */
+    if(window._authReadyCallback) window._authReadyCallback();
+  }
+});
+</script>
+</head>
+<body>
+
+<div id="statusBar">City Walker</div>
+<div id="colorPicker">
+  <div id="colorToggleBtn" onclick="toggleColorPicker()"></div>
+  <div id="colorOptions">
+    <div class="color-dot selected" style="background:#333333;" data-color="#333333" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#FF6B6B;" data-color="#FF6B6B" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#8FB9A8;" data-color="#8FB9A8" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#5BA4CF;" data-color="#5BA4CF" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#B39DDB;" data-color="#B39DDB" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#F48FB1;" data-color="#F48FB1" onclick="selectColor(this)"></div>
+    <div class="color-dot" style="background:#FFD700;" data-color="#FFD700" onclick="selectColor(this)"></div>
+  </div>
+</div>
+<div class="map-controls">
+  <button class="map-btn" onclick="focusOnMe()">📍</button>
+  <button class="map-btn hidden" id="btnFocusRoute" onclick="focusOnRouteStart()">🛣️</button>
+  <!-- [新增 v1.11.0] 清除帶入路線的 X 按鈕
+       PSEUDO: 點擊後移除地圖上的舊路線和事件標記
+       只有帶入舊路線後才顯示，和 btnFocusRoute 同步 -->
+  <button class="map-btn hidden" id="btnClearRoute" onclick="clearLoadedRoute()"
+    style="font-size:16px; color:var(--text-soft);">✕</button>
+</div>
+
+<!-- ===================================================
+     [新增 v1.10.0] 隱藏的 file input
+     PSEUDO: 實際觸發相機/相簿的元素，視覺上隱藏
+     accept="image/*" capture="environment" → 優先開啟後鏡頭
+     手機上會詢問「拍照」或「從相簿選取」
+     =================================================== -->
+<input type="file" id="photoFileInput" accept="image/*" capture="environment"
+  style="display:none;" onchange="handlePhotoSelected(this)">
+
+<!-- ===================================================
+     [新增 v1.10.0] 照片確認視窗
+     PSEUDO: 選完照片後顯示預覽，讓使用者決定要不要用
+     =================================================== -->
+<div id="photoConfirmModal">
+  <div class="modal-content" style="text-align:center;">
+    <div style="font-weight:bold; font-size:16px; margin-bottom:12px;">確認使用這張照片？</div>
+    <img id="photoConfirmImg" src="" alt="照片預覽">
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <!-- 🔄 重拍：重新觸發 file input -->
+      <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);font-size:13px;padding:12px;"
+        onclick="retakePhoto()">🔄 重拍</button>
+      <!-- ✕ 取消：不帶照片，回事件頁 -->
+      <button class="btn-base" style="background:#EEE;color:#666;font-size:13px;padding:12px;"
+        onclick="cancelPhoto()">✕ 取消</button>
+      <!-- ✓ 使用這張：帶入事件頁 -->
+      <button class="btn-base btn-event" style="font-size:13px;padding:12px;"
+        onclick="confirmPhoto()">✓ 使用</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     [改版 v1.10.0] 回憶視窗
+     PSEUDO: 有照片時顯示拍立得風格，無照片維持原樣
+     =================================================== -->
+<div id="memoryBox" onclick="closeMemoryBox()">
+  <div class="modal-content" onclick="event.stopPropagation()" style="position:relative;text-align:center;padding-top:40px;">
+    <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
+    <div id="memoryIcon" style="font-size:50px;margin-bottom:8px;">📸</div>
+    <div id="memoryPlace" style="font-size:12px;color:var(--text-soft);margin-bottom:6px;"></div>
+    <!-- 拍立得照片區，有照片才顯示 -->
+    <div id="memoryPolaroid" class="hidden">
+      <div class="polaroid-wrap">
+        <img id="memoryPhoto" src="" alt="記憶照片">
+      </div>
+    </div>
+    <div id="memoryText" style="color:#333;line-height:1.7;min-height:40px;margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- ===================================================
+     [改版 v1.10.0] 紀錄事件彈窗
+     新增照片區塊（相機按鈕 + 縮圖預覽）
+     =================================================== -->
+<div id="eventModal">
+  <div class="modal-content">
+    <div style="font-weight:bold;font-size:18px;text-align:center;margin-bottom:10px;">紀錄這一刻</div>
+
+    <!-- 地標選擇區 -->
+    <div id="placeSection">
+      <div id="placeLabel">📍 附近地標</div>
+      <div id="placeTags"><span class="place-detecting">偵測中...</span></div>
+    </div>
+
+    <!-- 文字輸入（Caveat 手寫字體） -->
+    <textarea id="eventText" placeholder="寫下心情..." maxlength="100"
+      style="width:100%;height:68px;border:1px solid #EEE;padding:10px;border-radius:12px;margin:8px 0 8px;box-sizing:border-box;outline:none;resize:none;"></textarea>
+
+    <!-- 照片區塊 -->
+    <div id="photoSection">
+      <button id="cameraBtn" onclick="openCamera()">📷 加入照片</button>
+      <img id="photoPreviewThumb" src="" alt="照片預覽" onclick="openCamera()">
+    </div>
+
+    <!-- Icon 選擇器 -->
+    <div id="iconPickerSection">
+      <div style="display:flex;align-items:center;margin-bottom:8px;margin-top:8px;">
+        <div id="iconCategoryTabs"></div>
+        <div id="selectedIconPreview">📸</div>
+      </div>
+      <div id="iconGrid"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:10px;">
+      <button class="btn-base" style="background:#EEE;font-size:14px;" onclick="closeEventModal()">取消</button>
+      <button class="btn-base btn-event" style="font-size:14px;" onclick="saveEvent()">確認紀錄</button>
+    </div>
+  </div>
+</div>
+
+<div id="saveModal">
+  <div class="modal-content">
+    <div style="font-weight:bold;font-size:18px;text-align:center;">保存這趟漫遊</div>
+    <input type="text" id="routeName" placeholder="為這條路線命名..."
+      style="width:100%;border:1px solid #EEE;padding:12px;border-radius:12px;margin:15px 0;box-sizing:border-box;">
+    <div style="display:flex;gap:12px;">
+      <button class="btn-base" style="background:#EEE;color:#666;" onclick="document.getElementById('saveModal').style.display='none'">取消</button>
+      <button class="btn-base btn-main" id="btnConfirmSave" onclick="executeCloudSave()">確認加入</button>
+    </div>
+  </div>
+</div>
+
+<div id="page-main" class="page">
+  <div id="map"></div>
+  <div id="functionPanel">
+    <div id="state-init">
+      <!-- [新增 v1.14.0] 地圖容量提示，滿了才顯示 -->
+      <div id="capacityWarning" class="hidden"
+        style="background:#FFF3CD;border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#856404;line-height:1.5;text-align:left;">
+        🎒 <strong>地圖背包已滿（<span id="capacityCount">3</span>/3）</strong><br>
+        <span style="font-size:12px;">走完後請至「我的路線」刪除舊紀錄才能儲存新路線</span>
+      </div>
+      <button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button>
+    </div>
+    <div id="state-recording" class="hidden">
+      <button class="btn-base btn-event" onclick="openEventCanvas()">紀錄事件！</button>
+      <button class="btn-base" style="background:#f5f5f5;color:#666;margin-top:10px;" onclick="endWalk()">結束本次漫遊</button>
+    </div>
+    <div id="state-finished" class="hidden">
+      <div id="encourageBox" style="font-style:italic;color:var(--accent-positive);font-size:14px;margin-bottom:12px;line-height:1.6;"></div>
+      <div id="summaryBox" style="background:#FCFAF7;border-radius:16px;padding:15px;margin-bottom:15px;text-align:left;font-size:14px;border:1px dashed var(--accent-positive);"></div>
+      <!-- [新增 v1.14.0] 地圖背包滿時顯示此提示，隱藏儲存按鈕 -->
+      <div id="capacityFullMsg" class="hidden"
+        style="background:#FFF3CD;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:13px;color:#856404;line-height:1.6;text-align:left;">
+        🎒 <strong>地圖背包已滿（3/3）</strong><br>
+        請切換到「我的路線」刪除一條舊路線，再回來儲存這趟漫遊。<br>
+        <span style="font-size:12px;color:#6c757d;">⚡ 本次漫遊資料暫存中，切換頁面不會消失</span>
+      </div>
+      <button class="btn-base btn-event" id="btnSaveRoute" onclick="openSaveModal()">加入我的路線清單</button>
+      <button class="btn-base btn-main" style="margin-top:10px;" onclick="location.reload()">重新開始</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+     [新增 v1.12.0] IG 分享卡片預覽 Modal
+     PSEUDO: 生成後顯示 canvas 預覽，提供下載按鈕
+     =================================================== -->
+<div id="shareCardModal" onclick="closeShareCard()">
+  <canvas id="shareCardCanvas"
+    onclick="event.stopPropagation(); cycleSharePhoto()"
+    style="cursor:pointer;"></canvas>
+  <div id="sharePhotoHint" style="color:rgba(255,255,255,0.7);font-size:13px;letter-spacing:1px;display:none;">
+    點擊照片換一張 &nbsp;<span id="sharePhotoIndex"></span>
+  </div>
+  <div id="shareCardBtns" onclick="event.stopPropagation()">
+    <button style="background:#EEE;color:#666;" onclick="closeShareCard()">關閉</button>
+    <button style="background:var(--accent-positive);color:white;" onclick="downloadShareCard()">⬇ 下載圖片</button>
+  </div>
+</div>
+
+<div id="page-list" class="page hidden">
+  <h2 style="text-align:center;letter-spacing:2px;margin:0 0 16px;padding-top:60px;">MY JOURNEYS</h2>
+
+  <!-- [新增 v1.13.0] 個人統計區 -->
+  <div id="statsPanel">
+    <div class="stats-title">我的足跡</div>
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-value" id="statRoutes">—</div>
+        <div class="stat-label">🗺 地圖紀錄</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statKm">—</div>
+        <div class="stat-label">👣 總里程 km</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statCities">—</div>
+        <div class="stat-label">🏙 個城市</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statEvents">—</div>
+        <div class="stat-label">📸 個事件</div>
+      </div>
+    </div>
+    <!-- [新增 v1.14.0] 地圖背包容量條 -->
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-light);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:11px;letter-spacing:1px;color:var(--text-soft);text-transform:uppercase;">🎒 地圖背包容量</span>
+        <span style="font-size:12px;font-weight:bold;color:var(--text-main);" id="capacityLabel">— / 3</span>
+      </div>
+      <div style="background:var(--border-light);border-radius:99px;height:6px;overflow:hidden;">
+        <div id="capacityBar" style="height:100%;border-radius:99px;background:var(--accent-positive);width:0%;transition:width 0.4s ease;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- [新增 v1.13.0] 篩選列 -->
+  <div id="filterBar">
+    <select class="filter-select" id="filterCity" onchange="applyFilters()">
+      <option value="">🏙 所有城市</option>
+    </select>
+    <select class="filter-select" id="filterKm" onchange="applyFilters()">
+      <option value="">👣 所有里程</option>
+      <option value="0-1">0–1 km</option>
+      <option value="1-5">1–5 km</option>
+      <option value="5-10">5–10 km</option>
+      <option value="10+">10 km 以上</option>
+    </select>
+    <select class="filter-select" id="filterDate" onchange="applyFilters()">
+      <option value="">📅 所有日期</option>
+      <option value="7">最近 7 天</option>
+      <option value="30">最近 30 天</option>
+      <option value="90">最近 3 個月</option>
+    </select>
+    <span id="filterCount"></span>
+    <button id="clearFilterBtn" onclick="clearFilters()">✕ 清除</button>
+  </div>
+
+  <div id="recordsContainer"></div>
+</div>
+
+<nav id="navBar">
+  <div class="nav-item active" id="nav-main" onclick="switchPage('main')">📍<span>漫遊</span></div>
+  <div class="nav-item" id="nav-list" onclick="switchPage('list')">🗺<span>我的路線</span></div>
+</nav>
+
+<script>
+var map, userMarker, pathLine, watchId, geocoder;
+var walkPath=[], eventsData=[], totalDistance=0;
+var startTime, durationStr, cityName='未知城市', selectedIcon='📸';
+var historyMarkers=[], locatingTimer=null, selectedTrackColor='#333333';
+var rawGpsBuffer=[], ROADS_API_KEY='AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
+var pauseWindowPoints=[], pauseWindowStart=null;
+var nearbyPlaces=[], selectedPlace=null;
+
+/* ===================================================
+   [新增 v1.14.0] 地圖容量相關變數
+   MAP_CAPACITY：初始地圖背包上限（測試期固定 3）
+   currentMapCount：目前已儲存的地圖紀錄數（Auth 就緒後載入）
+   =================================================== */
+var MAP_CAPACITY = 3;
+var currentMapCount = 0;
+
+/* ===================================================
+   [新增 v1.10.0] 照片相關全域變數
+   - selectedPhotoBlob：壓縮後的照片 Blob，存事件時上傳
+   - selectedPhotoDataUrl：壓縮後照片的 DataURL，用於預覽
+   =================================================== */
+var selectedPhotoBlob = null;
+var selectedPhotoDataUrl = null;
+
+var ICON_CATEGORIES = [
+  { name:'美食', emoji:'🍽️', icons:['☕','🍔','🍜','🍣','🧁','🍺','🧃','🍦','🥐','🍱'] },
+  { name:'自然', emoji:'🌿', icons:['🌸','🌳','🌊','🌙','☀️','🌧️','🍂','🌈','🏔️','🌺'] },
+  { name:'地點', emoji:'📍', icons:['🏛️','🏪','🚉','🌉','🏠','🎭','🏟️','⛩️','🗼','🛣️'] },
+  { name:'心情', emoji:'💭', icons:['✨','❤️','😊','🥹','😮','💡','🤔','😴','🥰','🎉'] },
+  { name:'活動', emoji:'🎯', icons:['📸','🎵','🛍️','📖','🎨','🏃','🚲','⚽','🎮','🎤'] },
+  { name:'特別', emoji:'⭐', icons:['⭐','🏆','💎','🎁','🔖','📌','🗓️','💫','🕐','🎊'] }
+];
+function buildIconPicker() {
+  var tc=document.getElementById('iconCategoryTabs'); tc.innerHTML='';
+  ICON_CATEGORIES.forEach(function(cat,idx) {
+    var tab=document.createElement('div');
+    tab.className='icon-tab'+(idx===0?' active':'');
+    tab.innerText=cat.emoji+' '+cat.name;
+    tab.onclick=function(){switchIconCategory(idx);};
+    tc.appendChild(tab);
+  });
+  renderIconGrid(0);
+}
+function switchIconCategory(idx) {
+  document.querySelectorAll('.icon-tab').forEach(function(t,i){t.classList.toggle('active',i===idx);});
+  renderIconGrid(idx);
+}
+function renderIconGrid(idx) {
+  var grid=document.getElementById('iconGrid'); grid.innerHTML='';
+  ICON_CATEGORIES[idx].icons.forEach(function(emoji) {
+    var cell=document.createElement('div');
+    cell.className='icon-cell'+(emoji===selectedIcon?' selected':'');
+    cell.innerText=emoji;
+    cell.onclick=function(){
+      selectedIcon=emoji;
+      document.querySelectorAll('.icon-cell').forEach(function(c){c.classList.remove('selected');});
+      cell.classList.add('selected');
+      document.getElementById('selectedIconPreview').innerText=emoji;
+    };
+    grid.appendChild(cell);
+  });
+}
+
+var ENCOURAGE_LIST=[
+  '每一步都是在和這座城市說你好。','你走過的路，都成為了你的一部分。',
+  '不趕時間的移動，才看得見風景。','今天的漫遊，是送給未來的你的禮物。',
+  '走路是最誠實的旅行方式。','迷路也是一種探索。',
+  '城市的故事，藏在你停下來的每個瞬間。','腳步慢下來，世界就大了起來。',
+  '你不是在趕路，你是在收集記憶。','走著走著，就找到了答案。',
+  '每條路都值得被好好走過。','今天的你，多認識了一點這座城市。',
+  '散步是一種溫柔的勇氣。','你的足跡，是這座城市最好的地圖。',
+  '好好走路，是對自己最好的陪伴。','慢慢走，什麼都會來的。',
+  '城市不大，只要你願意用腳丈量。','今天走過的路，明天會變成想念。',
+  '每次 City Walk，都是一次小小的冒險。','謝謝你今天也好好走路了。'
+];
+function getDailyEncouragement() {
+  var today=new Date();
+  var seed=today.getFullYear()*10000+(today.getMonth()+1)*100+today.getDate();
+  return ENCOURAGE_LIST[seed%ENCOURAGE_LIST.length];
+}
+function setStatusBar(t,bg){var b=document.getElementById('statusBar');b.innerText=t;b.style.backgroundColor=bg||'var(--status-idle)';}
+function closeMemoryBox(){document.getElementById('memoryBox').style.display='none';}
+function toggleColorPicker(){document.getElementById('colorOptions').classList.toggle('open');}
+function selectColor(el){
+  selectedTrackColor=el.getAttribute('data-color');
+  document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
+  document.querySelectorAll('.color-dot').forEach(function(d){d.classList.remove('selected');});
+  el.classList.add('selected');
+  if(pathLine)pathLine.setOptions({strokeColor:selectedTrackColor});
+  document.getElementById('colorOptions').classList.remove('open');
+}
+document.addEventListener('click',function(e){
+  var p=document.getElementById('colorPicker');
+  if(p&&!p.contains(e.target))document.getElementById('colorOptions').classList.remove('open');
+});
+
+/* ===================================================
+   [新增 v1.14.1] 薄荷綠地圖 Style C
+   設計理念：以 #8FB9A8 為 accent，底色淡灰白，
+   公園綠地飽和薄荷綠，道路細緻白色，水域清透藍
+   =================================================== */
+var MINT_MAP_STYLE = [
+  /* --- 全域底色：淡灰白 --- */
+  {featureType:'all',elementType:'geometry',stylers:[{color:'#F2F4F0'}]},
+  {featureType:'all',elementType:'labels.text.fill',stylers:[{color:'#5A6B63'}]},
+  {featureType:'all',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},
+
+  /* --- 行政區 / 地區 --- */
+  {featureType:'administrative',elementType:'geometry.stroke',stylers:[{color:'#C8D8D0'},{weight:1}]},
+  {featureType:'administrative.land_parcel',elementType:'labels',stylers:[{visibility:'off'}]},
+
+  /* --- 公園 & 自然綠地：飽和薄荷綠（主角）--- */
+  {featureType:'landscape.natural',elementType:'geometry',stylers:[{color:'#A8CFBC'}]},
+  {featureType:'poi.park',elementType:'geometry.fill',stylers:[{color:'#8FB9A8'}]},
+  {featureType:'poi.park',elementType:'labels.text.fill',stylers:[{color:'#4A8070'}]},
+  {featureType:'landscape.man_made',elementType:'geometry',stylers:[{color:'#E8ECE6'}]},
+
+  /* --- 其他 POI（弱化）--- */
+  {featureType:'poi',elementType:'geometry',stylers:[{color:'#DDE8E0'}]},
+  {featureType:'poi',elementType:'labels',stylers:[{visibility:'simplified'}]},
+  {featureType:'poi',elementType:'labels.icon',stylers:[{saturation:-40}]},
+
+  /* --- 道路：細緻白色系 --- */
+  {featureType:'road',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},
+  {featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#D4E0D8'},{weight:0.5}]},
+  {featureType:'road.highway',elementType:'geometry.fill',stylers:[{color:'#F0F5F0'}]},
+  {featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#B8CCBF'},{weight:1}]},
+  {featureType:'road.arterial',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},
+  {featureType:'road.local',elementType:'geometry.fill',stylers:[{color:'#FAFAFA'}]},
+  {featureType:'road',elementType:'labels.text.fill',stylers:[{color:'#6E8C7C'}]},
+  {featureType:'road',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},
+
+  /* --- 水域：清透藍 --- */
+  {featureType:'water',elementType:'geometry.fill',stylers:[{color:'#C4DFF0'}]},
+  {featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#6FA8C8'}]},
+
+  /* --- 交通基礎設施 --- */
+  {featureType:'transit',elementType:'geometry',stylers:[{color:'#D8E8E0'}]},
+  {featureType:'transit.station',elementType:'labels.icon',stylers:[{saturation:-20},{lightness:10}]},
+];
+
+async function initMap(){
+  var {Map}=await google.maps.importLibrary('maps');
+  var {AdvancedMarkerElement}=await google.maps.importLibrary('marker');
+  /* [v1.14.1] 使用 StyledMapType 套用薄荷綠 Style C（本地測試，不需 Cloud Console Map ID）*/
+  var mintStyledMap = new google.maps.StyledMapType(MINT_MAP_STYLE, {name:'CityWalker-C 薄荷綠'});
+  map=new Map(document.getElementById('map'),{zoom:17,center:{lat:25.0478,lng:121.5170},disableDefaultUI:true,mapTypeControlOptions:{mapTypeIds:['roadmap','styled_map']}});
+  map.mapTypes.set('styled_map', mintStyledMap);
+  map.setMapTypeId('styled_map');
+  var md=document.createElement('div'); md.className='user-marker'; md.innerText='👣';
+  userMarker=new AdvancedMarkerElement({map:map,content:md,zIndex:999});
+  pathLine=new google.maps.Polyline({map,strokeColor:selectedTrackColor,strokeWeight:6,strokeOpacity:0.85});
+  geocoder=new google.maps.Geocoder();
+  document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
+  buildIconPicker();
+  setStatusBar('📡 取得位置中...','var(--status-locating)');
+  navigator.geolocation.getCurrentPosition(
+    function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude};map.setCenter(p);userMarker.position=p;setStatusBar('City Walker','var(--status-idle)');},
+    function(){setStatusBar('City Walker','var(--status-idle)');},
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+  );
+  /* PSEUDO: Auth 就緒後立刻載入容量，若 uid 已到位直接執行 */
+  window._authReadyCallback = loadMapCapacity;
+  if(window.currentUid) loadMapCapacity();
+}
+
+/* ===================================================
+   [新增 v1.14.0] 地圖容量系統
+
+   loadMapCapacity()
+   PSEUDO: Auth 就緒後呼叫，查詢此 uid 的路線數
+   更新 currentMapCount，並更新主頁提示 UI
+
+   updateCapacityUI()
+   PSEUDO: 根據 currentMapCount 決定是否顯示警告
+   - 主頁（state-init）：背包滿才顯示橘色提示
+   - 結算頁（state-finished）：滿了隱藏儲存按鈕、顯示提示
+
+   checkCapacityBeforeSave()
+   PSEUDO: executeCloudSave 前再次確認容量（防止 race condition）
+   =================================================== */
+async function loadMapCapacity(){
+  if(!window.currentUid||!window.db)return;
+  try{
+    var q=window.api.query(
+      window.api.collection(window.db,'walk_records'),
+      window.api.where('userId','==',window.currentUid)
+    );
+    var snap=await window.api.getDocs(q);
+    currentMapCount=snap.size;
+    updateCapacityUI();
+  }catch(e){console.warn('[Capacity] 載入失敗:',e);}
+}
+
+function updateCapacityUI(){
+  var isFull=(currentMapCount>=MAP_CAPACITY);
+  /* 主頁警告 */
+  var warning=document.getElementById('capacityWarning');
+  var countEl=document.getElementById('capacityCount');
+  if(warning){
+    warning.classList.toggle('hidden',!isFull);
+    if(countEl)countEl.innerText=currentMapCount;
+  }
+  /* 結算頁（如果目前在 finished 狀態） */
+  var btnSave=document.getElementById('btnSaveRoute');
+  var fullMsg=document.getElementById('capacityFullMsg');
+  if(btnSave&&fullMsg){
+    btnSave.classList.toggle('hidden',isFull);
+    fullMsg.classList.toggle('hidden',!isFull);
+  }
+}
+function getUserPosition(){
+  var pos=userMarker&&userMarker.position;
+  if(!pos)return null;
+  if(typeof pos.lat==='function')return{lat:pos.lat(),lng:pos.lng()};
+  return{lat:pos.lat,lng:pos.lng};
+}
+function focusOnMe(){
+  navigator.geolocation.getCurrentPosition(
+    function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude};userMarker.position=p;map.panTo(p);},
+    function(){var p=getUserPosition();if(p)map.panTo(p);},
+    {enableHighAccuracy:true,timeout:8000,maximumAge:3000}
+  );
+}
+function focusOnRouteStart(){var p=pathLine.getPath().getArray();if(p.length>0)map.panTo(p[0]);}
+
+async function snapToRoads(points){
+  if(!points||points.length===0)return;
+  var pathStr=points.map(function(p){return p.lat+','+p.lng;}).join('|');
+  try{
+    var res=await fetch('https://roads.googleapis.com/v1/snapToRoads?path='+encodeURIComponent(pathStr)+'&interpolate=true&key='+ROADS_API_KEY);
+    var data=await res.json();
+    if(data.snappedPoints&&data.snappedPoints.length>0){
+      data.snappedPoints.forEach(function(sp){walkPath.push({lat:sp.location.latitude,lng:sp.location.longitude});});
+      pathLine.setPath(walkPath);
+      var last=walkPath[walkPath.length-1];userMarker.position=last;map.panTo(last);
+    }
+  }catch(err){console.warn('[Roads API]',err);points.forEach(function(p){walkPath.push(p);});pathLine.setPath(walkPath);}
+}
+async function flushRawBuffer(){if(rawGpsBuffer.length>0){var r=rawGpsBuffer.slice();rawGpsBuffer=[];await snapToRoads(r);}}
+
+function startWalk(){
+  startTime=new Date();
+  document.getElementById('state-init').classList.add('hidden');
+  document.getElementById('state-recording').classList.remove('hidden');
+  setStatusBar('📡 取得定位狀態中','var(--status-locating)');
+  document.getElementById('colorPicker').style.display='none';
+  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85});
+  pauseWindowPoints=[];pauseWindowStart=new Date();
+  locatingTimer=setTimeout(function(){
+    navigator.geolocation.clearWatch(watchId);
+    setStatusBar('⚠️ 定位失敗','var(--status-ended)');
+    document.getElementById('state-recording').classList.add('hidden');
+    document.getElementById('state-finished').classList.remove('hidden');
+    document.getElementById('summaryBox').innerHTML='<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';
+  },60000);
+  watchId=navigator.geolocation.watchPosition(function(pos){
+    var newPoint={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    if(pos.coords.accuracy>40)return;
+    var lastRaw=rawGpsBuffer.length>0?rawGpsBuffer[rawGpsBuffer.length-1]:(walkPath.length>0?walkPath[walkPath.length-1]:null);
+    if(lastRaw){var dist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(lastRaw.lat,lastRaw.lng),new google.maps.LatLng(newPoint.lat,newPoint.lng));if(dist<3||dist>80)return;}
+    if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
+    rawGpsBuffer.push(newPoint);userMarker.position=newPoint;
+    if(rawGpsBuffer.length>=5){var batch=rawGpsBuffer.slice();rawGpsBuffer=[];snapToRoads(batch);}
+    var now=new Date();
+    pauseWindowPoints.push({point:newPoint,time:now});
+    pauseWindowPoints=pauseWindowPoints.filter(function(item){return(now-item.time)<=15000;});
+    var windowDist=0;
+    if(pauseWindowPoints.length>=2){
+      var first=pauseWindowPoints[0].point,last=pauseWindowPoints[pauseWindowPoints.length-1].point;
+      windowDist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(first.lat,first.lng),new google.maps.LatLng(last.lat,last.lng));
+    }
+    var currentKm=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
+    if(windowDist>7){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');pauseWindowPoints=[{point:newPoint,time:now}];pauseWindowStart=now;}
+    else if((now-pauseWindowStart)>=15000){setStatusBar('☕ 暫停一下...','var(--status-paused)');}
+    else if(currentKm>0){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');}
+  },function(err){console.error('[GPS]',err);setStatusBar('📡 取得定位狀態中','var(--status-locating)');},{enableHighAccuracy:true,maximumAge:0,timeout:10000});
+}
+
+
+/* ===================================================
+   [新增 v1.10.0] 照片處理函式
+
+   openCamera()
+   PSEUDO: 點擊相機按鈕，觸發隱藏的 file input
+   手機上會彈出「拍照/選擇照片」的系統選單
+
+   handlePhotoSelected()
+   PSEUDO: 使用者選完照片後的處理流程
+   1. 讀取原始圖片
+   2. 用 Canvas API 壓縮到最大寬度 800px、品質 70%
+   3. 把壓縮後的圖片顯示在確認視窗
+
+   compressImage()
+   PSEUDO: Canvas 壓縮核心邏輯
+   - 計算等比例縮放後的尺寸
+   - 繪製到 canvas，輸出 blob
+
+   retakePhoto() / cancelPhoto() / confirmPhoto()
+   PSEUDO: 照片確認視窗的三個按鈕處理
+   =================================================== */
+function openCamera() {
+  document.getElementById('photoFileInput').click();
+}
+
+function handlePhotoSelected(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+
+  /* PSEUDO: 先隱藏事件視窗，顯示照片確認視窗 */
+  document.getElementById('eventModal').style.display = 'none';
+  document.getElementById('photoConfirmModal').style.display = 'flex';
+
+  /* PSEUDO: 讀取檔案為 DataURL，再壓縮 */
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    compressImage(e.target.result, 800, 0.7, function(blob, dataUrl) {
+      selectedPhotoBlob = blob;
+      selectedPhotoDataUrl = dataUrl;
+      document.getElementById('photoConfirmImg').src = dataUrl;
+    });
+  };
+  reader.readAsDataURL(file);
+  /* PSEUDO: 清空 input value，讓同一張照片可以重選 */
+  input.value = '';
+}
+
+function compressImage(dataUrl, maxWidth, quality, callback) {
+  var img = new Image();
+  img.onload = function() {
+    var canvas = document.createElement('canvas');
+    var scale = Math.min(1, maxWidth / img.width);
+    canvas.width = img.width * scale;
+    canvas.height = img.height * scale;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob(function(blob) {
+      /* PSEUDO: toBlob 產生 Blob，同時產生 DataURL 供預覽 */
+      var reader = new FileReader();
+      reader.onload = function(e) { callback(blob, e.target.result); };
+      reader.readAsDataURL(blob);
+    }, 'image/jpeg', quality);
+  };
+  img.src = dataUrl;
+}
+
+function retakePhoto() {
+  /* PSEUDO: 重拍：清空選取狀態，重新觸發 file input */
+  selectedPhotoBlob = null;
+  selectedPhotoDataUrl = null;
+  document.getElementById('photoConfirmModal').style.display = 'none';
+  document.getElementById('eventModal').style.display = 'flex';
+  setTimeout(function() { openCamera(); }, 100);
+}
+
+function cancelPhoto() {
+  /* PSEUDO: 取消：不用照片，回事件頁 */
+  selectedPhotoBlob = null;
+  selectedPhotoDataUrl = null;
+  document.getElementById('photoConfirmModal').style.display = 'none';
+  document.getElementById('eventModal').style.display = 'flex';
+}
+
+function confirmPhoto() {
+  /* PSEUDO: 確認使用：照片帶入事件頁，顯示縮圖預覽 */
+  document.getElementById('photoConfirmModal').style.display = 'none';
+  document.getElementById('eventModal').style.display = 'flex';
+  if (selectedPhotoDataUrl) {
+    var thumb = document.getElementById('photoPreviewThumb');
+    thumb.src = selectedPhotoDataUrl;
+    thumb.style.display = 'block';
+    document.getElementById('cameraBtn').innerText = '📷 換照片';
+  }
+}
+
+
+async function openEventCanvas() {
+  document.getElementById('eventModal').style.display='flex';
+  selectedPlace=null; nearbyPlaces=[];
+  document.getElementById('placeTags').innerHTML='<span class="place-detecting">偵測中...</span>';
+  switchIconCategory(0);
+  document.getElementById('selectedIconPreview').innerText=selectedIcon;
+  /* PSEUDO: 重置照片狀態 */
+  selectedPhotoBlob=null; selectedPhotoDataUrl=null;
+  document.getElementById('photoPreviewThumb').style.display='none';
+  document.getElementById('photoPreviewThumb').src='';
+  document.getElementById('cameraBtn').innerText='📷 加入照片';
+
+  var currentPos=getUserPosition();
+  if(!currentPos){document.getElementById('placeTags').innerHTML='<span class="place-detecting">（無法取得位置）</span>';return;}
+  try{
+    var {Place}=await google.maps.importLibrary('places');
+    var {places}=await Place.searchNearby({
+      fields:['displayName','location','id'],
+      locationRestriction:{center:currentPos,radius:100}
+    });
+    var tagsContainer=document.getElementById('placeTags');
+    tagsContainer.innerHTML='';
+    if(!places||places.length===0){tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';return;}
+    places.slice(0,3).forEach(function(place){
+      if(!place.location)return;
+      var placeData={name:place.displayName,placeId:place.id,lat:place.location.lat(),lng:place.location.lng()};
+      nearbyPlaces.push(placeData);
+      var shortName=place.displayName.length>10?place.displayName.slice(0,10)+'...':place.displayName;
+      var tag=document.createElement('div');
+      tag.className='place-tag'; tag.innerText='📍 '+shortName;
+      tag.onclick=function(){
+        if(selectedPlace&&selectedPlace.placeId===placeData.placeId){selectedPlace=null;tag.classList.remove('selected');}
+        else{selectedPlace=placeData;document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});tag.classList.add('selected');}
+      };
+      tagsContainer.appendChild(tag);
+    });
+    if(tagsContainer.children.length===0)tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';
+  }catch(err){console.error('[Places]',err);document.getElementById('placeTags').innerHTML='<span class="place-detecting">（地標偵測失敗）</span>';}
+}
+
+function closeEventModal(){
+  selectedPlace=null; selectedPhotoBlob=null; selectedPhotoDataUrl=null;
+  document.getElementById('eventModal').style.display='none';
+}
+
+
+/* ===================================================
+   [改版 v1.10.0] saveEvent()
+   PSEUDO: 新增照片上傳流程
+   1. 如果有選照片（selectedPhotoBlob 不為 null）
+      → 上傳到 Firebase Storage
+      → 取得 downloadURL
+      → 存入事件的 photoUrl 欄位
+   2. 沒有照片 → photoUrl 為空字串
+   上傳時顯示「上傳中...」避免使用者重複點擊
+   =================================================== */
+async function saveEvent() {
+  var text=document.getElementById('eventText').value;
+  var eventPos,placeName,placeId;
+  if(selectedPlace){eventPos={lat:selectedPlace.lat,lng:selectedPlace.lng};placeName=selectedPlace.name;placeId=selectedPlace.placeId;}
+  else{eventPos=getUserPosition()||{lat:0,lng:0};placeName='';placeId='';}
+
+  /* [修復 v1.12.2] 直接存 Base64 DataURL，不上傳 Storage，解決 Canvas CORS 問題 */
+  var photoUrl = selectedPhotoDataUrl || '';
+
+  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl});
+  createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl);
+  document.getElementById('eventText').value='';
+  selectedPlace=null; selectedPhotoBlob=null; selectedPhotoDataUrl=null;
+  document.getElementById('eventModal').style.display='none';
+}
+
+
+async function endWalk(){
+  navigator.geolocation.clearWatch(watchId);
+  if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
+  setStatusBar('✅ 漫遊結束','var(--status-ended)');
+  document.getElementById('state-recording').classList.add('hidden');
+  document.getElementById('state-finished').classList.remove('hidden');
+  document.getElementById('encourageBox').innerText='「'+getDailyEncouragement()+'」';
+  /* [v1.14.0] 顯示結算頁時同步更新容量 UI */
+  updateCapacityUI();
+  await flushRawBuffer();
+  totalDistance=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
+  durationStr=Math.floor(Math.abs(new Date()-startTime)/60000)+' 分鐘';
+  if(walkPath.length>0){
+    geocoder.geocode({location:walkPath[walkPath.length-1]},function(results,status){
+      if(status==='OK'&&results[0]){
+        var cityObj=results[0].address_components.find(function(c){return c.types.includes('administrative_area_level_1')||c.types.includes('locality');});
+        cityName=cityObj?cityObj.long_name:'未知城市';
+
+        /* ===================================================
+           [校正 v1.10.0] 結算頁地標名稱截斷 10 字
+           PSEUDO: 與事件 tag 一致，超過 10 字加 ...
+           =================================================== */
+        var seenPlaces={},placeNames=[];
+        eventsData.forEach(function(ev){
+          if(ev.placeName&&!seenPlaces[ev.placeName]){
+            seenPlaces[ev.placeName]=true;
+            var shortName=ev.placeName.length>10?ev.placeName.slice(0,10)+'...':ev.placeName;
+            placeNames.push(shortName);
+          }
+        });
+        var placeLine=placeNames.length>0?'<br>📍 停留地標：'+placeNames.join(' / '):'';
+
+        document.getElementById('summaryBox').innerHTML=
+          '<strong>漫遊結算</strong><br>🏙️ 城市：'+cityName+'<br>👣 里程：'+totalDistance.toFixed(2)+' KM<br>⏱️ 時長：'+durationStr+'<br>📸 事件：'+eventsData.length+' 個'+placeLine;
+      }
+    });
+  }
+}
+
+async function executeCloudSave(){
+  /* [v1.14.0] 儲存前再次確認容量（使用者可能在另一頁刪了路線） */
+  await loadMapCapacity();
+  if(currentMapCount>=MAP_CAPACITY){
+    document.getElementById('saveModal').style.display='none';
+    updateCapacityUI();
+    return;
+  }
+  var btn=document.getElementById('btnConfirmSave');if(btn)btn.disabled=true;
+  try{
+    await window.api.addDoc(window.api.collection(window.db,'walk_records'),{
+      name:document.getElementById('routeName').value||'未命名漫遊',
+      city:cityName,distance:totalDistance,duration:durationStr,
+      path:walkPath,events:eventsData,trackColor:selectedTrackColor,
+      isPinned:false,createdAt:window.api.serverTimestamp(),
+      userId:window.currentUid||'anonymous'  /* [v1.14.0] 綁定使用者 uid */
+    });
+    location.reload();
+  }catch(e){alert('儲存失敗');if(btn)btn.disabled=false;}
+}
+
+
+/* ===================================================
+   [改版 v1.10.0] createEventMarker()
+   PSEUDO: 新增 photoUrl 參數
+   點擊標記後，如果有照片就在回憶視窗顯示拍立得
+   =================================================== */
+function createEventMarker(pos,icon,text,placeName,photoUrl){
+  function EmojiOverlay(position,icon,text,placeName,photoUrl){
+    this.position_=new google.maps.LatLng(position.lat,position.lng);
+    this.icon_=icon;this.text_=text;this.placeName_=placeName||'';this.photoUrl_=photoUrl||'';
+    this.div_=null;this.setMap(map);
+  }
+  EmojiOverlay.prototype=Object.create(google.maps.OverlayView.prototype);
+  EmojiOverlay.prototype.onAdd=function(){
+    var div=document.createElement('div');div.className='event-marker-div';div.innerText=this.icon_;
+    var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_;
+    function showMemory(e){
+      e.stopPropagation();if(e.preventDefault)e.preventDefault();
+      document.getElementById('memoryIcon').innerText=ci||'📸';
+      document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';
+      document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';
+      /* PSEUDO: 有照片 → 顯示拍立得；無照片 → 隱藏 */
+      var polaroid=document.getElementById('memoryPolaroid');
+      var memPhoto=document.getElementById('memoryPhoto');
+      if(cph){
+        memPhoto.src=cph;
+        polaroid.classList.remove('hidden');
+      }else{
+        polaroid.classList.add('hidden');
+        memPhoto.src='';
+      }
+      document.getElementById('memoryBox').style.display='flex';
+    }
+    div.addEventListener('click',showMemory);
+    div.addEventListener('touchstart',showMemory,{passive:false});
+    this.div_=div;this.getPanes().overlayMouseTarget.appendChild(div);
+  };
+  EmojiOverlay.prototype.draw=function(){
+    var pt=this.getProjection().fromLatLngToDivPixel(this.position_);
+    if(this.div_&&pt){this.div_.style.left=pt.x+'px';this.div_.style.top=pt.y+'px';}
+  };
+  EmojiOverlay.prototype.onRemove=function(){if(this.div_){this.div_.parentNode.removeChild(this.div_);this.div_=null;}};
+  return new EmojiOverlay(pos,icon,text,placeName,photoUrl);
+}
+
+/* ===================================================
+   [改版 v1.13.0] 紀錄頁全面升級
+   fetchRecords  → 載入資料、算統計、建城市篩選選項
+   renderStats   → 更新統計數字
+   renderCards   → 依篩選條件 + 城市分組 render 卡片
+   applyFilters  → 篩選列 onChange 觸發
+   clearFilters  → 清除所有篩選
+   =================================================== */
+
+async function fetchRecords(){
+  var container=document.getElementById('recordsContainer');
+  if(!container)return;
+  container.innerHTML='<p style="text-align:center;padding:20px;">載入中...</p>';
+  try{
+    /* [v1.14.0] 只撈自己的路線（userId == currentUid） */
+    var uid=window.currentUid||'anonymous';
+    var q=window.api.query(
+      window.api.collection(window.db,'walk_records'),
+      window.api.where('userId','==',uid)
+    );
+    var snap=await window.api.getDocs(q);
+    window.currentDocs=[];
+    snap.forEach(function(d){window.currentDocs.push(Object.assign({id:d.id},d.data()));});
+    /* PSEUDO: 排序：釘選優先，其次時間倒序 */
+    window.currentDocs.sort(function(a,b){
+      return(b.isPinned-a.isPinned)||((b.createdAt&&b.createdAt.seconds||0)-(a.createdAt&&a.createdAt.seconds||0));
+    });
+    renderStats(window.currentDocs);
+    buildCityFilter(window.currentDocs);
+    renderCards(window.currentDocs);
+  }catch(e){console.error(e);container.innerHTML='<p style="text-align:center;color:red;">載入失敗</p>';}
+}
+
+function renderStats(docs){
+  /* PSEUDO: 統計全部資料（不受篩選影響） */
+  var totalKm=0, cities={}, totalEvents=0;
+  docs.forEach(function(d){
+    totalKm+=(d.distance||0);
+    if(d.city)cities[d.city]=true;
+    totalEvents+=(d.events?d.events.length:0);
+  });
+  document.getElementById('statRoutes').innerText=docs.length;
+  document.getElementById('statKm').innerText=totalKm.toFixed(1);
+  document.getElementById('statCities').innerText=Object.keys(cities).length;
+  document.getElementById('statEvents').innerText=totalEvents;
+  /* [v1.14.0] 更新地圖背包容量條 */
+  currentMapCount=docs.length;
+  var pct=Math.min(100,Math.round((currentMapCount/MAP_CAPACITY)*100));
+  var label=document.getElementById('capacityLabel');
+  var bar=document.getElementById('capacityBar');
+  if(label)label.innerText=currentMapCount+' / '+MAP_CAPACITY;
+  if(bar){
+    bar.style.width=pct+'%';
+    bar.style.background=(currentMapCount>=MAP_CAPACITY)?'#FEAD89':'var(--accent-positive)';
+  }
+}
+
+function buildCityFilter(docs){
+  /* PSEUDO: 從資料動態抽取城市清單，填入城市篩選下拉 */
+  var cities=[], seen={};
+  docs.forEach(function(d){
+    if(d.city&&!seen[d.city]){seen[d.city]=true;cities.push(d.city);}
+  });
+  var sel=document.getElementById('filterCity');
+  /* 保留第一個「所有城市」option，其餘重建 */
+  while(sel.options.length>1)sel.remove(1);
+  cities.forEach(function(c){
+    var opt=document.createElement('option');
+    opt.value=c; opt.text='🏙 '+c;
+    sel.appendChild(opt);
+  });
+}
+
+function applyFilters(){
+  if(!window.currentDocs)return;
+  var cityVal=document.getElementById('filterCity').value;
+  var kmVal=document.getElementById('filterKm').value;
+  var dateVal=document.getElementById('filterDate').value;
+  var hasFilter=cityVal||kmVal||dateVal;
+
+  /* PSEUDO: 標記篩選 select 為 active */
+  document.getElementById('filterCity').classList.toggle('active',!!cityVal);
+  document.getElementById('filterKm').classList.toggle('active',!!kmVal);
+  document.getElementById('filterDate').classList.toggle('active',!!dateVal);
+  /* PSEUDO: 清除按鈕顯示/隱藏 */
+  document.getElementById('clearFilterBtn').classList.toggle('visible',!!hasFilter);
+
+  var now=Date.now();
+  var filtered=window.currentDocs.filter(function(d){
+    /* 城市篩選 */
+    if(cityVal&&d.city!==cityVal)return false;
+    /* 里程篩選 */
+    if(kmVal){
+      var km=d.distance||0;
+      if(kmVal==='0-1'&&km>=1)return false;
+      if(kmVal==='1-5'&&(km<1||km>=5))return false;
+      if(kmVal==='5-10'&&(km<5||km>=10))return false;
+      if(kmVal==='10+'&&km<10)return false;
+    }
+    /* 日期篩選 */
+    if(dateVal&&d.createdAt&&d.createdAt.seconds){
+      var days=parseInt(dateVal);
+      var diffMs=now-(d.createdAt.seconds*1000);
+      if(diffMs>days*24*60*60*1000)return false;
+    }
+    return true;
+  });
+
+  /* PSEUDO: 顯示篩選後筆數 */
+  var countEl=document.getElementById('filterCount');
+  countEl.innerText=hasFilter?('共 '+filtered.length+' 條'):'';
+
+  renderCards(filtered);
+}
+
+function clearFilters(){
+  document.getElementById('filterCity').value='';
+  document.getElementById('filterKm').value='';
+  document.getElementById('filterDate').value='';
+  document.querySelectorAll('.filter-select').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('clearFilterBtn').classList.remove('visible');
+  document.getElementById('filterCount').innerText='';
+  renderCards(window.currentDocs);
+}
+
+function renderCards(docs){
+  var container=document.getElementById('recordsContainer');
+  container.innerHTML='';
+
+  if(!docs||docs.length===0){
+    container.innerHTML='<p style="text-align:center;padding:30px;color:var(--text-soft);">沒有符合的路線</p>';
+    return;
+  }
+
+  /* PSEUDO: 城市分組
+     釘選路線獨立為「📌 已釘選」組，放最前面
+     其餘依城市分組，城市內依時間倒序（已由 fetchRecords 排好）*/
+  var pinned=docs.filter(function(d){return d.isPinned;});
+  var unpinned=docs.filter(function(d){return !d.isPinned;});
+
+  /* 城市分組（unpinned） */
+  var cityGroups={}, cityOrder=[];
+  unpinned.forEach(function(d){
+    var c=d.city||'未知城市';
+    if(!cityGroups[c]){cityGroups[c]=[];cityOrder.push(c);}
+    cityGroups[c].push(d);
+  });
+
+  /* 釘選組 */
+  if(pinned.length>0){
+    appendGroupHeader(container,'📌 已釘選');
+    pinned.forEach(function(d){appendCard(container,d);});
+  }
+
+  /* 城市各組 */
+  cityOrder.forEach(function(city){
+    appendGroupHeader(container, city);
+    cityGroups[city].forEach(function(d){appendCard(container,d);});
+  });
+}
+
+function appendGroupHeader(container, label){
+  var header=document.createElement('div');
+  header.className='city-group-header';
+  header.innerText=label;
+  container.appendChild(header);
+}
+
+function appendCard(container, data){
+  var cardColor=data.trackColor||'var(--accent-positive)';
+  var card=document.createElement('div');
+  card.className='record-card '+(data.isPinned?'is-pinned':'');
+  card.style.borderLeftColor=data.isPinned?'var(--accent-pin)':cardColor;
+  card.onclick=function(){loadSavedRoute(data.id);};
+
+  /* PSEUDO: 日期字串 */
+  var dateStr='';
+  if(data.createdAt&&data.createdAt.seconds){
+    dateStr=new Date(data.createdAt.seconds*1000).toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+  }
+
+  card.innerHTML=
+    '<div class="pin-icon" onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">📌</div>'+
+    '<div class="delete-btn" onclick="deleteRecord(event,\''+data.id+'\')">🗑️</div>'+
+    '<div style="font-size:16px;font-weight:bold;margin-bottom:4px;">'+data.name+'</div>'+
+    '<div style="font-size:13px;color:var(--text-soft);margin-bottom:2px;">'+
+      '👣 '+data.distance.toFixed(2)+' km &nbsp;⏱️ '+data.duration+
+      (dateStr?' &nbsp;📅 '+dateStr:'')+'</div>'+
+    '<div class="share-btn" onclick="openShareCard(event,\''+data.id+'\')">✦ 分享</div>';
+  container.appendChild(card);
+}
+
+function loadSavedRoute(id){
+  var data=window.currentDocs.find(function(d){return d.id===id;});
+  if(!data)return;
+  switchPage('main');pathLine.setPath([]);
+  historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];
+  var pts=data.path.map(function(p){return{lat:p.lat,lng:p.lng};});
+  pathLine.setPath(pts);pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
+  if(data.events){
+    data.events.forEach(function(ev){
+      historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||''));
+    });
+  }
+  map.panTo(pts[0]);
+  document.getElementById('btnFocusRoute').classList.remove('hidden');
+  document.getElementById('btnClearRoute').classList.remove('hidden');
+}
+
+/* ===================================================
+   [新增 v1.11.0] clearLoadedRoute()
+   PSEUDO: 清除地圖上帶入的舊路線
+   1. 清除 Polyline 路徑
+   2. 移除所有事件 OverlayView 標記
+   3. 隱藏路線起點按鈕和 X 按鈕
+   注意：只清除畫面，不影響 Firebase 資料
+   =================================================== */
+function clearLoadedRoute(){
+  pathLine.setPath([]);
+  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85,strokeWeight:6});
+  historyMarkers.forEach(function(m){m.setMap(null);});
+  historyMarkers=[];
+  document.getElementById('btnFocusRoute').classList.add('hidden');
+  document.getElementById('btnClearRoute').classList.add('hidden');
+}
+
+async function deleteRecord(e,id){
+  e.stopPropagation();
+  if(!confirm('確定要刪除嗎？'))return;
+  await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));
+  /* [v1.14.0] 刪除後重新計算容量，讓主頁提示即時更新 */
+  await loadMapCapacity();
+  fetchRecords();
+}
+async function togglePin(e,id,status){e.stopPropagation();await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});fetchRecords();}
+
+
+/* ===================================================
+   [新增 v1.12.0] IG 分享卡片 - Canvas 繪製
+
+   PSEUDO: 卡片結構（1080 x 1350px，IG 直式比例 4:5）
+   ┌─────────────────────────────┐
+   │  CITY WALKER        ✦ logo │ ← 頂部品牌列（深色）
+   │─────────────────────────────│
+   │                             │
+   │  [路線軌跡 SVG 線條]        │ ← 米色背景，純軌跡
+   │                             │
+   │─────────────────────────────│
+   │  城市名・日期               │
+   │  👣 1.23 km  ⏱ 32 分鐘   │
+   │  📍 地標 / 地標            │
+   │  [照片縮圖堆疊]             │
+   └─────────────────────────────┘
+   =================================================== */
+
+/* ===================================================
+   [新增 v1.12.3] 點擊換照片
+   PSEUDO:
+   - openShareCard 開 Modal 時，先把所有照片預載好存進
+     window._shareCardPhotos[]，之後換張只做 canvas 重繪
+   - window._shareCardPhotoIndex 追蹤目前顯示第幾張
+   - cycleSharePhoto() 點 canvas 時 index+1 循環，呼叫
+     generateShareCard(data, index) 重繪（不重新載圖）
+   =================================================== */
+async function openShareCard(e, id) {
+  e.stopPropagation();
+  var data = window.currentDocs.find(function(d){ return d.id === id; });
+  if (!data) return;
+  window._shareCardData = data;
+  window._shareCardPhotoIndex = 0;
+
+  /* PSEUDO: 收集所有照片 URL */
+  var photoUrls = [];
+  if (data.events) {
+    data.events.forEach(function(ev) {
+      if (ev.photoUrl) photoUrls.push(ev.photoUrl);
+    });
+  }
+
+  /* PSEUDO: 顯示 Modal，先畫 loading 畫面 */
+  document.getElementById('shareCardModal').style.display = 'flex';
+  var canvas = document.getElementById('shareCardCanvas');
+  canvas.width = 1080; canvas.height = 1350;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#F5F0E8';
+  ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillStyle = '#8FB9A8';
+  ctx.font = 'bold 52px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('生成卡片中...', 540, 675);
+  ctx.textAlign = 'left';
+
+  /* PSEUDO: 預載所有照片（只做一次 fetch），存進全域陣列 */
+  if (photoUrls.length > 0) {
+    var loadedImgs = await Promise.all(photoUrls.map(function(url) {
+      return new Promise(function(resolve) {
+        var img = new Image();
+        img.onload = function() { resolve(img); };
+        img.onerror = function() { resolve(null); };
+        img.src = url;
+      });
+    }));
+    /* PSEUDO: 過濾掉載入失敗的（null） */
+    window._shareCardPhotos = loadedImgs.filter(function(img) { return img !== null; });
+  } else {
+    window._shareCardPhotos = [];
+  }
+
+  /* PSEUDO: 更新換張提示 UI */
+  var hint = document.getElementById('sharePhotoHint');
+  if (window._shareCardPhotos.length > 1) {
+    hint.style.display = 'block';
+    document.getElementById('sharePhotoIndex').innerText =
+      '1 / ' + window._shareCardPhotos.length;
+  } else {
+    hint.style.display = 'none';
+  }
+
+  /* PSEUDO: 用預載好的圖直接繪製，不再重新 fetch */
+  generateShareCard(data, 0);
+}
+
+function cycleSharePhoto() {
+  var photos = window._shareCardPhotos;
+  if (!photos || photos.length <= 1) return; /* 只有 0 或 1 張不需切換 */
+  var data = window._shareCardData;
+  if (!data) return;
+
+  window._shareCardPhotoIndex = (window._shareCardPhotoIndex + 1) % photos.length;
+  var idx = window._shareCardPhotoIndex;
+
+  /* PSEUDO: 更新頁碼提示 */
+  document.getElementById('sharePhotoIndex').innerText =
+    (idx + 1) + ' / ' + photos.length;
+
+  generateShareCard(data, idx);
+}
+
+function closeShareCard() {
+  document.getElementById('shareCardModal').style.display = 'none';
+}
+
+function downloadShareCard() {
+  var canvas = document.getElementById('shareCardCanvas');
+  var link = document.createElement('a');
+  /* PSEUDO: 用城市名和日期當檔名 */
+  link.download = 'citywalk-' + (window._shareCardData && window._shareCardData.city || 'route') + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+/* ===================================================
+   [修改 v1.12.3] generateShareCard(data, photoIndex)
+   PSEUDO: 新增 photoIndex 參數
+   - 使用 window._shareCardPhotos[] 預載圖（不重新 fetch）
+   - 只繪製 photoIndex 指定的單張照片（拍立得風格）
+   - photoIndex 省略或無照片時，照片區空白
+   =================================================== */
+function generateShareCard(data, photoIndex) {
+  window._shareCardData = data;
+  var canvas = document.getElementById('shareCardCanvas');
+  var W = 1080, H = 1350;
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+
+  /* ===================================================
+     PSEUDO: 色彩定義
+     =================================================== */
+  var BG       = '#F5F0E8'; /* 米色背景（拍立得感） */
+  var DARK     = '#2C2C2C'; /* 深色（頂部列、文字） */
+  var GREEN    = '#8FB9A8'; /* 主題綠（軌跡、強調） */
+  var SOFT     = '#7D7D7D'; /* 次要文字 */
+  var WHITE    = '#FFFFFF';
+
+  /* ===================================================
+     PSEUDO: Step 1 - 底色
+     =================================================== */
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  /* ===================================================
+     PSEUDO: Step 2 - 頂部品牌列（深色橫條）
+     =================================================== */
+  ctx.fillStyle = DARK;
+  ctx.fillRect(0, 0, W, 120);
+  ctx.fillStyle = WHITE;
+  ctx.font = 'bold 44px "Arial", sans-serif';
+  ctx.letterSpacing = '6px';
+  ctx.fillText('CITY WALKER', 60, 78);
+  /* 右側小標記 */
+  ctx.font = '28px "Arial", sans-serif';
+  ctx.fillStyle = GREEN;
+  ctx.textAlign = 'right';
+  ctx.fillText('✦ city walk', W - 60, 78);
+  ctx.textAlign = 'left';
+
+  /* ===================================================
+     PSEUDO: Step 3 - 路線軌跡繪製
+     把 GPS 座標正規化到 Canvas 座標系
+     軌跡區域：y 140 ~ y 820，左右各留 80px
+     =================================================== */
+  var pts = data.path;
+  if (pts && pts.length > 1) {
+    /* PSEUDO: 找出座標的邊界框 */
+    var minLat = pts[0].lat, maxLat = pts[0].lat;
+    var minLng = pts[0].lng, maxLng = pts[0].lng;
+    pts.forEach(function(p) {
+      if (p.lat < minLat) minLat = p.lat;
+      if (p.lat > maxLat) maxLat = p.lat;
+      if (p.lng < minLng) minLng = p.lng;
+      if (p.lng > maxLng) maxLng = p.lng;
+    });
+
+    var PAD = 80; /* 軌跡區域邊距 */
+    var TX = PAD, TY = 160;
+    var TW = W - PAD * 2, TH = 620;
+
+    var latRange = maxLat - minLat || 0.001;
+    var lngRange = maxLng - minLng || 0.001;
+    /* PSEUDO: 等比例縮放，保持軌跡比例 */
+    var scale = Math.min(TW / lngRange, TH / latRange) * 0.85;
+    var offX = TX + (TW - lngRange * scale) / 2;
+    var offY = TY + (TH - latRange * scale) / 2;
+
+    function toX(lng) { return offX + (lng - minLng) * scale; }
+    function toY(lat) { return offY + (maxLat - lat) * scale; } /* lat 軸反轉 */
+
+    /* PSEUDO: 軌跡主線 */
+    ctx.beginPath();
+    ctx.moveTo(toX(pts[0].lng), toY(pts[0].lat));
+    pts.forEach(function(p) { ctx.lineTo(toX(p.lng), toY(p.lat)); });
+    ctx.strokeStyle = data.trackColor || GREEN;
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.globalAlpha = 0.9;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    /* PSEUDO: 起點圓點 */
+    ctx.beginPath();
+    ctx.arc(toX(pts[0].lng), toY(pts[0].lat), 14, 0, Math.PI * 2);
+    ctx.fillStyle = WHITE;
+    ctx.fill();
+    ctx.strokeStyle = data.trackColor || GREEN;
+    ctx.lineWidth = 5;
+    ctx.stroke();
+
+    /* PSEUDO: 終點圓點（實心） */
+    var last = pts[pts.length - 1];
+    ctx.beginPath();
+    ctx.arc(toX(last.lng), toY(last.lat), 14, 0, Math.PI * 2);
+    ctx.fillStyle = data.trackColor || GREEN;
+    ctx.fill();
+
+    /* PSEUDO: 事件 Icon 繪製在軌跡上 */
+    if (data.events) {
+      data.events.forEach(function(ev) {
+        if (!ev.pos) return;
+        var ex = toX(ev.pos.lng), ey = toY(ev.pos.lat);
+        ctx.font = '32px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ev.icon || '📍', ex, ey - 8);
+        ctx.textAlign = 'left';
+      });
+    }
+  }
+
+  /* ===================================================
+     PSEUDO: Step 4 - 分隔線
+     =================================================== */
+  ctx.strokeStyle = DARK;
+  ctx.globalAlpha = 0.12;
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(60, 820); ctx.lineTo(W - 60, 820); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  /* ===================================================
+     PSEUDO: Step 5 - 城市、日期
+     =================================================== */
+  var dateStr = data.createdAt && data.createdAt.seconds
+    ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit'})
+    : new Date().toLocaleDateString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit'});
+
+  ctx.fillStyle = DARK;
+  ctx.font = 'bold 52px "Arial", sans-serif';
+  ctx.fillText(data.city || '未知城市', 60, 900);
+
+  ctx.fillStyle = SOFT;
+  ctx.font = '32px "Arial", sans-serif';
+  ctx.fillText(dateStr, 60, 950);
+
+  /* ===================================================
+     PSEUDO: Step 6 - 里程、時長
+     =================================================== */
+  ctx.fillStyle = DARK;
+  ctx.font = 'bold 40px "Arial", sans-serif';
+  ctx.fillText('👣  ' + (data.distance || 0).toFixed(2) + ' km', 60, 1030);
+  ctx.fillText('⏱  ' + (data.duration || '—'), 420, 1030);
+
+  /* ===================================================
+     PSEUDO: Step 7 - 打卡地標清單
+     [修改 v1.12.4] 垂直換行排列，最多顯示 3 個
+     每個地標一行，截斷 12 字，右邊界 x<580 避開右下照片
+     =================================================== */
+  var seenPlaces = {}, placeNames = [];
+  if (data.events) {
+    data.events.forEach(function(ev) {
+      if (ev.placeName && !seenPlaces[ev.placeName] && placeNames.length < 3) {
+        seenPlaces[ev.placeName] = true;
+        var short = ev.placeName.length > 12 ? ev.placeName.slice(0, 12) + '...' : ev.placeName;
+        placeNames.push(short);
+      }
+    });
+  }
+  if (placeNames.length > 0) {
+    ctx.fillStyle = SOFT;
+    ctx.font = '30px "Arial", sans-serif';
+    placeNames.forEach(function(name, i) {
+      ctx.fillText('📍  ' + name, 60, 1075 + i * 52);
+    });
+  }
+
+  /* ===================================================
+     PSEUDO: Step 8 - 單張照片（拍立得感）
+     [修改 v1.12.4] 照片往右下角移，避免與地標文字重疊
+     照片區：右側 x≈680起，垂直置中於地標行 y≈1060~1270
+     =================================================== */
+  var photos = window._shareCardPhotos || [];
+  var idx = (typeof photoIndex === 'number' && photoIndex >= 0) ? photoIndex : 0;
+  var selectedImg = photos[idx] || null;
+
+  if (selectedImg) {
+    var photoW = 260, photoH = 260, photoPad = 16;
+    /* PSEUDO: 固定右下角，底部留 90px（給路線名稱），往右對齊 */
+    var px = W - 60 - photoW - photoPad * 2;  /* x ≈ 676，不碰左側地標文字 */
+    var py = H - 90 - photoH - photoPad * 3;  /* 底部往上推，y ≈ 896 → 白框頂 */
+    /* PSEUDO: 白框實際高 = photoH + photoPad*3 = 260+48 = 308，底部 ≈ 1204，不超出 Step9 */
+    var rot = -2.5 * Math.PI / 180;
+
+    ctx.save();
+    ctx.translate(px + (photoW + photoPad * 2) / 2, py + (photoH + photoPad * 3) / 2);
+    ctx.rotate(rot);
+    ctx.shadowColor = 'rgba(0,0,0,0.22)';
+    ctx.shadowBlur = 18;
+    ctx.fillStyle = WHITE;
+    ctx.fillRect(
+      -(photoW / 2 + photoPad),
+      -(photoH / 2 + photoPad),
+      photoW + photoPad * 2,
+      photoH + photoPad * 3
+    );
+    ctx.shadowBlur = 0;
+    ctx.drawImage(selectedImg, -photoW / 2, -(photoH / 2 + photoPad) + photoPad, photoW, photoH);
+    ctx.restore();
+  }
+
+  /* ===================================================
+     PSEUDO: Step 9 - 底部路線名稱
+     =================================================== */
+  ctx.fillStyle = DARK;
+  ctx.globalAlpha = 0.5;
+  ctx.font = '26px "Arial", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(data.name || '', W / 2, H - 36);
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
+function switchPage(p){
+  document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  var tp=document.getElementById('page-'+p),tn=document.getElementById('nav-'+p);
+  if(tp)tp.classList.remove('hidden');if(tn)tn.classList.add('active');
+  var mc=document.querySelector('.map-controls'),cp=document.getElementById('colorPicker');
+  var isInit=!document.getElementById('state-init').classList.contains('hidden');
+  if(p==='list'){if(mc)mc.style.display='none';if(cp)cp.style.display='none';}
+  else{if(mc)mc.style.display='flex';if(cp)cp.style.display=isInit?'flex':'none';}
+  if(p==='list')fetchRecords();
+}
+function openSaveModal(){document.getElementById('saveModal').style.display='flex';}
+
+window.onload=initMap;
+window.focusOnMe=focusOnMe; window.focusOnRouteStart=focusOnRouteStart;
+window.openEventCanvas=openEventCanvas; window.closeEventModal=closeEventModal;
+window.saveEvent=saveEvent; window.openSaveModal=openSaveModal;
+window.executeCloudSave=executeCloudSave; window.switchPage=switchPage;
+window.closeMemoryBox=closeMemoryBox; window.deleteRecord=deleteRecord;
+window.togglePin=togglePin; window.toggleColorPicker=toggleColorPicker;
+window.selectColor=selectColor; window.endWalk=endWalk; window.startWalk=startWalk;
+window.openCamera=openCamera; window.handlePhotoSelected=handlePhotoSelected;
+window.retakePhoto=retakePhoto; window.cancelPhoto=cancelPhoto; window.confirmPhoto=confirmPhoto;
+window.clearLoadedRoute=clearLoadedRoute;
+window.applyFilters=applyFilters; window.clearFilters=clearFilters;
+window.openShareCard=openShareCard; window.closeShareCard=closeShareCard; window.downloadShareCard=downloadShareCard; window.cycleSharePhoto=cycleSharePhoto;
+window.loadMapCapacity=loadMapCapacity; window.updateCapacityUI=updateCapacityUI;
+</script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async" async defer></script>
+</body>
+</html>
