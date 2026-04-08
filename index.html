@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.15.0</title>
+<title>City Walker - v1.15.1</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -313,7 +313,7 @@ body {
 <!-- [改版 v1.15.0] Firebase Auth + Firestore + Storage 初始化 -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, serverTimestamp, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 /* [新增 v1.15.0] Firebase Storage SDK
    PSEUDO: 引入三個函式：
@@ -340,7 +340,7 @@ const storage = getStorage(app);
 window.db = db;
 window.storage = storage;
 window.storageApi = { ref, uploadBytes, getDownloadURL, deleteObject };
-window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, collection, serverTimestamp, query, where };
+window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, collection, serverTimestamp, query, where, orderBy };
 
 /* PSEUDO: 匿名登入，取得穩定 uid
    onAuthStateChanged 確保 uid 就緒後才允許存取 Firestore
@@ -1132,8 +1132,28 @@ async function endWalk(){
   }
 }
 
+/* ===================================================
+   [改版 v1.15.1] executeCloudSave()
+   PSEUDO: path 改存 subcollection（path_points）
+
+   儲存流程：
+   1. 主文件：所有欄位照舊，但移除 path 陣列
+   2. 取得新文件的 docRef（addDoc 回傳）
+   3. 將 walkPath 切成每 500 點一個 chunk
+   4. 依序寫入 subcollection：
+      walk_records/{docId}/path_points/chunk_0
+      walk_records/{docId}/path_points/chunk_1  ...
+   5. 每個 chunk 文件格式：{ index: 0, points: [{lat,lng}...] }
+      index 用於讀取時排序還原正確順序
+
+   為什麼要有 index？
+   Firestore subcollection getDocs() 不保證順序，
+   用 index 欄位排序才能正確還原路線
+   =================================================== */
+var PATH_CHUNK_SIZE = 500; /* 每個 chunk 最多 500 個座標點 */
+
 async function executeCloudSave(){
-  /* [v1.14.0] 儲存前再次確認容量（使用者可能在另一頁刪了路線） */
+  /* [v1.14.0] 儲存前再次確認容量 */
   await loadMapCapacity();
   if(currentMapCount>=MAP_CAPACITY){
     document.getElementById('saveModal').style.display='none';
@@ -1142,15 +1162,37 @@ async function executeCloudSave(){
   }
   var btn=document.getElementById('btnConfirmSave');if(btn)btn.disabled=true;
   try{
-    await window.api.addDoc(window.api.collection(window.db,'walk_records'),{
+    /* PSEUDO: Step 1 — 寫主文件（不含 path） */
+    var docRef = await window.api.addDoc(window.api.collection(window.db,'walk_records'),{
       name:document.getElementById('routeName').value||'未命名漫遊',
-      city:cityName,distance:totalDistance,duration:durationStr,
-      path:walkPath,events:eventsData,trackColor:selectedTrackColor,
-      isPinned:false,createdAt:window.api.serverTimestamp(),
-      userId:window.currentUid||'anonymous'  /* [v1.14.0] 綁定使用者 uid */
+      city:cityName, distance:totalDistance, duration:durationStr,
+      events:eventsData, trackColor:selectedTrackColor,
+      isPinned:false, createdAt:window.api.serverTimestamp(),
+      userId:window.currentUid||'anonymous'
+      /* path 欄位已移除，改存 subcollection */
     });
+
+    /* PSEUDO: Step 2 — 切割 walkPath 成 chunks，批次寫入 subcollection
+       chunk_0 存 points[0..499]，chunk_1 存 points[500..999]，以此類推 */
+    var pathColRef = window.api.collection(window.db,'walk_records',docRef.id,'path_points');
+    var chunkPromises = [];
+    for(var i=0; i<walkPath.length; i+=PATH_CHUNK_SIZE){
+      var chunk = walkPath.slice(i, i+PATH_CHUNK_SIZE);
+      var chunkIndex = Math.floor(i/PATH_CHUNK_SIZE);
+      /* PSEUDO: 用固定名稱 chunk_N 當文件 ID，方便刪除時直接定位 */
+      var chunkDocRef = window.api.doc(pathColRef, 'chunk_'+chunkIndex);
+      chunkPromises.push(
+        window.api.setDoc(chunkDocRef, { index: chunkIndex, points: chunk })
+      );
+    }
+    await Promise.all(chunkPromises);
+
     location.reload();
-  }catch(e){alert('儲存失敗');if(btn)btn.disabled=false;}
+  }catch(e){
+    console.error('[Save] 儲存失敗:', e);
+    alert('儲存失敗');
+    if(btn)btn.disabled=false;
+  }
 }
 
 
@@ -1390,13 +1432,68 @@ function appendCard(container, data){
   container.appendChild(card);
 }
 
-function loadSavedRoute(id){
+/* ===================================================
+   [改版 v1.15.1] loadSavedRoute()
+   PSEUDO: 支援兩種 path 格式
+
+   新資料（v1.15.1+）：
+   - 主文件無 path 欄位
+   - 去 subcollection path_points 撈所有 chunk
+   - 依 chunk.index 排序後合併 points 陣列
+
+   舊資料（v1.15.1 前）：
+   - 主文件有 path 陣列 → 直接用，不需撈 subcollection
+   - 判斷條件：data.path && data.path.length > 0
+
+   載入中 UI：
+   - 卡片點擊後先切換到地圖頁
+   - 路線繪製前顯示狀態列「載入路線中...」
+   - 完成後還原狀態列
+   =================================================== */
+async function loadSavedRoute(id){
   var data=window.currentDocs.find(function(d){return d.id===id;});
   if(!data)return;
-  switchPage('main');pathLine.setPath([]);
-  historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];
-  var pts=data.path.map(function(p){return{lat:p.lat,lng:p.lng};});
-  pathLine.setPath(pts);pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
+
+  switchPage('main');
+  pathLine.setPath([]);
+  historyMarkers.forEach(function(m){m.setMap(null);}); historyMarkers=[];
+  setStatusBar('🔄 載入路線中...','var(--status-locating)');
+
+  var pts=[];
+
+  /* PSEUDO: 判斷新舊資料格式
+     舊資料：data.path 存在且有座標 → 直接用
+     新資料：data.path 不存在 → 去撈 subcollection */
+  if(data.path && data.path.length > 0){
+    /* 舊資料相容路徑 */
+    pts = data.path.map(function(p){return{lat:p.lat,lng:p.lng};});
+  } else {
+    /* 新資料：從 subcollection path_points 撈 chunks */
+    try{
+      var pathColRef = window.api.collection(window.db,'walk_records',id,'path_points');
+      var snap = await window.api.getDocs(pathColRef);
+      var chunks=[];
+      snap.forEach(function(d){ chunks.push(d.data()); });
+      /* PSEUDO: 依 index 排序，確保 chunk_0 在前、chunk_1 在後 */
+      chunks.sort(function(a,b){ return a.index - b.index; });
+      /* PSEUDO: 展平所有 chunk 的 points 成一個完整陣列 */
+      chunks.forEach(function(chunk){
+        if(chunk.points) pts = pts.concat(chunk.points);
+      });
+    }catch(err){
+      console.error('[loadSavedRoute] 撈 subcollection 失敗:', err);
+      setStatusBar('City Walker','var(--status-idle)');
+      return;
+    }
+  }
+
+  if(pts.length === 0){
+    setStatusBar('City Walker','var(--status-idle)');
+    return;
+  }
+
+  pathLine.setPath(pts);
+  pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
   if(data.events){
     data.events.forEach(function(ev){
       historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||''));
@@ -1405,6 +1502,7 @@ function loadSavedRoute(id){
   map.panTo(pts[0]);
   document.getElementById('btnFocusRoute').classList.remove('hidden');
   document.getElementById('btnClearRoute').classList.remove('hidden');
+  setStatusBar('City Walker','var(--status-idle)');
 }
 
 /* ===================================================
@@ -1425,49 +1523,66 @@ function clearLoadedRoute(){
 }
 
 /* ===================================================
-   [改版 v1.15.0] deleteRecord()
-   PSEUDO: 刪除路線時同步清除 Storage 上的照片
+   [改版 v1.15.1] deleteRecord()
+   PSEUDO: 刪除順序（三層清理）
 
-   流程：
-   1. 找出該路線的所有 events，過濾出 photoUrl 為 Storage URL（https://）
-   2. 對每個 URL 呼叫 deleteObject()（失敗不中斷，只 console.warn）
-   3. 接著刪除 Firestore 文件
-   4. 更新容量 + 重整列表
+   1. Storage 照片清理（v1.15.0）
+      - 找出 events 中 photoUrl 為 https:// 的 → deleteObject()
+      - 失敗不中斷
 
-   為什麼先刪 Storage 再刪 Firestore？
-   - Firestore 刪了就找不到 URL 了，所以順序不能反過來
-   - Storage 刪失敗只是孤兒檔案，不影響使用者體驗
+   2. Subcollection path_points 清理（v1.15.1 新增）
+      - getDocs(path_points) 取得所有 chunk 文件
+      - 逐一 deleteDoc()
+      - 舊資料若無 path_points 則 snap 為空，自然跳過
+
+   3. 主文件刪除
+      - 以上都清理完才刪主文件
+      - 確保不留孤兒子集合（Firestore 不會自動刪子集合）
+
+   ⚠️ 為什麼要手動刪 subcollection？
+   Firestore deleteDoc 只刪主文件，subcollection 不會跟著消失，
+   必須手動逐一刪除每個 chunk 文件
    =================================================== */
 async function deleteRecord(e,id){
   e.stopPropagation();
   if(!confirm('確定要刪除嗎？'))return;
 
-  /* PSEUDO: 找出此路線的資料，準備清理 Storage 照片 */
   var data = window.currentDocs && window.currentDocs.find(function(d){ return d.id === id; });
+
+  /* PSEUDO: Step 1 — 清理 Storage 照片 */
   if(data && data.events && window.storage && window.storageApi){
-    var deletePromises = [];
+    var storageDeletes = [];
     data.events.forEach(function(ev){
-      /* PSEUDO: 只刪 Storage URL，Base64 不需處理（存在瀏覽器記憶體，沒有 Storage 檔案） */
       if(ev.photoUrl && ev.photoUrl.startsWith('https://')){
         try{
           var fileRef = window.storageApi.ref(window.storage, ev.photoUrl);
-          deletePromises.push(
+          storageDeletes.push(
             window.storageApi.deleteObject(fileRef).catch(function(err){
-              console.warn('[Storage] 照片刪除失敗（忽略，繼續刪路線）:', err);
+              console.warn('[Storage] 照片刪除失敗（忽略）:', err);
             })
           );
-        }catch(err){
-          console.warn('[Storage] ref 建立失敗:', err);
-        }
+        }catch(err){ console.warn('[Storage] ref 建立失敗:', err); }
       }
     });
-    /* PSEUDO: 等待所有照片刪除完畢（失敗已被 catch 吸收，不會 throw） */
-    if(deletePromises.length > 0) await Promise.all(deletePromises);
+    if(storageDeletes.length > 0) await Promise.all(storageDeletes);
   }
 
-  /* PSEUDO: 刪除 Firestore 文件 */
+  /* PSEUDO: Step 2 — 清理 subcollection path_points
+     舊資料沒有 path_points，getDocs 回傳空 snap，forEach 不執行，安全跳過 */
+  try{
+    var pathColRef = window.api.collection(window.db,'walk_records',id,'path_points');
+    var pathSnap = await window.api.getDocs(pathColRef);
+    var chunkDeletes = [];
+    pathSnap.forEach(function(chunkDoc){
+      chunkDeletes.push(window.api.deleteDoc(chunkDoc.ref));
+    });
+    if(chunkDeletes.length > 0) await Promise.all(chunkDeletes);
+  }catch(err){
+    console.warn('[deleteRecord] 清理 path_points 失敗（忽略）:', err);
+  }
+
+  /* PSEUDO: Step 3 — 刪主文件 */
   await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));
-  /* [v1.14.0] 刪除後重新計算容量，讓主頁提示即時更新 */
   await loadMapCapacity();
   fetchRecords();
 }
