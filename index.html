@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.14.1</title>
+<title>City Walker - v1.14.2</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -731,12 +731,13 @@ var MINT_MAP_STYLE = [
 
 async function initMap(){
   var {Map}=await google.maps.importLibrary('maps');
-  /* [v1.14.1] userMarker 改用 legacy Marker（AdvancedMarkerElement 需要 mapId，與 StyledMapType 不相容）*/
+  /* [v1.14.1] userMarker 改用 legacy Marker（AdvancedMarkerElement 需要 mapId，與 StyledMapType 不相容）
+     [v1.14.2] icon 設為透明 CIRCLE scale:0，移除預設紅色定位針，只顯示 👣 label */
   var mintStyledMap = new google.maps.StyledMapType(MINT_MAP_STYLE, {name:'CityWalker-C 薄荷綠'});
   map=new Map(document.getElementById('map'),{zoom:17,center:{lat:25.0478,lng:121.5170},disableDefaultUI:true,mapTypeControlOptions:{mapTypeIds:['roadmap','styled_map']}});
   map.mapTypes.set('styled_map', mintStyledMap);
   map.setMapTypeId('styled_map');
-  userMarker=new google.maps.Marker({map:map,zIndex:999,label:{text:'👣',fontSize:'22px'},optimized:false});
+  userMarker=new google.maps.Marker({map:map,zIndex:999,label:{text:'👣',fontSize:'22px'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:0},optimized:false});
   pathLine=new google.maps.Polyline({map,strokeColor:selectedTrackColor,strokeWeight:6,strokeOpacity:0.85});
   geocoder=new google.maps.Geocoder();
   document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
