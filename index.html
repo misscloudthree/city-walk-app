@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.14.0</title>
+<title>City Walker - v1.14.1</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -684,10 +684,59 @@ document.addEventListener('click',function(e){
   if(p&&!p.contains(e.target))document.getElementById('colorOptions').classList.remove('open');
 });
 
+/* ===================================================
+   [新增 v1.14.1] 薄荷綠地圖 Style C
+   設計理念：以 #8FB9A8 為 accent，底色淡灰白，
+   公園綠地飽和薄荷綠，道路細緻白色，水域清透藍
+   =================================================== */
+var MINT_MAP_STYLE = [
+  /* --- 全域底色：淡灰白 --- */
+  {featureType:'all',elementType:'geometry',stylers:[{color:'#F2F4F0'}]},
+  {featureType:'all',elementType:'labels.text.fill',stylers:[{color:'#5A6B63'}]},
+  {featureType:'all',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},
+
+  /* --- 行政區 / 地區 --- */
+  {featureType:'administrative',elementType:'geometry.stroke',stylers:[{color:'#C8D8D0'},{weight:1}]},
+  {featureType:'administrative.land_parcel',elementType:'labels',stylers:[{visibility:'off'}]},
+
+  /* --- 公園 & 自然綠地：飽和薄荷綠（主角）--- */
+  {featureType:'landscape.natural',elementType:'geometry',stylers:[{color:'#A8CFBC'}]},
+  {featureType:'poi.park',elementType:'geometry.fill',stylers:[{color:'#8FB9A8'}]},
+  {featureType:'poi.park',elementType:'labels.text.fill',stylers:[{color:'#4A8070'}]},
+  {featureType:'landscape.man_made',elementType:'geometry',stylers:[{color:'#E8ECE6'}]},
+
+  /* --- 其他 POI（弱化）--- */
+  {featureType:'poi',elementType:'geometry',stylers:[{color:'#DDE8E0'}]},
+  {featureType:'poi',elementType:'labels',stylers:[{visibility:'simplified'}]},
+  {featureType:'poi',elementType:'labels.icon',stylers:[{saturation:-40}]},
+
+  /* --- 道路：細緻白色系 --- */
+  {featureType:'road',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},
+  {featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#D4E0D8'},{weight:0.5}]},
+  {featureType:'road.highway',elementType:'geometry.fill',stylers:[{color:'#F0F5F0'}]},
+  {featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#B8CCBF'},{weight:1}]},
+  {featureType:'road.arterial',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},
+  {featureType:'road.local',elementType:'geometry.fill',stylers:[{color:'#FAFAFA'}]},
+  {featureType:'road',elementType:'labels.text.fill',stylers:[{color:'#6E8C7C'}]},
+  {featureType:'road',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},
+
+  /* --- 水域：清透藍 --- */
+  {featureType:'water',elementType:'geometry.fill',stylers:[{color:'#C4DFF0'}]},
+  {featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#6FA8C8'}]},
+
+  /* --- 交通基礎設施 --- */
+  {featureType:'transit',elementType:'geometry',stylers:[{color:'#D8E8E0'}]},
+  {featureType:'transit.station',elementType:'labels.icon',stylers:[{saturation:-20},{lightness:10}]},
+];
+
 async function initMap(){
   var {Map}=await google.maps.importLibrary('maps');
   var {AdvancedMarkerElement}=await google.maps.importLibrary('marker');
-  map=new Map(document.getElementById('map'),{zoom:17,center:{lat:25.0478,lng:121.5170},disableDefaultUI:true,mapId:'DEMO_MAP_ID'});
+  /* [v1.14.1] 使用 StyledMapType 套用薄荷綠 Style C（本地測試，不需 Cloud Console Map ID）*/
+  var mintStyledMap = new google.maps.StyledMapType(MINT_MAP_STYLE, {name:'CityWalker-C 薄荷綠'});
+  map=new Map(document.getElementById('map'),{zoom:17,center:{lat:25.0478,lng:121.5170},disableDefaultUI:true,mapTypeControlOptions:{mapTypeIds:['roadmap','styled_map']}});
+  map.mapTypes.set('styled_map', mintStyledMap);
+  map.setMapTypeId('styled_map');
   var md=document.createElement('div'); md.className='user-marker'; md.innerText='👣';
   userMarker=new AdvancedMarkerElement({map:map,content:md,zIndex:999});
   pathLine=new google.maps.Polyline({map,strokeColor:selectedTrackColor,strokeWeight:6,strokeOpacity:0.85});
