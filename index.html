@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.15.2</title>
+<title>City Walker - v1.16.0</title>
 <!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
@@ -308,6 +308,140 @@ body {
   object-fit: cover; display: block;
   border-radius: 1px;
 }
+
+/* ===================================================
+   [新增 v1.16.0] 我的路線頁 — 列表樣式卡片
+   設計目標：壓縮高度、點擊展開操作列
+   =================================================== */
+
+/* 管理模式按鈕列（在 statsPanel 右上角） */
+#listPageHeader {
+  width:92%; max-width:450px; margin:0 auto 12px;
+  display:flex; justify-content:flex-end; align-items:center;
+}
+#btnManage {
+  padding:7px 16px; border-radius:20px; border:1.5px solid var(--border-light);
+  font-size:12px; background:var(--white); color:var(--text-soft);
+  cursor:pointer; letter-spacing:0.5px;
+  transition: all 0.2s;
+}
+#btnManage.active {
+  border-color: var(--accent-positive); color: var(--accent-positive);
+  font-weight: bold;
+}
+
+/* 新列表卡片（取代舊 .record-card 的大型卡） */
+.route-row {
+  width:92%; max-width:450px; margin:6px auto;
+  background:var(--white); border-radius:16px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+  border-left:5px solid var(--accent-positive);
+  box-sizing:border-box; overflow:hidden;
+  transition: box-shadow 0.2s;
+}
+.route-row.is-pinned { border-left-color:var(--accent-pin); background:#FFFDF5; }
+.route-row:active { box-shadow:0 1px 5px rgba(0,0,0,0.08); }
+
+/* 主列：摘要資訊 + 展開箭頭 */
+.route-row-main {
+  display:flex; align-items:center;
+  padding:12px 14px; gap:10px; cursor:pointer;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* 多選模式 checkbox 區 */
+.route-checkbox-wrap {
+  display:none; /* 預設隱藏，多選模式才顯示 */
+  align-items:center; justify-content:center;
+  width:24px; height:24px; flex-shrink:0;
+}
+.route-checkbox {
+  width:20px; height:20px; border-radius:6px;
+  border:2px solid var(--border-light);
+  background:var(--white); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition: all 0.15s;
+}
+.route-checkbox.checked {
+  background:var(--accent-positive); border-color:var(--accent-positive);
+}
+.route-checkbox.checked::after { content:'✓'; color:white; font-size:13px; font-weight:bold; }
+
+/* 路線顏色小圓點 */
+.route-color-dot {
+  width:10px; height:10px; border-radius:50%; flex-shrink:0;
+}
+
+/* 路線文字資訊區 */
+.route-row-info { flex:1; min-width:0; }
+.route-row-name {
+  font-size:15px; font-weight:bold; color:var(--text-main);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  margin-bottom:2px;
+}
+.route-row-meta {
+  font-size:12px; color:var(--text-soft); letter-spacing:0.3px;
+}
+
+/* 展開箭頭 */
+.route-row-arrow {
+  font-size:12px; color:var(--text-soft); flex-shrink:0;
+  transition: transform 0.25s ease;
+}
+.route-row.expanded .route-row-arrow { transform: rotate(180deg); }
+
+/* 展開操作列 */
+.route-row-actions {
+  max-height:0; overflow:hidden;
+  transition: max-height 0.28s ease, padding 0.28s ease;
+  padding: 0 14px;
+}
+.route-row.expanded .route-row-actions {
+  max-height:80px; padding: 0 14px 12px;
+}
+.route-action-btns {
+  display:flex; gap:8px; border-top:1px solid var(--border-light);
+  padding-top:10px;
+}
+.route-action-btn {
+  flex:1; padding:9px 4px; border-radius:12px; border:none;
+  font-size:13px; cursor:pointer; text-align:center;
+  font-family:'Poly','Microsoft JhengHei',sans-serif;
+  transition: opacity 0.15s;
+}
+.route-action-btn:active { opacity:0.7; }
+.btn-load  { background:#EEF6F3; color:var(--accent-positive); font-weight:bold; }
+.btn-pin   { background:var(--bg-warm); color:var(--text-soft); }
+.btn-share { background:var(--bg-warm); color:var(--text-soft); }
+.btn-del   { background:#FFF0F0; color:#E57373; }
+
+/* 多選模式：全域 body class 控制顯示 */
+body.select-mode .route-checkbox-wrap { display:flex; }
+body.select-mode .route-row-arrow     { display:none; }
+body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:0 14px; }
+
+/* 批次刪除浮動列（底部，遮住 navBar 上方） */
+#batchDeleteBar {
+  position:fixed; bottom:75px; left:0; width:100%;
+  background:var(--white); border-top:1px solid var(--border-light);
+  padding:10px 20px; box-sizing:border-box;
+  display:none; justify-content:space-between; align-items:center;
+  z-index:1800;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+}
+#batchDeleteBar.visible { display:flex; }
+#batchDeleteLabel { font-size:14px; color:var(--text-soft); }
+#batchDeleteBtn {
+  padding:10px 22px; border-radius:14px; border:none;
+  background:#E57373; color:white; font-size:14px; font-weight:bold;
+  cursor:pointer;
+}
+#batchDeleteBtn:disabled { opacity:0.4; cursor:not-allowed; }
+#batchCancelBtn {
+  padding:10px 16px; border-radius:14px; border:none;
+  background:var(--bg-warm); color:var(--text-soft); font-size:14px;
+  cursor:pointer; margin-right:8px;
+}
 </style>
 
 <!-- [改版 v1.15.0] Firebase Auth + Firestore + Storage 初始化 -->
@@ -524,6 +658,11 @@ onAuthStateChanged(auth, function(user){
 <div id="page-list" class="page hidden">
   <h2 style="text-align:center;letter-spacing:2px;margin:0 0 16px;padding-top:60px;">MY JOURNEYS</h2>
 
+  <!-- [新增 v1.16.0] 管理模式按鈕 -->
+  <div id="listPageHeader">
+    <button id="btnManage" onclick="toggleSelectMode()">管理</button>
+  </div>
+
   <!-- [新增 v1.13.0] 個人統計區 -->
   <div id="statsPanel">
     <div class="stats-title">我的足跡</div>
@@ -580,6 +719,15 @@ onAuthStateChanged(auth, function(user){
   </div>
 
   <div id="recordsContainer"></div>
+</div>
+
+<!-- [新增 v1.16.0] 批次刪除浮動列 -->
+<div id="batchDeleteBar">
+  <div id="batchDeleteLabel">已選 0 條</div>
+  <div>
+    <button id="batchCancelBtn" onclick="exitSelectMode()">取消</button>
+    <button id="batchDeleteBtn" disabled onclick="batchDelete()">刪除選取</button>
+  </div>
 </div>
 
 <nav id="navBar">
@@ -1329,28 +1477,222 @@ function appendGroupHeader(container, label){
   container.appendChild(header);
 }
 
-function appendCard(container, data){
-  var cardColor=data.trackColor||'var(--accent-positive)';
-  var card=document.createElement('div');
-  card.className='record-card '+(data.isPinned?'is-pinned':'');
-  card.style.borderLeftColor=data.isPinned?'var(--accent-pin)':cardColor;
-  card.onclick=function(){loadSavedRoute(data.id);};
+/* ===================================================
+   [改版 v1.16.0] appendCard() → 列表樣式列 appendRouteRow()
+   PSEUDO:
+   結構：
+     .route-row
+       .route-row-main（摘要列）
+         .route-checkbox-wrap（多選模式才顯示）
+         .route-color-dot（路線顏色點）
+         .route-row-info（名稱 + meta）
+         .route-row-arrow（▼，點擊展開）
+       .route-row-actions（展開後的操作按鈕列）
+         [載入路線] [釘選/取消釘選] [分享] [刪除]
 
-  /* PSEUDO: 日期字串 */
-  var dateStr='';
-  if(data.createdAt&&data.createdAt.seconds){
-    dateStr=new Date(data.createdAt.seconds*1000).toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+   互動邏輯：
+   - 點擊 .route-row-main → toggleRowExpand(id)
+     → 切換 .expanded class → CSS transition 展開 actions
+   - 多選模式：body.select-mode → checkbox 顯示
+     點擊列 → toggleSelectCard(id)，不展開 actions
+   =================================================== */
+function appendCard(container, data){
+  var cardColor = data.trackColor || '#8FB9A8';
+  var dateStr = '';
+  if(data.createdAt && data.createdAt.seconds){
+    dateStr = new Date(data.createdAt.seconds*1000)
+      .toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+  }
+  var metaParts = ['👣 '+(data.distance||0).toFixed(2)+' km', '⏱️ '+data.duration];
+  if(dateStr) metaParts.push('📅 '+dateStr);
+  if(data.city) metaParts.push('🏙 '+data.city);
+  var metaStr = metaParts.join('  ');
+
+  var row = document.createElement('div');
+  row.className = 'route-row' + (data.isPinned ? ' is-pinned' : '');
+  row.setAttribute('data-id', data.id);
+  row.style.borderLeftColor = data.isPinned ? 'var(--accent-pin)' : cardColor;
+
+  var pinLabel = data.isPinned ? '📌 取消釘選' : '📌 釘選';
+
+  row.innerHTML =
+    /* 摘要主列 */
+    '<div class="route-row-main" onclick="onRowMainClick(event,\''+data.id+'\')">' +
+      '<div class="route-checkbox-wrap">' +
+        '<div class="route-checkbox" id="chk-'+data.id+'" onclick="event.stopPropagation();toggleSelectCard(\''+data.id+'\')"></div>' +
+      '</div>' +
+      '<div class="route-color-dot" style="background:'+cardColor+'"></div>' +
+      '<div class="route-row-info">' +
+        '<div class="route-row-name">'+data.name+'</div>' +
+        '<div class="route-row-meta">'+metaStr+'</div>' +
+      '</div>' +
+      '<div class="route-row-arrow">▼</div>' +
+    '</div>' +
+    /* 展開操作列 */
+    '<div class="route-row-actions">' +
+      '<div class="route-action-btns">' +
+        '<button class="route-action-btn btn-load"  onclick="loadSavedRoute(\''+data.id+'\')">🗺 載入</button>' +
+        '<button class="route-action-btn btn-pin"   onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">'+pinLabel+'</button>' +
+        '<button class="route-action-btn btn-share" onclick="openShareCard(event,\''+data.id+'\')">✦ 分享</button>' +
+        '<button class="route-action-btn btn-del"   onclick="deleteRecord(event,\''+data.id+'\')">🗑️</button>' +
+      '</div>' +
+    '</div>';
+
+  container.appendChild(row);
+}
+
+/* ===================================================
+   [新增 v1.16.0] onRowMainClick()
+   PSEUDO:
+   - 多選模式 → 呼叫 toggleSelectCard，不展開
+   - 普通模式 → 切換展開/收合
+   =================================================== */
+function onRowMainClick(e, id){
+  if(document.body.classList.contains('select-mode')){
+    toggleSelectCard(id);
+    return;
+  }
+  var row = document.querySelector('.route-row[data-id="'+id+'"]');
+  if(!row) return;
+  /* PSEUDO: 點擊已展開的列 → 收合；點擊收合的列 → 先收合其他，再展開自己 */
+  var isExpanded = row.classList.contains('expanded');
+  document.querySelectorAll('.route-row.expanded').forEach(function(r){
+    r.classList.remove('expanded');
+  });
+  if(!isExpanded) row.classList.add('expanded');
+}
+
+/* ===================================================
+   [新增 v1.16.0] 多選模式管理
+   PSEUDO 狀態機：
+   普通模式  ──[點管理]──▶  select-mode（body class）
+   select-mode ──[取消/完成]──▶ 普通模式
+
+   window._selectedIds = Set，記錄已勾選的 id
+   =================================================== */
+function toggleSelectMode(){
+  if(document.body.classList.contains('select-mode')){
+    exitSelectMode();
+  } else {
+    enterSelectMode();
+  }
+}
+
+function enterSelectMode(){
+  document.body.classList.add('select-mode');
+  window._selectedIds = new Set();
+  document.getElementById('btnManage').classList.add('active');
+  document.getElementById('btnManage').innerText = '完成';
+  document.getElementById('batchDeleteBar').classList.add('visible');
+  updateBatchDeleteBar();
+  /* 收合所有展開列 */
+  document.querySelectorAll('.route-row.expanded').forEach(function(r){
+    r.classList.remove('expanded');
+  });
+}
+
+function exitSelectMode(){
+  document.body.classList.remove('select-mode');
+  window._selectedIds = new Set();
+  document.getElementById('btnManage').classList.remove('active');
+  document.getElementById('btnManage').innerText = '管理';
+  document.getElementById('batchDeleteBar').classList.remove('visible');
+  /* 清除所有 checkbox 勾選視覺 */
+  document.querySelectorAll('.route-checkbox.checked').forEach(function(c){
+    c.classList.remove('checked');
+  });
+}
+
+/* PSEUDO: 點擊 checkbox → 加入/移除 _selectedIds，更新 UI */
+function toggleSelectCard(id){
+  if(!window._selectedIds) window._selectedIds = new Set();
+  var chk = document.getElementById('chk-'+id);
+  if(window._selectedIds.has(id)){
+    window._selectedIds.delete(id);
+    if(chk) chk.classList.remove('checked');
+  } else {
+    window._selectedIds.add(id);
+    if(chk) chk.classList.add('checked');
+  }
+  updateBatchDeleteBar();
+}
+
+function updateBatchDeleteBar(){
+  var count = window._selectedIds ? window._selectedIds.size : 0;
+  document.getElementById('batchDeleteLabel').innerText = '已選 '+count+' 條';
+  document.getElementById('batchDeleteBtn').disabled = count === 0;
+  if(count > 0){
+    document.getElementById('batchDeleteBtn').innerText = '刪除選取 ('+count+')';
+  } else {
+    document.getElementById('batchDeleteBtn').innerText = '刪除選取';
+  }
+}
+
+/* ===================================================
+   [新增 v1.16.0] batchDelete()
+   PSEUDO:
+   1. confirm 確認
+   2. 對每個 id 執行和 deleteRecord 相同的三層清理：
+      a. Storage 照片
+      b. path_points subcollection chunks
+      c. 主文件
+   3. 全部完成後 fetchRecords() 重整列表
+   4. 退出多選模式
+   =================================================== */
+async function batchDelete(){
+  var ids = window._selectedIds ? Array.from(window._selectedIds) : [];
+  if(ids.length === 0) return;
+  if(!confirm('確定要刪除選取的 '+ids.length+' 條路線嗎？\n此操作無法復原。')) return;
+
+  var btn = document.getElementById('batchDeleteBtn');
+  btn.disabled = true;
+  btn.innerText = '刪除中...';
+
+  for(var i = 0; i < ids.length; i++){
+    var id = ids[i];
+    var data = window.currentDocs && window.currentDocs.find(function(d){ return d.id === id; });
+
+    /* Step A：清 Storage 照片 */
+    if(data && data.events && window.storage && window.storageApi){
+      var storageDeletes = [];
+      data.events.forEach(function(ev){
+        if(ev.photoUrl && ev.photoUrl.startsWith('https://')){
+          try{
+            var fileRef = window.storageApi.ref(window.storage, ev.photoUrl);
+            storageDeletes.push(
+              window.storageApi.deleteObject(fileRef).catch(function(err){
+                console.warn('[batchDelete] Storage 刪除失敗（忽略）:', err);
+              })
+            );
+          }catch(err){ console.warn('[batchDelete] ref 建立失敗:', err); }
+        }
+      });
+      if(storageDeletes.length > 0) await Promise.all(storageDeletes);
+    }
+
+    /* Step B：清 path_points subcollection */
+    try{
+      var pathColRef = window.api.collection(window.db,'walk_records',id,'path_points');
+      var pathSnap = await window.api.getDocs(pathColRef);
+      var chunkDeletes = [];
+      pathSnap.forEach(function(chunkDoc){
+        chunkDeletes.push(window.api.deleteDoc(chunkDoc.ref));
+      });
+      if(chunkDeletes.length > 0) await Promise.all(chunkDeletes);
+    }catch(err){
+      console.warn('[batchDelete] 清 path_points 失敗（忽略）:', err);
+    }
+
+    /* Step C：刪主文件 */
+    try{
+      await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));
+    }catch(err){
+      console.warn('[batchDelete] 刪主文件失敗:', err);
+    }
   }
 
-  card.innerHTML=
-    '<div class="pin-icon" onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">📌</div>'+
-    '<div class="delete-btn" onclick="deleteRecord(event,\''+data.id+'\')">🗑️</div>'+
-    '<div style="font-size:16px;font-weight:bold;margin-bottom:4px;">'+data.name+'</div>'+
-    '<div style="font-size:13px;color:var(--text-soft);margin-bottom:2px;">'+
-      '👣 '+data.distance.toFixed(2)+' km &nbsp;⏱️ '+data.duration+
-      (dateStr?' &nbsp;📅 '+dateStr:'')+'</div>'+
-    '<div class="share-btn" onclick="openShareCard(event,\''+data.id+'\')">✦ 分享</div>';
-  container.appendChild(card);
+  exitSelectMode();
+  fetchRecords();
 }
 
 /* ===================================================
@@ -1854,7 +2196,11 @@ function switchPage(p){
   var mc=document.querySelector('.map-controls'),cp=document.getElementById('colorPicker');
   var isInit=!document.getElementById('state-init').classList.contains('hidden');
   if(p==='list'){if(mc)mc.style.display='none';if(cp)cp.style.display='none';}
-  else{if(mc)mc.style.display='flex';if(cp)cp.style.display=isInit?'flex':'none';}
+  else{
+    /* [v1.16.0] 離開我的路線頁時，自動退出多選模式 */
+    if(document.body.classList.contains('select-mode')) exitSelectMode();
+    if(mc)mc.style.display='flex';if(cp)cp.style.display=isInit?'flex':'none';
+  }
   if(p==='list')fetchRecords();
 }
 function openSaveModal(){document.getElementById('saveModal').style.display='flex';}
@@ -1871,6 +2217,9 @@ window.openCamera=openCamera; window.handlePhotoSelected=handlePhotoSelected;
 window.retakePhoto=retakePhoto; window.cancelPhoto=cancelPhoto; window.confirmPhoto=confirmPhoto;
 window.clearLoadedRoute=clearLoadedRoute;
 window.applyFilters=applyFilters; window.clearFilters=clearFilters;
+window.onRowMainClick=onRowMainClick; window.toggleSelectMode=toggleSelectMode;
+window.exitSelectMode=exitSelectMode; window.toggleSelectCard=toggleSelectCard;
+window.batchDelete=batchDelete;
 window.openShareCard=openShareCard; window.closeShareCard=closeShareCard; window.downloadShareCard=downloadShareCard; window.cycleSharePhoto=cycleSharePhoto;
 </script>
 
