@@ -1818,6 +1818,14 @@ window.linkGoogleAccount=linkGoogleAccount;
 window.updateAccountBanner=updateAccountBanner;
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&loading=async" async defer></script>
+<script>
+/* PSEUDO: 用 Maps SDK 官方 callback 參數觸發 initMap
+   確保 google.maps 完全就緒後才執行
+   避免 loading=async 情況下 importLibrary is not a function */
+window.__mapsReady = function() {
+  if(window.initMap) window.initMap();
+};
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&callback=__mapsReady" async defer></script>
 </body>
 </html>
