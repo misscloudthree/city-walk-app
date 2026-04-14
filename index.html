@@ -564,6 +564,7 @@ async function linkGoogleAccount(){
        uid 不變，isAnonymous 變 false，onAuthStateChanged 自動觸發更新 UI */
     await withPopup(anonymousUser,provider);
     alert('🎉 帳號綁定成功！你的資料已安全保存。');
+    if(window.updateAccountBanner) window.updateAccountBanner();
   }catch(err){
     console.error('[Auth] 帳號綁定失敗:',err);
     if(err.code==='auth/popup-blocked'||err.code==='auth/cancelled-popup-request'){
