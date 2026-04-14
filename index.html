@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.17.0</title>
-<!-- PSEUDO: Caveat = 英文手寫字體，Poly = 原有英文字體，兩個都載入 -->
+<title>City Walker - v1.17.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -30,124 +29,30 @@ body {
 .map-btn { width:50px; height:50px; background:var(--white); border-radius:50%; box-shadow:0 4px 15px rgba(0,0,0,0.1); display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; border:none; }
 #functionPanel { position:fixed; bottom:95px; left:50%; transform:translateX(-50%); width:85%; max-width:400px; background:var(--white); border-radius:24px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,0.08); z-index:1500; text-align:center; }
 #recordsContainer { width:92%; max-width:450px; margin:0 auto; }
-.record-card { background:var(--white); margin:15px 0; padding:22px 22px 52px 22px; border-radius:20px; box-shadow:0 4px 15px rgba(0,0,0,0.05); position:relative; border-left:6px solid var(--accent-positive); cursor:pointer; display:block; box-sizing:border-box; text-align:left; }
-.record-card.is-pinned { border-left-color:var(--accent-pin); background:#FFFDF5; }
-.pin-icon { position:absolute; top:18px; right:18px; cursor:pointer; font-size:22px; opacity:0.3; }
-.delete-btn { position:absolute; bottom:18px; right:18px; cursor:pointer; font-size:18px; opacity:0.3; }
 
-/* ===================================================
-   [新增 v1.13.0] 紀錄頁 - 個人統計區
-   =================================================== */
-#statsPanel {
-  width:92%; max-width:450px; margin:0 auto 16px;
-  background:var(--white); border-radius:20px;
-  padding:18px 20px; box-sizing:border-box;
-  box-shadow:0 4px 15px rgba(0,0,0,0.05);
-}
-#statsPanel .stats-title {
-  font-size:11px; letter-spacing:2px; color:var(--text-soft);
-  margin-bottom:14px; text-transform:uppercase;
-}
-#statsPanel .stats-grid {
-  display:grid; grid-template-columns:1fr 1fr;
-  gap:12px;
-}
-#statsPanel .stat-item {
-  display:flex; flex-direction:column; gap:2px;
-}
-#statsPanel .stat-value {
-  font-size:22px; font-weight:bold; color:var(--text-main);
-  font-family:'Poly',sans-serif;
-}
-#statsPanel .stat-label {
-  font-size:11px; color:var(--text-soft); letter-spacing:0.5px;
-}
+#statsPanel { width:92%; max-width:450px; margin:0 auto 16px; background:var(--white); border-radius:20px; padding:18px 20px; box-sizing:border-box; box-shadow:0 4px 15px rgba(0,0,0,0.05); }
+#statsPanel .stats-title { font-size:11px; letter-spacing:2px; color:var(--text-soft); margin-bottom:14px; text-transform:uppercase; }
+#statsPanel .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+#statsPanel .stat-item { display:flex; flex-direction:column; gap:2px; }
+#statsPanel .stat-value { font-size:22px; font-weight:bold; color:var(--text-main); font-family:'Poly',sans-serif; }
+#statsPanel .stat-label { font-size:11px; color:var(--text-soft); letter-spacing:0.5px; }
 
-/* ===================================================
-   [新增 v1.13.0] 紀錄頁 - 篩選列
-   =================================================== */
-#filterBar {
-  width:92%; max-width:450px; margin:0 auto 16px;
-  display:flex; gap:8px; box-sizing:border-box;
-  overflow-x:auto; padding-bottom:2px;
-  scrollbar-width:none; -ms-overflow-style:none;
-}
+#filterBar { width:92%; max-width:450px; margin:0 auto 16px; display:flex; gap:8px; box-sizing:border-box; overflow-x:auto; padding-bottom:2px; scrollbar-width:none; -ms-overflow-style:none; }
 #filterBar::-webkit-scrollbar { display:none; }
-.filter-select {
-  flex-shrink:0;
-  padding:8px 12px; border-radius:20px;
-  font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif;
-  background:var(--white); color:var(--text-main);
-  border:1.5px solid var(--border-light);
-  cursor:pointer; outline:none;
-  appearance:none; -webkit-appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237D7D7D'/%3E%3C/svg%3E");
-  background-repeat:no-repeat; background-position:right 10px center;
-  padding-right:28px;
-}
-.filter-select.active {
-  border-color:var(--accent-positive); color:var(--accent-positive);
-  font-weight:bold;
-}
-#filterCount {
-  flex-shrink:0; align-self:center;
-  font-size:12px; color:var(--text-soft); white-space:nowrap;
-}
-#clearFilterBtn {
-  flex-shrink:0; padding:8px 12px; border-radius:20px;
-  font-size:12px; background:transparent; color:var(--text-soft);
-  border:1.5px solid var(--border-light); cursor:pointer;
-  display:none;
-}
+.filter-select { flex-shrink:0; padding:8px 12px; border-radius:20px; font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif; background:var(--white); color:var(--text-main); border:1.5px solid var(--border-light); cursor:pointer; outline:none; appearance:none; -webkit-appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237D7D7D'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 10px center; padding-right:28px; }
+.filter-select.active { border-color:var(--accent-positive); color:var(--accent-positive); font-weight:bold; }
+#filterCount { flex-shrink:0; align-self:center; font-size:12px; color:var(--text-soft); white-space:nowrap; }
+#clearFilterBtn { flex-shrink:0; padding:8px 12px; border-radius:20px; font-size:12px; background:transparent; color:var(--text-soft); border:1.5px solid var(--border-light); cursor:pointer; display:none; }
 #clearFilterBtn.visible { display:block; }
 
-/* ===================================================
-   [新增 v1.13.0] 紀錄頁 - 城市分組 Header
-   =================================================== */
-.city-group-header {
-  width:92%; max-width:450px; margin:8px auto 0;
-  font-size:11px; letter-spacing:2px; color:var(--text-soft);
-  text-transform:uppercase; padding:0 4px;
-  display:flex; align-items:center; gap:8px;
-}
-.city-group-header::after {
-  content:''; flex:1; height:1px; background:var(--border-light);
-}
+.city-group-header { width:92%; max-width:450px; margin:8px auto 0; font-size:11px; letter-spacing:2px; color:var(--text-soft); text-transform:uppercase; padding:0 4px; display:flex; align-items:center; gap:8px; }
+.city-group-header::after { content:''; flex:1; height:1px; background:var(--border-light); }
 
-/* ===================================================
-   [新增 v1.12.0] 分享按鈕樣式
-   =================================================== */
-.share-btn {
-  display:inline-block;
-  margin-top:10px;
-  font-size:14px; color:var(--accent-positive);
-  cursor:pointer; opacity:0.85;
-  font-family:'Caveat','Microsoft JhengHei',sans-serif;
-  letter-spacing:1px;
-}
-.share-btn:active { opacity:1; }
+#shareCardModal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:9999; flex-direction:column; gap:16px; }
+#shareCardModal canvas { max-width:90vw; max-height:70vh; border-radius:4px; box-shadow:0 8px 32px rgba(0,0,0,0.4); }
+#shareCardBtns { display:flex; gap:12px; }
+#shareCardBtns button { padding:12px 24px; border-radius:14px; border:none; font-size:14px; font-weight:bold; cursor:pointer; }
 
-/* ===================================================
-   [新增 v1.12.0] 分享卡片預覽 Modal
-   =================================================== */
-#shareCardModal {
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  background:rgba(0,0,0,0.7);
-  display:none; align-items:center; justify-content:center;
-  z-index:9999; flex-direction:column; gap:16px;
-}
-#shareCardModal canvas {
-  max-width:90vw; max-height:70vh;
-  border-radius:4px;
-  box-shadow:0 8px 32px rgba(0,0,0,0.4);
-}
-#shareCardBtns {
-  display:flex; gap:12px;
-}
-#shareCardBtns button {
-  padding:12px 24px; border-radius:14px; border:none;
-  font-size:14px; font-weight:bold; cursor:pointer;
-}
 #navBar { position:fixed; bottom:0; width:100%; height:75px; background:var(--white); display:flex; border-top:1px solid var(--border-light); z-index:2000; padding-bottom:env(safe-area-inset-bottom); }
 .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:11px; color:var(--text-soft); cursor:pointer; }
 .nav-item.active { color:var(--text-main); font-weight:bold; }
@@ -155,15 +60,10 @@ body {
 .btn-main { background:var(--text-main); color:var(--white); }
 .btn-event { background:var(--accent-positive); color:var(--white); }
 
-#eventModal, #saveModal, #memoryBox, #photoConfirmModal {
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  background:rgba(0,0,0,0.5);
-  display:none; align-items:center; justify-content:center; z-index:9999;
-}
+#eventModal, #saveModal, #memoryBox, #photoConfirmModal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:9999; }
 .modal-content { background:var(--white); width:92%; max-width:400px; border-radius:28px; padding:20px 16px; box-sizing:border-box; max-height:90vh; overflow-y:auto; }
 #memoryCloseBtn { position:absolute; top:16px; right:16px; font-size:22px; color:var(--text-soft); cursor:pointer; padding:4px 8px; border-radius:50%; transition:background 0.2s; }
 #memoryCloseBtn:active { background:var(--bg-warm); }
-.user-marker { font-size:30px; line-height:1; cursor:default; user-select:none; }
 .event-marker-div { position:absolute; font-size:28px; cursor:pointer; transform:translate(-50%,-50%); user-select:none; -webkit-user-select:none; pointer-events:auto; z-index:999; }
 #colorPicker { position:fixed; top:62px; left:16px; z-index:1300; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
 #colorToggleBtn { width:38px; height:38px; border-radius:50%; border:3px solid var(--white); box-shadow:0 2px 8px rgba(0,0,0,0.18); cursor:pointer; transition:transform 0.2s; }
@@ -174,7 +74,6 @@ body {
 .color-dot:active { transform:scale(0.88); }
 .color-dot.selected { border-color:var(--white); transform:scale(1.18); box-shadow:0 3px 10px rgba(0,0,0,0.25); }
 
-/* Icon 選擇器 */
 #iconPickerSection { margin:10px 0; }
 #iconCategoryTabs { display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; scrollbar-width:none; -ms-overflow-style:none; }
 #iconCategoryTabs::-webkit-scrollbar { display:none; }
@@ -186,7 +85,6 @@ body {
 .icon-cell.selected { background:var(--bg-warm); border-color:var(--accent-positive); }
 #selectedIconPreview { font-size:26px; margin-left:auto; flex-shrink:0; }
 
-/* 地標選擇區 */
 #placeSection { margin:6px 0 8px; }
 #placeLabel { font-size:11px; color:var(--text-soft); margin-bottom:6px; }
 #placeTags { display:flex; flex-wrap:wrap; gap:6px; min-height:28px; align-items:center; }
@@ -195,220 +93,68 @@ body {
 .place-tag.selected { background:#EEF6F3; border-color:var(--accent-positive); color:var(--accent-positive); font-weight:bold; }
 .place-detecting { font-size:12px; color:var(--text-soft); font-style:italic; }
 
-/* [新增 v1.10.0] 手寫字體應用 */
-#eventText {
-  font-family: 'Caveat', 'Microsoft JhengHei', sans-serif !important;
-  font-size: 16px !important;
-  line-height: 1.6;
-}
-#memoryText {
-  font-family: 'Caveat', 'Microsoft JhengHei', sans-serif !important;
-  font-size: 19px !important;
-  line-height: 1.7;
-}
+#eventText { font-family:'Caveat','Microsoft JhengHei',sans-serif !important; font-size:16px !important; line-height:1.6; }
+#memoryText { font-family:'Caveat','Microsoft JhengHei',sans-serif !important; font-size:19px !important; line-height:1.7; }
 
-/* [新增 v1.10.0] 照片相關 UI */
-#photoSection {
-  margin: 8px 0 4px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-#cameraBtn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 7px 14px; border-radius: 20px;
-  font-size: 13px; background: var(--bg-warm);
-  color: var(--text-soft); border: 1.5px solid var(--border-light);
-  cursor: pointer; white-space: nowrap;
-  transition: all 0.2s;
-}
-#cameraBtn:active { background: #EEF6F3; border-color: var(--accent-positive); }
-#photoPreviewThumb {
-  width: 48px; height: 48px;
-  border-radius: 8px; object-fit: cover;
-  border: 2px solid var(--accent-positive);
-  cursor: pointer; display: none;
-}
+#photoSection { margin:8px 0 4px; display:flex; align-items:center; gap:10px; }
+#cameraBtn { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:20px; font-size:13px; background:var(--bg-warm); color:var(--text-soft); border:1.5px solid var(--border-light); cursor:pointer; white-space:nowrap; transition:all 0.2s; }
+#cameraBtn:active { background:#EEF6F3; border-color:var(--accent-positive); }
+#photoPreviewThumb { width:48px; height:48px; border-radius:8px; object-fit:cover; border:2px solid var(--accent-positive); cursor:pointer; display:none; }
 
-/* [改版 v1.10.1] 拍立得照片樣式 */
-.polaroid-wrap {
-  background: #F5F0E8;
-  padding: 10px 10px 32px 10px;
-  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
-  border-radius: 2px;
-  display: inline-block;
-  margin: 20px auto 8px;
-  transform: rotate(-1.5deg);
-  max-width: 240px;
-  position: relative;
-}
-.polaroid-wrap::before {
-  content: '';
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%) rotate(1deg);
-  width: 60px;
-  height: 22px;
-  background: rgba(255, 235, 150, 0.65);
-  border-radius: 2px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  background-image: repeating-linear-gradient(
-    90deg,
-    transparent,
-    transparent 4px,
-    rgba(255,255,255,0.15) 4px,
-    rgba(255,255,255,0.15) 5px
-  );
-}
-.polaroid-wrap img {
-  width: 100%; max-height: 200px;
-  object-fit: cover; display: block;
-  border-radius: 1px;
-}
+.polaroid-wrap { background:#F5F0E8; padding:10px 10px 32px 10px; box-shadow:0 4px 18px rgba(0,0,0,0.18); border-radius:2px; display:inline-block; margin:20px auto 8px; transform:rotate(-1.5deg); max-width:240px; position:relative; }
+.polaroid-wrap::before { content:''; position:absolute; top:-12px; left:50%; transform:translateX(-50%) rotate(1deg); width:60px; height:22px; background:rgba(255,235,150,0.65); border-radius:2px; box-shadow:0 1px 3px rgba(0,0,0,0.1); background-image:repeating-linear-gradient(90deg,transparent,transparent 4px,rgba(255,255,255,0.15) 4px,rgba(255,255,255,0.15) 5px); }
+.polaroid-wrap img { width:100%; max-height:200px; object-fit:cover; display:block; border-radius:1px; }
 
-/* ===================================================
-   [新增 v1.16.0] 我的路線頁 — 列表樣式卡片
-   =================================================== */
-#listPageHeader {
-  width:92%; max-width:450px; margin:0 auto 12px;
-  display:flex; justify-content:flex-end; align-items:center;
-}
-#btnManage {
-  padding:7px 16px; border-radius:20px; border:1.5px solid var(--border-light);
-  font-size:12px; background:var(--white); color:var(--text-soft);
-  cursor:pointer; letter-spacing:0.5px;
-  transition: all 0.2s;
-}
-#btnManage.active {
-  border-color: var(--accent-positive); color: var(--accent-positive);
-  font-weight: bold;
-}
-.route-row {
-  width:92%; max-width:450px; margin:6px auto;
-  background:var(--white); border-radius:16px;
-  box-shadow:0 2px 10px rgba(0,0,0,0.05);
-  border-left:5px solid var(--accent-positive);
-  box-sizing:border-box; overflow:hidden;
-  transition: box-shadow 0.2s;
-}
+#listPageHeader { width:92%; max-width:450px; margin:0 auto 12px; display:flex; justify-content:flex-end; align-items:center; }
+#btnManage { padding:7px 16px; border-radius:20px; border:1.5px solid var(--border-light); font-size:12px; background:var(--white); color:var(--text-soft); cursor:pointer; letter-spacing:0.5px; transition:all 0.2s; }
+#btnManage.active { border-color:var(--accent-positive); color:var(--accent-positive); font-weight:bold; }
+
+.route-row { width:92%; max-width:450px; margin:6px auto; background:var(--white); border-radius:16px; box-shadow:0 2px 10px rgba(0,0,0,0.05); border-left:5px solid var(--accent-positive); box-sizing:border-box; overflow:hidden; transition:box-shadow 0.2s; }
 .route-row.is-pinned { border-left-color:var(--accent-pin); background:#FFFDF5; }
 .route-row:active { box-shadow:0 1px 5px rgba(0,0,0,0.08); }
-.route-row-main {
-  display:flex; align-items:center;
-  padding:12px 14px; gap:10px; cursor:pointer;
-  user-select:none; -webkit-user-select:none;
-}
-.route-checkbox-wrap {
-  display:none;
-  align-items:center; justify-content:center;
-  width:24px; height:24px; flex-shrink:0;
-}
-.route-checkbox {
-  width:20px; height:20px; border-radius:6px;
-  border:2px solid var(--border-light);
-  background:var(--white); cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  transition: all 0.15s;
-}
-.route-checkbox.checked {
-  background:var(--accent-positive); border-color:var(--accent-positive);
-}
+.route-row-main { display:flex; align-items:center; padding:12px 14px; gap:10px; cursor:pointer; user-select:none; -webkit-user-select:none; }
+.route-checkbox-wrap { display:none; align-items:center; justify-content:center; width:24px; height:24px; flex-shrink:0; }
+.route-checkbox { width:20px; height:20px; border-radius:6px; border:2px solid var(--border-light); background:var(--white); cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+.route-checkbox.checked { background:var(--accent-positive); border-color:var(--accent-positive); }
 .route-checkbox.checked::after { content:'✓'; color:white; font-size:13px; font-weight:bold; }
-.route-color-dot {
-  width:10px; height:10px; border-radius:50%; flex-shrink:0;
-}
+.route-color-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 .route-row-info { flex:1; min-width:0; }
-.route-row-name {
-  font-size:15px; font-weight:bold; color:var(--text-main);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  margin-bottom:2px;
-}
-.route-row-meta {
-  font-size:12px; color:var(--text-soft); letter-spacing:0.3px;
-}
-.route-row-arrow {
-  font-size:12px; color:var(--text-soft); flex-shrink:0;
-  transition: transform 0.25s ease;
-}
-.route-row.expanded .route-row-arrow { transform: rotate(180deg); }
-.route-row-actions {
-  max-height:0; overflow:hidden;
-  transition: max-height 0.28s ease, padding 0.28s ease;
-  padding: 0 14px;
-}
-.route-row.expanded .route-row-actions {
-  max-height:80px; padding: 0 14px 12px;
-}
-.route-action-btns {
-  display:flex; gap:8px; border-top:1px solid var(--border-light);
-  padding-top:10px;
-}
-.route-action-btn {
-  flex:1; padding:9px 4px; border-radius:12px; border:none;
-  font-size:13px; cursor:pointer; text-align:center;
-  font-family:'Poly','Microsoft JhengHei',sans-serif;
-  transition: opacity 0.15s;
-}
+.route-row-name { font-size:15px; font-weight:bold; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; }
+.route-row-meta { font-size:12px; color:var(--text-soft); letter-spacing:0.3px; }
+.route-row-arrow { font-size:12px; color:var(--text-soft); flex-shrink:0; transition:transform 0.25s ease; }
+.route-row.expanded .route-row-arrow { transform:rotate(180deg); }
+.route-row-actions { max-height:0; overflow:hidden; transition:max-height 0.28s ease,padding 0.28s ease; padding:0 14px; }
+.route-row.expanded .route-row-actions { max-height:80px; padding:0 14px 12px; }
+.route-action-btns { display:flex; gap:8px; border-top:1px solid var(--border-light); padding-top:10px; }
+.route-action-btn { flex:1; padding:9px 4px; border-radius:12px; border:none; font-size:13px; cursor:pointer; text-align:center; font-family:'Poly','Microsoft JhengHei',sans-serif; transition:opacity 0.15s; }
 .route-action-btn:active { opacity:0.7; }
-.btn-load  { background:#EEF6F3; color:var(--accent-positive); font-weight:bold; }
-.btn-pin   { background:var(--bg-warm); color:var(--text-soft); }
+.btn-load { background:#EEF6F3; color:var(--accent-positive); font-weight:bold; }
+.btn-pin { background:var(--bg-warm); color:var(--text-soft); }
 .btn-share { background:var(--bg-warm); color:var(--text-soft); }
-.btn-del   { background:#FFF0F0; color:#E57373; }
+.btn-del { background:#FFF0F0; color:#E57373; }
 body.select-mode .route-checkbox-wrap { display:flex; }
-body.select-mode .route-row-arrow     { display:none; }
+body.select-mode .route-row-arrow { display:none; }
 body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:0 14px; }
 
-/* 批次刪除浮動列 */
-#batchDeleteBar {
-  position:fixed; bottom:75px; left:0; width:100%;
-  background:var(--white); border-top:1px solid var(--border-light);
-  padding:10px 20px; box-sizing:border-box;
-  display:none; justify-content:space-between; align-items:center;
-  z-index:1800;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-}
+#batchDeleteBar { position:fixed; bottom:75px; left:0; width:100%; background:var(--white); border-top:1px solid var(--border-light); padding:10px 20px; box-sizing:border-box; display:none; justify-content:space-between; align-items:center; z-index:1800; box-shadow:0 -4px 20px rgba(0,0,0,0.08); }
 #batchDeleteBar.visible { display:flex; }
 #batchDeleteLabel { font-size:14px; color:var(--text-soft); }
-#batchDeleteBtn {
-  padding:10px 22px; border-radius:14px; border:none;
-  background:#E57373; color:white; font-size:14px; font-weight:bold;
-  cursor:pointer;
-}
+#batchDeleteBtn { padding:10px 22px; border-radius:14px; border:none; background:#E57373; color:white; font-size:14px; font-weight:bold; cursor:pointer; }
 #batchDeleteBtn:disabled { opacity:0.4; cursor:not-allowed; }
-#batchCancelBtn {
-  padding:10px 16px; border-radius:14px; border:none;
-  background:var(--bg-warm); color:var(--text-soft); font-size:14px;
-  cursor:pointer; margin-right:8px;
-}
+#batchCancelBtn { padding:10px 16px; border-radius:14px; border:none; background:var(--bg-warm); color:var(--text-soft); font-size:14px; cursor:pointer; margin-right:8px; }
 
-/* ===================================================
-   [新增 v1.17.0] 帳號橫幅
-   =================================================== */
-#accountBanner {
-  width:92%; max-width:450px; margin:0 auto 12px;
-  border-radius:16px; padding:12px 16px;
-  box-sizing:border-box; display:none;
-}
-#btnLinkGoogle {
-  flex-shrink:0; display:flex; align-items:center; gap:6px;
-  padding:9px 14px; border-radius:12px; border:1.5px solid var(--border-light);
-  background:var(--white); color:var(--text-main); font-size:13px;
-  font-family:'Poly','Microsoft JhengHei',sans-serif;
-  cursor:pointer; white-space:nowrap; font-weight:bold;
-  box-shadow:0 2px 8px rgba(0,0,0,0.06);
-  transition: opacity 0.2s;
-}
+/* [v1.17.0] 帳號橫幅 */
+#accountBanner { width:92%; max-width:450px; margin:0 auto 12px; border-radius:16px; padding:12px 16px; box-sizing:border-box; display:none; }
+#btnLinkGoogle { flex-shrink:0; display:flex; align-items:center; gap:6px; padding:9px 14px; border-radius:12px; border:1.5px solid var(--border-light); background:var(--white); color:var(--text-main); font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif; cursor:pointer; white-space:nowrap; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.06); transition:opacity 0.2s; }
 #btnLinkGoogle:disabled { opacity:0.5; cursor:not-allowed; }
 #btnLinkGoogle:active { opacity:0.8; }
 </style>
 
-<!-- [改版 v1.17.0] Firebase Auth + Firestore + Storage 初始化 -->
+<!-- [v1.17.1] Firebase — 新增 linkWithPopup -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-/* [改版 v1.17.0] 新增 GoogleAuthProvider, linkWithCredential, signInWithPopup, signInWithRedirect, getRedirectResult */
-import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, linkWithCredential, signInWithPopup, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, linkWithCredential, signInWithPopup, signInWithRedirect, getRedirectResult, linkWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
@@ -429,51 +175,35 @@ window.storage = storage;
 window.storageApi = { ref, uploadBytes, getDownloadURL, deleteObject };
 window.api = { addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, collection, serverTimestamp, query, where, orderBy };
 
-/* [新增 v1.17.0] 暴露 Auth 相關給全域 script 使用
-   PSEUDO: module scope 的變數不能直接在外部 script 存取，
-   必須掛到 window 才能在 linkGoogleAccount() 裡呼叫 */
 window._auth = auth;
 window._GoogleAuthProvider = GoogleAuthProvider;
 window._linkWithCredential = linkWithCredential;
 window._signInWithPopup = signInWithPopup;
 window._signInWithRedirect = signInWithRedirect;
 window._getRedirectResult = getRedirectResult;
+/* [v1.17.1] 新增 linkWithPopup 暴露 */
+window._linkWithPopup = linkWithPopup;
 
-signInAnonymously(auth).catch(function(err){
-  console.warn('[Auth] 匿名登入失敗:', err);
-});
+signInAnonymously(auth).catch(function(err){ console.warn('[Auth] 匿名登入失敗:', err); });
 
 onAuthStateChanged(auth, function(user){
   if(user){
     window.currentUid = user.uid;
-    /* [新增 v1.17.0] 存整個 user 物件，供 updateAccountBanner() 判斷 isAnonymous */
     window._firebaseUser = user;
     if(window._authReadyCallback) window._authReadyCallback();
-    /* [新增 v1.17.0] Auth 狀態變更時自動更新橫幅（含綁定成功後） */
     if(window.updateAccountBanner) window.updateAccountBanner();
   }
 });
 
-/* [新增 v1.17.0] 處理 Redirect 回調
-   PSEUDO: signInWithRedirect 會讓頁面跳走再跳回，
-   頁面重新載入後要用 getRedirectResult 取得結果
-   若有結果且是 redirect 模式，執行 linkWithCredential */
 getRedirectResult(auth).then(function(result){
-  if(!result) return; /* 不是從 redirect 回來的，忽略 */
-  /* PSEUDO: 取得 Google credential 並嘗試 link */
+  if(!result) return;
   var credential = GoogleAuthProvider.credentialFromResult(result);
   if(!credential) return;
-  /* PSEUDO: 此時 auth.currentUser 已是 redirect 登入的帳號，不是匿名
-     需要用先前儲存的匿名 user 來 link，但 redirect 模式下 Firebase
-     實際上會自動處理，若 result.user.isAnonymous === false 代表已成功 */
   if(result.user && !result.user.isAnonymous){
-    /* PSEUDO: redirect 成功，UI 由 onAuthStateChanged 自動更新 */
     console.log('[Auth] Google redirect 綁定成功:', result.user.email);
   }
 }).catch(function(err){
-  if(err && err.code !== 'auth/no-auth-event'){
-    console.warn('[Auth] Redirect result error:', err);
-  }
+  if(err && err.code !== 'auth/no-auth-event') console.warn('[Auth] Redirect result error:', err);
 });
 </script>
 </head>
@@ -495,31 +225,23 @@ getRedirectResult(auth).then(function(result){
 <div class="map-controls">
   <button class="map-btn" onclick="focusOnMe()">📍</button>
   <button class="map-btn hidden" id="btnFocusRoute" onclick="focusOnRouteStart()">🛣️</button>
-  <button class="map-btn hidden" id="btnClearRoute" onclick="clearLoadedRoute()"
-    style="font-size:16px; color:var(--text-soft);">✕</button>
+  <button class="map-btn hidden" id="btnClearRoute" onclick="clearLoadedRoute()" style="font-size:16px;color:var(--text-soft);">✕</button>
 </div>
 
-<!-- 隱藏的 file input -->
-<input type="file" id="photoFileInput" accept="image/*" capture="environment"
-  style="display:none;" onchange="handlePhotoSelected(this)">
+<input type="file" id="photoFileInput" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoSelected(this)">
 
-<!-- 照片確認視窗 -->
 <div id="photoConfirmModal">
   <div class="modal-content" style="text-align:center;">
-    <div style="font-weight:bold; font-size:16px; margin-bottom:12px;">確認使用這張照片？</div>
-    <img id="photoConfirmImg" src="" alt="照片預覽">
-    <div style="display:flex; gap:10px; justify-content:center;">
-      <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);font-size:13px;padding:12px;"
-        onclick="retakePhoto()">🔄 重拍</button>
-      <button class="btn-base" style="background:#EEE;color:#666;font-size:13px;padding:12px;"
-        onclick="cancelPhoto()">✕ 取消</button>
-      <button class="btn-base btn-event" style="font-size:13px;padding:12px;"
-        onclick="confirmPhoto()">✓ 使用</button>
+    <div style="font-weight:bold;font-size:16px;margin-bottom:12px;">確認使用這張照片？</div>
+    <img id="photoConfirmImg" src="" alt="照片預覽" style="width:100%;max-height:280px;object-fit:contain;border-radius:12px;margin-bottom:16px;">
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);font-size:13px;padding:12px;" onclick="retakePhoto()">🔄 重拍</button>
+      <button class="btn-base" style="background:#EEE;color:#666;font-size:13px;padding:12px;" onclick="cancelPhoto()">✕ 取消</button>
+      <button class="btn-base btn-event" style="font-size:13px;padding:12px;" onclick="confirmPhoto()">✓ 使用</button>
     </div>
   </div>
 </div>
 
-<!-- 回憶視窗 -->
 <div id="memoryBox" onclick="closeMemoryBox()">
   <div class="modal-content" onclick="event.stopPropagation()" style="position:relative;text-align:center;padding-top:40px;">
     <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
@@ -534,7 +256,6 @@ getRedirectResult(auth).then(function(result){
   </div>
 </div>
 
-<!-- 紀錄事件彈窗 -->
 <div id="eventModal">
   <div class="modal-content">
     <div style="font-weight:bold;font-size:18px;text-align:center;margin-bottom:10px;">紀錄這一刻</div>
@@ -542,8 +263,7 @@ getRedirectResult(auth).then(function(result){
       <div id="placeLabel">📍 附近地標</div>
       <div id="placeTags"><span class="place-detecting">偵測中...</span></div>
     </div>
-    <textarea id="eventText" placeholder="寫下心情..." maxlength="100"
-      style="width:100%;height:68px;border:1px solid #EEE;padding:10px;border-radius:12px;margin:8px 0 8px;box-sizing:border-box;outline:none;resize:none;"></textarea>
+    <textarea id="eventText" placeholder="寫下心情..." maxlength="100" style="width:100%;height:68px;border:1px solid #EEE;padding:10px;border-radius:12px;margin:8px 0 8px;box-sizing:border-box;outline:none;resize:none;"></textarea>
     <div id="photoSection">
       <button id="cameraBtn" onclick="openCamera()">📷 加入照片</button>
       <img id="photoPreviewThumb" src="" alt="照片預覽" onclick="openCamera()">
@@ -565,8 +285,7 @@ getRedirectResult(auth).then(function(result){
 <div id="saveModal">
   <div class="modal-content">
     <div style="font-weight:bold;font-size:18px;text-align:center;">保存這趟漫遊</div>
-    <input type="text" id="routeName" placeholder="為這條路線命名..."
-      style="width:100%;border:1px solid #EEE;padding:12px;border-radius:12px;margin:15px 0;box-sizing:border-box;">
+    <input type="text" id="routeName" placeholder="為這條路線命名..." style="width:100%;border:1px solid #EEE;padding:12px;border-radius:12px;margin:15px 0;box-sizing:border-box;">
     <div style="display:flex;gap:12px;">
       <button class="btn-base" style="background:#EEE;color:#666;" onclick="document.getElementById('saveModal').style.display='none'">取消</button>
       <button class="btn-base btn-main" id="btnConfirmSave" onclick="executeCloudSave()">確認加入</button>
@@ -593,14 +312,9 @@ getRedirectResult(auth).then(function(result){
   </div>
 </div>
 
-<!-- IG 分享卡片預覽 Modal -->
 <div id="shareCardModal" onclick="closeShareCard()">
-  <canvas id="shareCardCanvas"
-    onclick="event.stopPropagation(); cycleSharePhoto()"
-    style="cursor:pointer;"></canvas>
-  <div id="sharePhotoHint" style="color:rgba(255,255,255,0.7);font-size:13px;letter-spacing:1px;display:none;">
-    點擊照片換一張 &nbsp;<span id="sharePhotoIndex"></span>
-  </div>
+  <canvas id="shareCardCanvas" onclick="event.stopPropagation();cycleSharePhoto()" style="cursor:pointer;"></canvas>
+  <div id="sharePhotoHint" style="color:rgba(255,255,255,0.7);font-size:13px;letter-spacing:1px;display:none;">點擊照片換一張 &nbsp;<span id="sharePhotoIndex"></span></div>
   <div id="shareCardBtns" onclick="event.stopPropagation()">
     <button style="background:#EEE;color:#666;" onclick="closeShareCard()">關閉</button>
     <button style="background:var(--accent-positive);color:white;" onclick="downloadShareCard()">⬇ 下載圖片</button>
@@ -610,20 +324,13 @@ getRedirectResult(auth).then(function(result){
 <div id="page-list" class="page hidden">
   <h2 style="text-align:center;letter-spacing:2px;margin:0 0 16px;padding-top:60px;">MY JOURNEYS</h2>
 
-  <!-- ===================================================
-       [新增 v1.17.0] 帳號綁定橫幅
-       PSEUDO:
-       - 匿名：暖黃背景，顯示「匿名使用者 · 點此保護資料」+ 綁定 Google 鈕
-       - 已綁定：薄荷綠背景，顯示 avatar 首字母 + email
-       - updateAccountBanner() 依 window._firebaseUser 狀態切換
-       =================================================== -->
+  <!-- [v1.17.0] 帳號橫幅 -->
   <div id="accountBanner">
-    <!-- 匿名狀態 -->
     <div id="bannerAnon" style="display:none;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <div>
-          <div style="font-size:12px; color:var(--text-soft); letter-spacing:0.3px;">👤 匿名使用者</div>
-          <div style="font-size:13px; color:var(--text-main); margin-top:2px;">綁定帳號，避免資料遺失</div>
+          <div style="font-size:12px;color:var(--text-soft);letter-spacing:0.3px;">👤 匿名使用者</div>
+          <div style="font-size:13px;color:var(--text-main);margin-top:2px;">綁定帳號，避免資料遺失</div>
         </div>
         <button id="btnLinkGoogle" onclick="linkGoogleAccount()">
           <svg width="16" height="16" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -636,76 +343,45 @@ getRedirectResult(auth).then(function(result){
         </button>
       </div>
     </div>
-    <!-- 已綁定狀態 -->
     <div id="bannerLinked" style="display:none;">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <div id="bannerAvatar" style="width:32px; height:32px; border-radius:50%;
-             background:var(--accent-positive); color:white;
-             display:flex; align-items:center; justify-content:center;
-             font-size:14px; font-weight:bold; flex-shrink:0;">G</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="bannerAvatar" style="width:32px;height:32px;border-radius:50%;background:var(--accent-positive);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;flex-shrink:0;">G</div>
         <div>
-          <div style="font-size:11px; color:var(--text-soft);">✅ 已綁定 Google 帳號</div>
-          <div style="font-size:13px; color:var(--text-main); font-weight:bold;" id="bannerEmail"></div>
+          <div style="font-size:11px;color:var(--text-soft);">✅ 已綁定 Google 帳號</div>
+          <div style="font-size:13px;color:var(--text-main);font-weight:bold;" id="bannerEmail"></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- [新增 v1.16.0] 管理模式按鈕 -->
   <div id="listPageHeader">
     <button id="btnManage" onclick="toggleSelectMode()">管理</button>
   </div>
 
-  <!-- [新增 v1.13.0] 個人統計區 -->
   <div id="statsPanel">
     <div class="stats-title">我的足跡</div>
     <div class="stats-grid">
-      <div class="stat-item">
-        <div class="stat-value" id="statRoutes">—</div>
-        <div class="stat-label">🗺 地圖紀錄</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value" id="statKm">—</div>
-        <div class="stat-label">👣 總里程 km</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value" id="statCities">—</div>
-        <div class="stat-label">🏙 個城市</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value" id="statEvents">—</div>
-        <div class="stat-label">📸 個事件</div>
-      </div>
+      <div class="stat-item"><div class="stat-value" id="statRoutes">—</div><div class="stat-label">🗺 地圖紀錄</div></div>
+      <div class="stat-item"><div class="stat-value" id="statKm">—</div><div class="stat-label">👣 總里程 km</div></div>
+      <div class="stat-item"><div class="stat-value" id="statCities">—</div><div class="stat-label">🏙 個城市</div></div>
+      <div class="stat-item"><div class="stat-value" id="statEvents">—</div><div class="stat-label">📸 個事件</div></div>
     </div>
   </div>
 
-  <!-- [新增 v1.15.2] 路線名稱搜尋框 -->
   <div style="width:92%;max-width:450px;margin:0 auto 12px;box-sizing:border-box;">
-    <input type="text" id="searchInput" placeholder="🔍 搜尋路線名稱..."
-      oninput="applyFilters()"
-      style="width:100%;padding:10px 16px;border-radius:20px;border:1.5px solid var(--border-light);
-             font-size:13px;font-family:'Poly','Microsoft JhengHei',sans-serif;
-             background:var(--white);color:var(--text-main);
-             outline:none;box-sizing:border-box;transition:border-color 0.2s;">
+    <input type="text" id="searchInput" placeholder="🔍 搜尋路線名稱..." oninput="applyFilters()" style="width:100%;padding:10px 16px;border-radius:20px;border:1.5px solid var(--border-light);font-size:13px;font-family:'Poly','Microsoft JhengHei',sans-serif;background:var(--white);color:var(--text-main);outline:none;box-sizing:border-box;transition:border-color 0.2s;">
   </div>
 
-  <!-- [新增 v1.13.0] 篩選列 -->
   <div id="filterBar">
-    <select class="filter-select" id="filterCity" onchange="applyFilters()">
-      <option value="">🏙 所有城市</option>
-    </select>
+    <select class="filter-select" id="filterCity" onchange="applyFilters()"><option value="">🏙 所有城市</option></select>
     <select class="filter-select" id="filterKm" onchange="applyFilters()">
       <option value="">👣 所有里程</option>
-      <option value="0-1">0–1 km</option>
-      <option value="1-5">1–5 km</option>
-      <option value="5-10">5–10 km</option>
-      <option value="10+">10 km 以上</option>
+      <option value="0-1">0–1 km</option><option value="1-5">1–5 km</option>
+      <option value="5-10">5–10 km</option><option value="10+">10 km 以上</option>
     </select>
     <select class="filter-select" id="filterDate" onchange="applyFilters()">
       <option value="">📅 所有日期</option>
-      <option value="7">最近 7 天</option>
-      <option value="30">最近 30 天</option>
-      <option value="90">最近 3 個月</option>
+      <option value="7">最近 7 天</option><option value="30">最近 30 天</option><option value="90">最近 3 個月</option>
     </select>
     <span id="filterCount"></span>
     <button id="clearFilterBtn" onclick="clearFilters()">✕ 清除</button>
@@ -714,7 +390,6 @@ getRedirectResult(auth).then(function(result){
   <div id="recordsContainer"></div>
 </div>
 
-<!-- [新增 v1.16.0] 批次刪除浮動列 -->
 <div id="batchDeleteBar">
   <div id="batchDeleteLabel">已選 0 條</div>
   <div>
@@ -736,191 +411,72 @@ var historyMarkers=[], locatingTimer=null, selectedTrackColor='#333333';
 var rawGpsBuffer=[], ROADS_API_KEY='AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
 var pauseWindowPoints=[], pauseWindowStart=null;
 var nearbyPlaces=[], selectedPlace=null;
-var selectedPhotoBlob = null;
-var selectedPhotoDataUrl = null;
+var selectedPhotoBlob=null, selectedPhotoDataUrl=null;
 
-var ICON_CATEGORIES = [
-  { name:'美食', emoji:'🍽️', icons:['☕','🍔','🍜','🍣','🧁','🍺','🧃','🍦','🥐','🍱'] },
-  { name:'自然', emoji:'🌿', icons:['🌸','🌳','🌊','🌙','☀️','🌧️','🍂','🌈','🏔️','🌺'] },
-  { name:'地點', emoji:'📍', icons:['🏛️','🏪','🚉','🌉','🏠','🎭','🏟️','⛩️','🗼','🛣️'] },
-  { name:'心情', emoji:'💭', icons:['✨','❤️','😊','🥹','😮','💡','🤔','😴','🥰','🎉'] },
-  { name:'活動', emoji:'🎯', icons:['📸','🎵','🛍️','📖','🎨','🏃','🚲','⚽','🎮','🎤'] },
-  { name:'特別', emoji:'⭐', icons:['⭐','🏆','💎','🎁','🔖','📌','🗓️','💫','🕐','🎊'] }
+var ICON_CATEGORIES=[
+  {name:'美食',emoji:'🍽️',icons:['☕','🍔','🍜','🍣','🧁','🍺','🧃','🍦','🥐','🍱']},
+  {name:'自然',emoji:'🌿',icons:['🌸','🌳','🌊','🌙','☀️','🌧️','🍂','🌈','🏔️','🌺']},
+  {name:'地點',emoji:'📍',icons:['🏛️','🏪','🚉','🌉','🏠','🎭','🏟️','⛩️','🗼','🛣️']},
+  {name:'心情',emoji:'💭',icons:['✨','❤️','😊','🥹','😮','💡','🤔','😴','🥰','🎉']},
+  {name:'活動',emoji:'🎯',icons:['📸','🎵','🛍️','📖','🎨','🏃','🚲','⚽','🎮','🎤']},
+  {name:'特別',emoji:'⭐',icons:['⭐','🏆','💎','🎁','🔖','📌','🗓️','💫','🕐','🎊']}
 ];
-function buildIconPicker() {
-  var tc=document.getElementById('iconCategoryTabs'); tc.innerHTML='';
-  ICON_CATEGORIES.forEach(function(cat,idx) {
-    var tab=document.createElement('div');
-    tab.className='icon-tab'+(idx===0?' active':'');
-    tab.innerText=cat.emoji+' '+cat.name;
-    tab.onclick=function(){switchIconCategory(idx);};
-    tc.appendChild(tab);
-  });
-  renderIconGrid(0);
-}
-function switchIconCategory(idx) {
-  document.querySelectorAll('.icon-tab').forEach(function(t,i){t.classList.toggle('active',i===idx);});
-  renderIconGrid(idx);
-}
-function renderIconGrid(idx) {
-  var grid=document.getElementById('iconGrid'); grid.innerHTML='';
-  ICON_CATEGORIES[idx].icons.forEach(function(emoji) {
-    var cell=document.createElement('div');
-    cell.className='icon-cell'+(emoji===selectedIcon?' selected':'');
-    cell.innerText=emoji;
-    cell.onclick=function(){
-      selectedIcon=emoji;
-      document.querySelectorAll('.icon-cell').forEach(function(c){c.classList.remove('selected');});
-      cell.classList.add('selected');
-      document.getElementById('selectedIconPreview').innerText=emoji;
-    };
-    grid.appendChild(cell);
-  });
-}
+function buildIconPicker(){var tc=document.getElementById('iconCategoryTabs');tc.innerHTML='';ICON_CATEGORIES.forEach(function(cat,idx){var tab=document.createElement('div');tab.className='icon-tab'+(idx===0?' active':'');tab.innerText=cat.emoji+' '+cat.name;tab.onclick=function(){switchIconCategory(idx);};tc.appendChild(tab);});renderIconGrid(0);}
+function switchIconCategory(idx){document.querySelectorAll('.icon-tab').forEach(function(t,i){t.classList.toggle('active',i===idx);});renderIconGrid(idx);}
+function renderIconGrid(idx){var grid=document.getElementById('iconGrid');grid.innerHTML='';ICON_CATEGORIES[idx].icons.forEach(function(emoji){var cell=document.createElement('div');cell.className='icon-cell'+(emoji===selectedIcon?' selected':'');cell.innerText=emoji;cell.onclick=function(){selectedIcon=emoji;document.querySelectorAll('.icon-cell').forEach(function(c){c.classList.remove('selected');});cell.classList.add('selected');document.getElementById('selectedIconPreview').innerText=emoji;};grid.appendChild(cell);});}
 
-var ENCOURAGE_LIST=[
-  '每一步都是在和這座城市說你好。','你走過的路，都成為了你的一部分。',
-  '不趕時間的移動，才看得見風景。','今天的漫遊，是送給未來的你的禮物。',
-  '走路是最誠實的旅行方式。','迷路也是一種探索。',
-  '城市的故事，藏在你停下來的每個瞬間。','腳步慢下來，世界就大了起來。',
-  '你不是在趕路，你是在收集記憶。','走著走著，就找到了答案。',
-  '每條路都值得被好好走過。','今天的你，多認識了一點這座城市。',
-  '散步是一種溫柔的勇氣。','你的足跡，是這座城市最好的地圖。',
-  '好好走路，是對自己最好的陪伴。','慢慢走，什麼都會來的。',
-  '城市不大，只要你願意用腳丈量。','今天走過的路，明天會變成想念。',
-  '每次 City Walk，都是一次小小的冒險。','謝謝你今天也好好走路了。'
-];
-function getDailyEncouragement() {
-  var today=new Date();
-  var seed=today.getFullYear()*10000+(today.getMonth()+1)*100+today.getDate();
-  return ENCOURAGE_LIST[seed%ENCOURAGE_LIST.length];
-}
+var ENCOURAGE_LIST=['每一步都是在和這座城市說你好。','你走過的路，都成為了你的一部分。','不趕時間的移動，才看得見風景。','今天的漫遊，是送給未來的你的禮物。','走路是最誠實的旅行方式。','迷路也是一種探索。','城市的故事，藏在你停下來的每個瞬間。','腳步慢下來，世界就大了起來。','你不是在趕路，你是在收集記憶。','走著走著，就找到了答案。','每條路都值得被好好走過。','今天的你，多認識了一點這座城市。','散步是一種溫柔的勇氣。','你的足跡，是這座城市最好的地圖。','好好走路，是對自己最好的陪伴。','慢慢走，什麼都會來的。','城市不大，只要你願意用腳丈量。','今天走過的路，明天會變成想念。','每次 City Walk，都是一次小小的冒險。','謝謝你今天也好好走路了。'];
+function getDailyEncouragement(){var t=new Date();var s=t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate();return ENCOURAGE_LIST[s%ENCOURAGE_LIST.length];}
 function setStatusBar(t,bg){var b=document.getElementById('statusBar');b.innerText=t;b.style.backgroundColor=bg||'var(--status-idle)';}
 function closeMemoryBox(){document.getElementById('memoryBox').style.display='none';}
 function toggleColorPicker(){document.getElementById('colorOptions').classList.toggle('open');}
-function selectColor(el){
-  selectedTrackColor=el.getAttribute('data-color');
-  document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
-  document.querySelectorAll('.color-dot').forEach(function(d){d.classList.remove('selected');});
-  el.classList.add('selected');
-  if(pathLine)pathLine.setOptions({strokeColor:selectedTrackColor});
-  document.getElementById('colorOptions').classList.remove('open');
-}
-document.addEventListener('click',function(e){
-  var p=document.getElementById('colorPicker');
-  if(p&&!p.contains(e.target))document.getElementById('colorOptions').classList.remove('open');
-});
+function selectColor(el){selectedTrackColor=el.getAttribute('data-color');document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;document.querySelectorAll('.color-dot').forEach(function(d){d.classList.remove('selected');});el.classList.add('selected');if(pathLine)pathLine.setOptions({strokeColor:selectedTrackColor});document.getElementById('colorOptions').classList.remove('open');}
+document.addEventListener('click',function(e){var p=document.getElementById('colorPicker');if(p&&!p.contains(e.target))document.getElementById('colorOptions').classList.remove('open');});
 
-/* [v1.14.1] 薄荷綠地圖 Style C */
-var MINT_MAP_STYLE = [
-  {featureType:'all',elementType:'geometry',stylers:[{color:'#F2F4F0'}]},
-  {featureType:'all',elementType:'labels.text.fill',stylers:[{color:'#5A6B63'}]},
-  {featureType:'all',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},
-  {featureType:'administrative',elementType:'geometry.stroke',stylers:[{color:'#C8D8D0'},{weight:1}]},
-  {featureType:'administrative.land_parcel',elementType:'labels',stylers:[{visibility:'off'}]},
-  {featureType:'landscape.natural',elementType:'geometry',stylers:[{color:'#A8CFBC'}]},
-  {featureType:'poi.park',elementType:'geometry.fill',stylers:[{color:'#8FB9A8'}]},
-  {featureType:'poi.park',elementType:'labels.text.fill',stylers:[{color:'#4A8070'}]},
-  {featureType:'landscape.man_made',elementType:'geometry',stylers:[{color:'#E8ECE6'}]},
-  {featureType:'poi',elementType:'geometry',stylers:[{color:'#DDE8E0'}]},
-  {featureType:'poi',elementType:'labels',stylers:[{visibility:'simplified'}]},
-  {featureType:'poi',elementType:'labels.icon',stylers:[{saturation:-40}]},
-  {featureType:'road',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},
-  {featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#D4E0D8'},{weight:0.5}]},
-  {featureType:'road.highway',elementType:'geometry.fill',stylers:[{color:'#F0F5F0'}]},
-  {featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#B8CCBF'},{weight:1}]},
-  {featureType:'road.arterial',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},
-  {featureType:'road.local',elementType:'geometry.fill',stylers:[{color:'#FAFAFA'}]},
-  {featureType:'road',elementType:'labels.text.fill',stylers:[{color:'#6E8C7C'}]},
-  {featureType:'road',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},
-  {featureType:'water',elementType:'geometry.fill',stylers:[{color:'#C4DFF0'}]},
-  {featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#6FA8C8'}]},
-  {featureType:'transit',elementType:'geometry',stylers:[{color:'#D8E8E0'}]},
-  {featureType:'transit.station',elementType:'labels.icon',stylers:[{saturation:-20},{lightness:10}]},
-];
+var MINT_MAP_STYLE=[{featureType:'all',elementType:'geometry',stylers:[{color:'#F2F4F0'}]},{featureType:'all',elementType:'labels.text.fill',stylers:[{color:'#5A6B63'}]},{featureType:'all',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},{featureType:'administrative',elementType:'geometry.stroke',stylers:[{color:'#C8D8D0'},{weight:1}]},{featureType:'administrative.land_parcel',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'landscape.natural',elementType:'geometry',stylers:[{color:'#A8CFBC'}]},{featureType:'poi.park',elementType:'geometry.fill',stylers:[{color:'#8FB9A8'}]},{featureType:'poi.park',elementType:'labels.text.fill',stylers:[{color:'#4A8070'}]},{featureType:'landscape.man_made',elementType:'geometry',stylers:[{color:'#E8ECE6'}]},{featureType:'poi',elementType:'geometry',stylers:[{color:'#DDE8E0'}]},{featureType:'poi',elementType:'labels',stylers:[{visibility:'simplified'}]},{featureType:'poi',elementType:'labels.icon',stylers:[{saturation:-40}]},{featureType:'road',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},{featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#D4E0D8'},{weight:0.5}]},{featureType:'road.highway',elementType:'geometry.fill',stylers:[{color:'#F0F5F0'}]},{featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#B8CCBF'},{weight:1}]},{featureType:'road.arterial',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},{featureType:'road.local',elementType:'geometry.fill',stylers:[{color:'#FAFAFA'}]},{featureType:'road',elementType:'labels.text.fill',stylers:[{color:'#6E8C7C'}]},{featureType:'road',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},{featureType:'water',elementType:'geometry.fill',stylers:[{color:'#C4DFF0'}]},{featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#6FA8C8'}]},{featureType:'transit',elementType:'geometry',stylers:[{color:'#D8E8E0'}]},{featureType:'transit.station',elementType:'labels.icon',stylers:[{saturation:-20},{lightness:10}]}];
 
 async function initMap(){
   var {Map}=await google.maps.importLibrary('maps');
-  var mintStyledMap = new google.maps.StyledMapType(MINT_MAP_STYLE, {name:'CityWalker-C 薄荷綠'});
+  var mintStyledMap=new google.maps.StyledMapType(MINT_MAP_STYLE,{name:'CityWalker-C'});
   map=new Map(document.getElementById('map'),{zoom:17,center:{lat:25.0478,lng:121.5170},disableDefaultUI:true,mapTypeControlOptions:{mapTypeIds:['roadmap','styled_map']}});
-  map.mapTypes.set('styled_map', mintStyledMap);
-  map.setMapTypeId('styled_map');
+  map.mapTypes.set('styled_map',mintStyledMap);map.setMapTypeId('styled_map');
   userMarker=new google.maps.Marker({map:map,zIndex:999,label:{text:'👣',fontSize:'22px'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:0},optimized:false});
   pathLine=new google.maps.Polyline({map,strokeColor:selectedTrackColor,strokeWeight:6,strokeOpacity:0.85});
   geocoder=new google.maps.Geocoder();
   document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
   buildIconPicker();
   setStatusBar('📡 取得位置中...','var(--status-locating)');
-  navigator.geolocation.getCurrentPosition(
-    function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude};map.setCenter(p);userMarker.setPosition(p);setStatusBar('City Walker','var(--status-idle)');},
-    function(){setStatusBar('City Walker','var(--status-idle)');},
-    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
-  );
-  window._authReadyCallback = function(){};
-  if(window.currentUid) window._authReadyCallback();
+  navigator.geolocation.getCurrentPosition(function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude};map.setCenter(p);userMarker.setPosition(p);setStatusBar('City Walker','var(--status-idle)');},function(){setStatusBar('City Walker','var(--status-idle)');},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
+  window._authReadyCallback=function(){};
+  if(window.currentUid)window._authReadyCallback();
 }
 
-function getUserPosition(){
-  var pos=userMarker&&userMarker.getPosition();
-  if(!pos)return null;
-  if(typeof pos.lat==='function')return{lat:pos.lat(),lng:pos.lng()};
-  return{lat:pos.lat,lng:pos.lng};
-}
-function focusOnMe(){
-  navigator.geolocation.getCurrentPosition(
-    function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude};userMarker.setPosition(p);map.panTo(p);},
-    function(){var p=getUserPosition();if(p)map.panTo(p);},
-    {enableHighAccuracy:true,timeout:8000,maximumAge:3000}
-  );
-}
+function getUserPosition(){var pos=userMarker&&userMarker.getPosition();if(!pos)return null;if(typeof pos.lat==='function')return{lat:pos.lat(),lng:pos.lng()};return{lat:pos.lat,lng:pos.lng};}
+function focusOnMe(){navigator.geolocation.getCurrentPosition(function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude};userMarker.setPosition(p);map.panTo(p);},function(){var p=getUserPosition();if(p)map.panTo(p);},{enableHighAccuracy:true,timeout:8000,maximumAge:3000});}
 function focusOnRouteStart(){var p=pathLine.getPath().getArray();if(p.length>0)map.panTo(p[0]);}
 
 async function snapToRoads(points){
   if(!points||points.length===0)return;
   var pathStr=points.map(function(p){return p.lat+','+p.lng;}).join('|');
-  try{
-    var res=await fetch('https://roads.googleapis.com/v1/snapToRoads?path='+encodeURIComponent(pathStr)+'&interpolate=true&key='+ROADS_API_KEY);
-    var data=await res.json();
-    if(data.snappedPoints&&data.snappedPoints.length>0){
-      data.snappedPoints.forEach(function(sp){walkPath.push({lat:sp.location.latitude,lng:sp.location.longitude});});
-      pathLine.setPath(walkPath);
-      var last=walkPath[walkPath.length-1];userMarker.setPosition(last);map.panTo(last);
-    }
+  try{var res=await fetch('https://roads.googleapis.com/v1/snapToRoads?path='+encodeURIComponent(pathStr)+'&interpolate=true&key='+ROADS_API_KEY);var data=await res.json();if(data.snappedPoints&&data.snappedPoints.length>0){data.snappedPoints.forEach(function(sp){walkPath.push({lat:sp.location.latitude,lng:sp.location.longitude});});pathLine.setPath(walkPath);var last=walkPath[walkPath.length-1];userMarker.setPosition(last);map.panTo(last);}
   }catch(err){console.warn('[Roads API]',err);points.forEach(function(p){walkPath.push(p);});pathLine.setPath(walkPath);}
 }
 async function flushRawBuffer(){if(rawGpsBuffer.length>0){var r=rawGpsBuffer.slice();rawGpsBuffer=[];await snapToRoads(r);}}
 
 function startWalk(){
-  startTime=new Date();
-  document.getElementById('state-init').classList.add('hidden');
-  document.getElementById('state-recording').classList.remove('hidden');
-  setStatusBar('📡 取得定位狀態中','var(--status-locating)');
-  document.getElementById('colorPicker').style.display='none';
-  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85});
-  pauseWindowPoints=[];pauseWindowStart=new Date();
-  locatingTimer=setTimeout(function(){
-    navigator.geolocation.clearWatch(watchId);
-    setStatusBar('⚠️ 定位失敗','var(--status-ended)');
-    document.getElementById('state-recording').classList.add('hidden');
-    document.getElementById('state-finished').classList.remove('hidden');
-    document.getElementById('summaryBox').innerHTML='<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';
-  },60000);
+  startTime=new Date();document.getElementById('state-init').classList.add('hidden');document.getElementById('state-recording').classList.remove('hidden');
+  setStatusBar('📡 取得定位狀態中','var(--status-locating)');document.getElementById('colorPicker').style.display='none';
+  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85});pauseWindowPoints=[];pauseWindowStart=new Date();
+  locatingTimer=setTimeout(function(){navigator.geolocation.clearWatch(watchId);setStatusBar('⚠️ 定位失敗','var(--status-ended)');document.getElementById('state-recording').classList.add('hidden');document.getElementById('state-finished').classList.remove('hidden');document.getElementById('summaryBox').innerHTML='<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';},60000);
   watchId=navigator.geolocation.watchPosition(function(pos){
-    var newPoint={lat:pos.coords.latitude,lng:pos.coords.longitude};
-    if(pos.coords.accuracy>40)return;
+    var newPoint={lat:pos.coords.latitude,lng:pos.coords.longitude};if(pos.coords.accuracy>40)return;
     var lastRaw=rawGpsBuffer.length>0?rawGpsBuffer[rawGpsBuffer.length-1]:(walkPath.length>0?walkPath[walkPath.length-1]:null);
     if(lastRaw){var dist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(lastRaw.lat,lastRaw.lng),new google.maps.LatLng(newPoint.lat,newPoint.lng));if(dist<3||dist>80)return;}
     if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
     rawGpsBuffer.push(newPoint);userMarker.setPosition(newPoint);
     if(rawGpsBuffer.length>=5){var batch=rawGpsBuffer.slice();rawGpsBuffer=[];snapToRoads(batch);}
-    var now=new Date();
-    pauseWindowPoints.push({point:newPoint,time:now});
-    pauseWindowPoints=pauseWindowPoints.filter(function(item){return(now-item.time)<=15000;});
-    var windowDist=0;
-    if(pauseWindowPoints.length>=2){
-      var first=pauseWindowPoints[0].point,last=pauseWindowPoints[pauseWindowPoints.length-1].point;
-      windowDist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(first.lat,first.lng),new google.maps.LatLng(last.lat,last.lng));
-    }
+    var now=new Date();pauseWindowPoints.push({point:newPoint,time:now});pauseWindowPoints=pauseWindowPoints.filter(function(item){return(now-item.time)<=15000;});
+    var windowDist=0;if(pauseWindowPoints.length>=2){var first=pauseWindowPoints[0].point,last=pauseWindowPoints[pauseWindowPoints.length-1].point;windowDist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(first.lat,first.lng),new google.maps.LatLng(last.lat,last.lng));}
     var currentKm=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
     if(windowDist>7){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');pauseWindowPoints=[{point:newPoint,time:now}];pauseWindowStart=now;}
     else if((now-pauseWindowStart)>=15000){setStatusBar('☕ 暫停一下...','var(--status-paused)');}
@@ -928,903 +484,189 @@ function startWalk(){
   },function(err){console.error('[GPS]',err);setStatusBar('📡 取得定位狀態中','var(--status-locating)');},{enableHighAccuracy:true,maximumAge:0,timeout:10000});
 }
 
-/* 照片處理函式 */
-function openCamera() {
-  document.getElementById('photoFileInput').click();
-}
-function handlePhotoSelected(input) {
-  if (!input.files || !input.files[0]) return;
-  var file = input.files[0];
-  document.getElementById('eventModal').style.display = 'none';
-  document.getElementById('photoConfirmModal').style.display = 'flex';
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    compressImage(e.target.result, 800, 0.7, function(blob, dataUrl) {
-      selectedPhotoBlob = blob;
-      selectedPhotoDataUrl = dataUrl;
-      document.getElementById('photoConfirmImg').src = dataUrl;
-    });
-  };
-  reader.readAsDataURL(file);
-  input.value = '';
-}
-function compressImage(dataUrl, maxWidth, quality, callback) {
-  var img = new Image();
-  img.onload = function() {
-    var canvas = document.createElement('canvas');
-    var scale = Math.min(1, maxWidth / img.width);
-    canvas.width = img.width * scale;
-    canvas.height = img.height * scale;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob(function(blob) {
-      var reader = new FileReader();
-      reader.onload = function(e) { callback(blob, e.target.result); };
-      reader.readAsDataURL(blob);
-    }, 'image/jpeg', quality);
-  };
-  img.src = dataUrl;
-}
-function retakePhoto() {
-  selectedPhotoBlob = null; selectedPhotoDataUrl = null;
-  document.getElementById('photoConfirmModal').style.display = 'none';
-  document.getElementById('eventModal').style.display = 'flex';
-  setTimeout(function() { openCamera(); }, 100);
-}
-function cancelPhoto() {
-  selectedPhotoBlob = null; selectedPhotoDataUrl = null;
-  document.getElementById('photoConfirmModal').style.display = 'none';
-  document.getElementById('eventModal').style.display = 'flex';
-}
-function confirmPhoto() {
-  document.getElementById('photoConfirmModal').style.display = 'none';
-  document.getElementById('eventModal').style.display = 'flex';
-  if (selectedPhotoDataUrl) {
-    var thumb = document.getElementById('photoPreviewThumb');
-    thumb.src = selectedPhotoDataUrl;
-    thumb.style.display = 'block';
-    document.getElementById('cameraBtn').innerText = '📷 換照片';
-  }
-}
+function openCamera(){document.getElementById('photoFileInput').click();}
+function handlePhotoSelected(input){if(!input.files||!input.files[0])return;var file=input.files[0];document.getElementById('eventModal').style.display='none';document.getElementById('photoConfirmModal').style.display='flex';var reader=new FileReader();reader.onload=function(e){compressImage(e.target.result,800,0.7,function(blob,dataUrl){selectedPhotoBlob=blob;selectedPhotoDataUrl=dataUrl;document.getElementById('photoConfirmImg').src=dataUrl;});};reader.readAsDataURL(file);input.value='';}
+function compressImage(dataUrl,maxWidth,quality,callback){var img=new Image();img.onload=function(){var canvas=document.createElement('canvas');var scale=Math.min(1,maxWidth/img.width);canvas.width=img.width*scale;canvas.height=img.height*scale;var ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,canvas.width,canvas.height);canvas.toBlob(function(blob){var reader=new FileReader();reader.onload=function(e){callback(blob,e.target.result);};reader.readAsDataURL(blob);},'image/jpeg',quality);};img.src=dataUrl;}
+function retakePhoto(){selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('photoConfirmModal').style.display='none';document.getElementById('eventModal').style.display='flex';setTimeout(function(){openCamera();},100);}
+function cancelPhoto(){selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('photoConfirmModal').style.display='none';document.getElementById('eventModal').style.display='flex';}
+function confirmPhoto(){document.getElementById('photoConfirmModal').style.display='none';document.getElementById('eventModal').style.display='flex';if(selectedPhotoDataUrl){var thumb=document.getElementById('photoPreviewThumb');thumb.src=selectedPhotoDataUrl;thumb.style.display='block';document.getElementById('cameraBtn').innerText='📷 換照片';}}
 
-async function openEventCanvas() {
-  document.getElementById('eventModal').style.display='flex';
-  selectedPlace=null; nearbyPlaces=[];
-  document.getElementById('placeTags').innerHTML='<span class="place-detecting">偵測中...</span>';
-  switchIconCategory(0);
-  document.getElementById('selectedIconPreview').innerText=selectedIcon;
-  selectedPhotoBlob=null; selectedPhotoDataUrl=null;
-  document.getElementById('photoPreviewThumb').style.display='none';
-  document.getElementById('photoPreviewThumb').src='';
-  document.getElementById('cameraBtn').innerText='📷 加入照片';
-  var currentPos=getUserPosition();
-  if(!currentPos){document.getElementById('placeTags').innerHTML='<span class="place-detecting">（無法取得位置）</span>';return;}
-  try{
-    var {Place}=await google.maps.importLibrary('places');
-    var {places}=await Place.searchNearby({
-      fields:['displayName','location','id'],
-      locationRestriction:{center:currentPos,radius:100}
-    });
-    var tagsContainer=document.getElementById('placeTags');
-    tagsContainer.innerHTML='';
-    if(!places||places.length===0){tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';return;}
-    places.slice(0,3).forEach(function(place){
-      if(!place.location)return;
-      var placeData={name:place.displayName,placeId:place.id,lat:place.location.lat(),lng:place.location.lng()};
-      nearbyPlaces.push(placeData);
-      var shortName=place.displayName.length>10?place.displayName.slice(0,10)+'...':place.displayName;
-      var tag=document.createElement('div');
-      tag.className='place-tag'; tag.innerText='📍 '+shortName;
-      tag.onclick=function(){
-        if(selectedPlace&&selectedPlace.placeId===placeData.placeId){selectedPlace=null;tag.classList.remove('selected');}
-        else{selectedPlace=placeData;document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});tag.classList.add('selected');}
-      };
-      tagsContainer.appendChild(tag);
-    });
-    if(tagsContainer.children.length===0)tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';
-  }catch(err){console.error('[Places]',err);document.getElementById('placeTags').innerHTML='<span class="place-detecting">（地標偵測失敗）</span>';}
+async function openEventCanvas(){
+  document.getElementById('eventModal').style.display='flex';selectedPlace=null;nearbyPlaces=[];document.getElementById('placeTags').innerHTML='<span class="place-detecting">偵測中...</span>';
+  switchIconCategory(0);document.getElementById('selectedIconPreview').innerText=selectedIcon;
+  selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('photoPreviewThumb').style.display='none';document.getElementById('photoPreviewThumb').src='';document.getElementById('cameraBtn').innerText='📷 加入照片';
+  var currentPos=getUserPosition();if(!currentPos){document.getElementById('placeTags').innerHTML='<span class="place-detecting">（無法取得位置）</span>';return;}
+  try{var {Place}=await google.maps.importLibrary('places');var {places}=await Place.searchNearby({fields:['displayName','location','id'],locationRestriction:{center:currentPos,radius:100}});var tagsContainer=document.getElementById('placeTags');tagsContainer.innerHTML='';if(!places||places.length===0){tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';return;}places.slice(0,3).forEach(function(place){if(!place.location)return;var placeData={name:place.displayName,placeId:place.id,lat:place.location.lat(),lng:place.location.lng()};nearbyPlaces.push(placeData);var shortName=place.displayName.length>10?place.displayName.slice(0,10)+'...':place.displayName;var tag=document.createElement('div');tag.className='place-tag';tag.innerText='📍 '+shortName;tag.onclick=function(){if(selectedPlace&&selectedPlace.placeId===placeData.placeId){selectedPlace=null;tag.classList.remove('selected');}else{selectedPlace=placeData;document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});tag.classList.add('selected');}};tagsContainer.appendChild(tag);});if(tagsContainer.children.length===0)tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';}catch(err){console.error('[Places]',err);document.getElementById('placeTags').innerHTML='<span class="place-detecting">（地標偵測失敗）</span>';}
 }
+function closeEventModal(){selectedPlace=null;selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('eventModal').style.display='none';}
 
-function closeEventModal(){
-  selectedPlace=null; selectedPhotoBlob=null; selectedPhotoDataUrl=null;
-  document.getElementById('eventModal').style.display='none';
-}
-
-async function saveEvent() {
-  var text=document.getElementById('eventText').value;
-  var eventPos,placeName,placeId;
-  if(selectedPlace){eventPos={lat:selectedPlace.lat,lng:selectedPlace.lng};placeName=selectedPlace.name;placeId=selectedPlace.placeId;}
-  else{eventPos=getUserPosition()||{lat:0,lng:0};placeName='';placeId='';}
-  var photoUrl = '';
-  if(selectedPhotoBlob && window.storage && window.storageApi && window.currentUid){
-    var confirmBtn = document.querySelector('#eventModal .btn-event');
-    var originalText = confirmBtn ? confirmBtn.innerText : '';
-    if(confirmBtn){ confirmBtn.disabled=true; confirmBtn.innerText='上傳中...'; }
-    try{
-      var timestamp = Date.now();
-      var rand = Math.floor(Math.random()*9000+1000);
-      var filePath = 'photos/' + window.currentUid + '/' + timestamp + '_' + rand + '.jpg';
-      var fileRef = window.storageApi.ref(window.storage, filePath);
-      await window.storageApi.uploadBytes(fileRef, selectedPhotoBlob, { contentType:'image/jpeg' });
-      photoUrl = await window.storageApi.getDownloadURL(fileRef);
-    }catch(err){
-      console.warn('[Storage] 照片上傳失敗，以無照片方式儲存:', err);
-      photoUrl = '';
-    }finally{
-      if(confirmBtn){ confirmBtn.disabled=false; confirmBtn.innerText=originalText; }
-    }
-  }
+async function saveEvent(){
+  var text=document.getElementById('eventText').value;var eventPos,placeName,placeId;
+  if(selectedPlace){eventPos={lat:selectedPlace.lat,lng:selectedPlace.lng};placeName=selectedPlace.name;placeId=selectedPlace.placeId;}else{eventPos=getUserPosition()||{lat:0,lng:0};placeName='';placeId='';}
+  var photoUrl='';
+  if(selectedPhotoBlob&&window.storage&&window.storageApi&&window.currentUid){var confirmBtn=document.querySelector('#eventModal .btn-event');var originalText=confirmBtn?confirmBtn.innerText:'';if(confirmBtn){confirmBtn.disabled=true;confirmBtn.innerText='上傳中...';}try{var timestamp=Date.now();var rand=Math.floor(Math.random()*9000+1000);var filePath='photos/'+window.currentUid+'/'+timestamp+'_'+rand+'.jpg';var fileRef=window.storageApi.ref(window.storage,filePath);await window.storageApi.uploadBytes(fileRef,selectedPhotoBlob,{contentType:'image/jpeg'});photoUrl=await window.storageApi.getDownloadURL(fileRef);}catch(err){console.warn('[Storage] 照片上傳失敗:',err);photoUrl='';}finally{if(confirmBtn){confirmBtn.disabled=false;confirmBtn.innerText=originalText;}}}
   eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl});
-  createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl);
-  document.getElementById('eventText').value='';
-  selectedPlace=null; selectedPhotoBlob=null; selectedPhotoDataUrl=null;
-  document.getElementById('eventModal').style.display='none';
+  createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl);document.getElementById('eventText').value='';selectedPlace=null;selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('eventModal').style.display='none';
 }
 
 async function endWalk(){
-  navigator.geolocation.clearWatch(watchId);
-  if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
-  setStatusBar('✅ 漫遊結束','var(--status-ended)');
-  document.getElementById('state-recording').classList.add('hidden');
-  document.getElementById('state-finished').classList.remove('hidden');
-  document.getElementById('encourageBox').innerText='「'+getDailyEncouragement()+'」';
-  await flushRawBuffer();
-  totalDistance=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
-  durationStr=Math.floor(Math.abs(new Date()-startTime)/60000)+' 分鐘';
-  if(walkPath.length>0){
-    geocoder.geocode({location:walkPath[walkPath.length-1]},function(results,status){
-      if(status==='OK'&&results[0]){
-        var cityObj=results[0].address_components.find(function(c){return c.types.includes('administrative_area_level_1')||c.types.includes('locality');});
-        cityName=cityObj?cityObj.long_name:'未知城市';
-        var seenPlaces={},placeNames=[];
-        eventsData.forEach(function(ev){
-          if(ev.placeName&&!seenPlaces[ev.placeName]){
-            seenPlaces[ev.placeName]=true;
-            var shortName=ev.placeName.length>10?ev.placeName.slice(0,10)+'...':ev.placeName;
-            placeNames.push(shortName);
-          }
-        });
-        var placeLine=placeNames.length>0?'<br>📍 停留地標：'+placeNames.join(' / '):'';
-        document.getElementById('summaryBox').innerHTML=
-          '<strong>漫遊結算</strong><br>🏙️ 城市：'+cityName+'<br>👣 里程：'+totalDistance.toFixed(2)+' KM<br>⏱️ 時長：'+durationStr+'<br>📸 事件：'+eventsData.length+' 個'+placeLine;
-      }
-    });
-  }
+  navigator.geolocation.clearWatch(watchId);if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
+  setStatusBar('✅ 漫遊結束','var(--status-ended)');document.getElementById('state-recording').classList.add('hidden');document.getElementById('state-finished').classList.remove('hidden');
+  document.getElementById('encourageBox').innerText='「'+getDailyEncouragement()+'」';await flushRawBuffer();
+  totalDistance=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;durationStr=Math.floor(Math.abs(new Date()-startTime)/60000)+' 分鐘';
+  if(walkPath.length>0){geocoder.geocode({location:walkPath[walkPath.length-1]},function(results,status){if(status==='OK'&&results[0]){var cityObj=results[0].address_components.find(function(c){return c.types.includes('administrative_area_level_1')||c.types.includes('locality');});cityName=cityObj?cityObj.long_name:'未知城市';var seenPlaces={},placeNames=[];eventsData.forEach(function(ev){if(ev.placeName&&!seenPlaces[ev.placeName]){seenPlaces[ev.placeName]=true;var shortName=ev.placeName.length>10?ev.placeName.slice(0,10)+'...':ev.placeName;placeNames.push(shortName);}});var placeLine=placeNames.length>0?'<br>📍 停留地標：'+placeNames.join(' / '):'';document.getElementById('summaryBox').innerHTML='<strong>漫遊結算</strong><br>🏙️ 城市：'+cityName+'<br>👣 里程：'+totalDistance.toFixed(2)+' KM<br>⏱️ 時長：'+durationStr+'<br>📸 事件：'+eventsData.length+' 個'+placeLine;}});}
 }
 
-var PATH_CHUNK_SIZE = 500;
+var PATH_CHUNK_SIZE=500;
 async function executeCloudSave(){
   var btn=document.getElementById('btnConfirmSave');if(btn)btn.disabled=true;
-  try{
-    var docRef = await window.api.addDoc(window.api.collection(window.db,'walk_records'),{
-      name:document.getElementById('routeName').value||'未命名漫遊',
-      city:cityName, distance:totalDistance, duration:durationStr,
-      events:eventsData, trackColor:selectedTrackColor,
-      isPinned:false, createdAt:window.api.serverTimestamp(),
-      userId:window.currentUid||'anonymous'
-    });
-    var pathColRef = window.api.collection(window.db,'walk_records',docRef.id,'path_points');
-    var chunkPromises = [];
-    for(var i=0; i<walkPath.length; i+=PATH_CHUNK_SIZE){
-      var chunk = walkPath.slice(i, i+PATH_CHUNK_SIZE);
-      var chunkIndex = Math.floor(i/PATH_CHUNK_SIZE);
-      var chunkDocRef = window.api.doc(pathColRef, 'chunk_'+chunkIndex);
-      chunkPromises.push(window.api.setDoc(chunkDocRef, { index: chunkIndex, points: chunk }));
-    }
-    await Promise.all(chunkPromises);
-    location.reload();
-  }catch(e){
-    console.error('[Save] 儲存失敗:', e);
-    alert('儲存失敗');
-    if(btn)btn.disabled=false;
-  }
+  try{var docRef=await window.api.addDoc(window.api.collection(window.db,'walk_records'),{name:document.getElementById('routeName').value||'未命名漫遊',city:cityName,distance:totalDistance,duration:durationStr,events:eventsData,trackColor:selectedTrackColor,isPinned:false,createdAt:window.api.serverTimestamp(),userId:window.currentUid||'anonymous'});var pathColRef=window.api.collection(window.db,'walk_records',docRef.id,'path_points');var chunkPromises=[];for(var i=0;i<walkPath.length;i+=PATH_CHUNK_SIZE){var chunk=walkPath.slice(i,i+PATH_CHUNK_SIZE);var chunkIndex=Math.floor(i/PATH_CHUNK_SIZE);var chunkDocRef=window.api.doc(pathColRef,'chunk_'+chunkIndex);chunkPromises.push(window.api.setDoc(chunkDocRef,{index:chunkIndex,points:chunk}));}await Promise.all(chunkPromises);location.reload();}
+  catch(e){console.error('[Save] 儲存失敗:',e);alert('儲存失敗');if(btn)btn.disabled=false;}
 }
 
 function createEventMarker(pos,icon,text,placeName,photoUrl){
-  function EmojiOverlay(position,icon,text,placeName,photoUrl){
-    this.position_=new google.maps.LatLng(position.lat,position.lng);
-    this.icon_=icon;this.text_=text;this.placeName_=placeName||'';this.photoUrl_=photoUrl||'';
-    this.div_=null;this.setMap(map);
-  }
+  function EmojiOverlay(position,icon,text,placeName,photoUrl){this.position_=new google.maps.LatLng(position.lat,position.lng);this.icon_=icon;this.text_=text;this.placeName_=placeName||'';this.photoUrl_=photoUrl||'';this.div_=null;this.setMap(map);}
   EmojiOverlay.prototype=Object.create(google.maps.OverlayView.prototype);
-  EmojiOverlay.prototype.onAdd=function(){
-    var div=document.createElement('div');div.className='event-marker-div';div.innerText=this.icon_;
-    var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_;
-    function showMemory(e){
-      e.stopPropagation();if(e.preventDefault)e.preventDefault();
-      document.getElementById('memoryIcon').innerText=ci||'📸';
-      document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';
-      document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';
-      var polaroid=document.getElementById('memoryPolaroid');
-      var memPhoto=document.getElementById('memoryPhoto');
-      if(cph){memPhoto.src=cph;polaroid.classList.remove('hidden');}
-      else{polaroid.classList.add('hidden');memPhoto.src='';}
-      document.getElementById('memoryBox').style.display='flex';
-    }
-    div.addEventListener('click',showMemory);
-    div.addEventListener('touchstart',showMemory,{passive:false});
-    this.div_=div;this.getPanes().overlayMouseTarget.appendChild(div);
-  };
-  EmojiOverlay.prototype.draw=function(){
-    var pt=this.getProjection().fromLatLngToDivPixel(this.position_);
-    if(this.div_&&pt){this.div_.style.left=pt.x+'px';this.div_.style.top=pt.y+'px';}
-  };
+  EmojiOverlay.prototype.onAdd=function(){var div=document.createElement('div');div.className='event-marker-div';div.innerText=this.icon_;var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_;function showMemory(e){e.stopPropagation();if(e.preventDefault)e.preventDefault();document.getElementById('memoryIcon').innerText=ci||'📸';document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';var polaroid=document.getElementById('memoryPolaroid');var memPhoto=document.getElementById('memoryPhoto');if(cph){memPhoto.src=cph;polaroid.classList.remove('hidden');}else{polaroid.classList.add('hidden');memPhoto.src='';}document.getElementById('memoryBox').style.display='flex';}div.addEventListener('click',showMemory);div.addEventListener('touchstart',showMemory,{passive:false});this.div_=div;this.getPanes().overlayMouseTarget.appendChild(div);};
+  EmojiOverlay.prototype.draw=function(){var pt=this.getProjection().fromLatLngToDivPixel(this.position_);if(this.div_&&pt){this.div_.style.left=pt.x+'px';this.div_.style.top=pt.y+'px';}};
   EmojiOverlay.prototype.onRemove=function(){if(this.div_){this.div_.parentNode.removeChild(this.div_);this.div_=null;}};
   return new EmojiOverlay(pos,icon,text,placeName,photoUrl);
 }
 
 /* ===================================================
-   [新增 v1.17.0] 帳號綁定系統
-
-   updateAccountBanner()
-   PSEUDO: 依 window._firebaseUser 狀態更新橫幅
-   - isAnonymous → 暖黃橫幅 + 綁定 Google 按鈕
-   - !isAnonymous → 薄荷綠橫幅 + email + avatar
-
-   linkGoogleAccount()
-   PSEUDO:
-   1. 先嘗試 signInWithPopup（多數情況）
-   2. 若 popup 被瀏覽器封鎖（error code contains 'popup'）
-      → fallback 用 signInWithRedirect
-   3. linkWithCredential 將 Google credential 綁定到當前匿名帳號
-   4. 成功：onAuthStateChanged 自動觸發，更新 UI
-   5. 失敗：依 error code 給對應提示
+   [v1.17.0] 帳號橫幅
    =================================================== */
-function updateAccountBanner() {
-  var banner    = document.getElementById('accountBanner');
-  var anonDiv   = document.getElementById('bannerAnon');
-  var linkedDiv = document.getElementById('bannerLinked');
-  if (!banner) return;
-
-  var user = window._firebaseUser || null;
-
-  if (!user) {
-    banner.style.display = 'none';
-    return;
-  }
-
-  if (user.isAnonymous) {
-    /* PSEUDO: 匿名 → 暖黃警示橫幅 */
-    banner.style.display    = 'block';
-    banner.style.background = '#FFFBF0';
-    banner.style.border     = '1.5px solid #FFE5A0';
-    anonDiv.style.display   = 'block';
-    linkedDiv.style.display = 'none';
-  } else {
-    /* PSEUDO: 已綁定 → 薄荷綠確認橫幅 */
-    banner.style.display    = 'block';
-    banner.style.background = '#EEF6F3';
-    banner.style.border     = '1.5px solid var(--accent-positive)';
-    anonDiv.style.display   = 'none';
-    linkedDiv.style.display = 'block';
-    var email = user.email || '';
-    document.getElementById('bannerEmail').innerText  = email;
-    document.getElementById('bannerAvatar').innerText = email ? email[0].toUpperCase() : 'G';
-  }
+function updateAccountBanner(){
+  var banner=document.getElementById('accountBanner');var anonDiv=document.getElementById('bannerAnon');var linkedDiv=document.getElementById('bannerLinked');if(!banner)return;
+  var user=window._firebaseUser||null;if(!user){banner.style.display='none';return;}
+  if(user.isAnonymous){banner.style.display='block';banner.style.background='#FFFBF0';banner.style.border='1.5px solid #FFE5A0';anonDiv.style.display='block';linkedDiv.style.display='none';}
+  else{banner.style.display='block';banner.style.background='#EEF6F3';banner.style.border='1.5px solid var(--accent-positive)';anonDiv.style.display='none';linkedDiv.style.display='block';var email=user.email||'';document.getElementById('bannerEmail').innerText=email;document.getElementById('bannerAvatar').innerText=email?email[0].toUpperCase():'G';}
 }
 
-async function linkGoogleAccount() {
-  var btn = document.getElementById('btnLinkGoogle');
-  if (btn) { btn.disabled = true; btn.innerText = '連結中...'; }
-
-  /* PSEUDO: 確保 Firebase Auth API 已從 module 暴露到全域 */
-  var auth      = window._auth;
-  var Provider  = window._GoogleAuthProvider;
-  var linkCred  = window._linkWithCredential;
-  var withPopup = window._signInWithPopup;
-  var withRedirect = window._signInWithRedirect;
-
-  if (!auth || !Provider || !linkCred || !withPopup) {
-    alert('Auth 尚未就緒，請稍後再試。');
-    if (btn) { btn.disabled = false; btn.innerText = '綁定 Google'; }
-    return;
-  }
-
-  try {
-    var provider = new Provider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-
-    /* PSEUDO: 記錄目前的匿名 user，popup 完成後用它來 link */
-    var anonymousUser = auth.currentUser;
-
-    var result = await withPopup(auth, provider);
-    var credential = Provider.credentialFromResult(result);
-
-    /* PSEUDO: 如果 popup 登入後 Firebase 自動切換帳號（不是我們要的 link 行為）
-       需要用原本的匿名 user 去 link。
-       但若 anonymousUser 已不是 current user，代表 Firebase 已自動 merge，
-       此時 result.user 就是已綁定的帳號，onAuthStateChanged 會更新 */
-    if (anonymousUser && anonymousUser.isAnonymous && credential) {
-      try {
-        await linkCred(anonymousUser, credential);
-      } catch (linkErr) {
-        /* PSEUDO: auth/provider-already-linked 代表已綁定，不是錯誤 */
-        if (linkErr.code !== 'auth/provider-already-linked') {
-          throw linkErr;
-        }
-      }
-    }
-
-    /* PSEUDO: 成功提示，UI 由 onAuthStateChanged 自動更新 */
+/* ===================================================
+   [v1.17.1] linkGoogleAccount — 改用 linkWithPopup
+   PSEUDO:
+   直接對 anonymousUser 呼叫 linkWithPopup(user, provider)
+   一步完成「開 popup + 綁定」
+   不會先登入再 link 導致 credential-already-in-use 衝突
+   =================================================== */
+async function linkGoogleAccount(){
+  var btn=document.getElementById('btnLinkGoogle');
+  if(btn){btn.disabled=true;btn.innerText='連結中...';}
+  var auth=window._auth;var Provider=window._GoogleAuthProvider;
+  var withPopup=window._linkWithPopup;   /* [v1.17.1] 用 linkWithPopup */
+  var withRedirect=window._signInWithRedirect;
+  if(!auth||!Provider||!withPopup){alert('Auth 尚未就緒，請稍後再試。');if(btn){btn.disabled=false;btn.innerText='綁定 Google';}return;}
+  try{
+    var provider=new Provider();provider.setCustomParameters({prompt:'select_account'});
+    var anonymousUser=auth.currentUser;if(!anonymousUser)throw new Error('no-current-user');
+    /* PSEUDO: linkWithPopup 直接對匿名 user 呼叫，popup 完成後自動 link
+       uid 不變，isAnonymous 變 false，onAuthStateChanged 自動觸發更新 UI */
+    await withPopup(anonymousUser,provider);
     alert('🎉 帳號綁定成功！你的資料已安全保存。');
-
-  } catch (err) {
-    console.error('[Auth] 帳號綁定失敗:', err);
-
-    /* PSEUDO: popup 被封鎖 → fallback 到 redirect 模式 */
-    if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
-      try {
-        var provider2 = new Provider();
-        provider2.setCustomParameters({ prompt: 'select_account' });
-        await withRedirect(auth, provider2);
-        /* PSEUDO: redirect 後頁面會跳走，結果由頂部 getRedirectResult 處理 */
-        return;
-      } catch (redirectErr) {
-        console.error('[Auth] Redirect fallback 失敗:', redirectErr);
-        alert('綁定失敗，請稍後再試。');
-      }
-    } else if (err.code === 'auth/credential-already-in-use') {
-      alert('這個 Google 帳號已綁定其他裝置的資料，無法重複綁定。\n請換一個 Google 帳號試試。');
-    } else if (err.code === 'auth/popup-closed-by-user') {
-      /* 使用者自己關掉 popup，不需要提示 */
-    } else if (err.code === 'auth/account-exists-with-different-credential') {
-      alert('這個 Google 帳號已存在，請使用相同方式登入。');
-    } else {
-      alert('綁定失敗，請稍後再試。（' + err.code + '）');
-    }
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      /* PSEUDO: 重設按鈕（含 Google SVG icon） */
-      btn.innerHTML =
-        '<svg width="16" height="16" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">' +
-        '<path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>' +
-        '<path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>' +
-        '<path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>' +
-        '<path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 6.293C4.672 4.166 6.656 3.58 9 3.58z" fill="#EA4335"/>' +
-        '</svg> 綁定 Google';
-    }
+  }catch(err){
+    console.error('[Auth] 帳號綁定失敗:',err);
+    if(err.code==='auth/popup-blocked'||err.code==='auth/cancelled-popup-request'){
+      try{var provider2=new Provider();provider2.setCustomParameters({prompt:'select_account'});await withRedirect(auth.currentUser,provider2);return;}
+      catch(redirectErr){console.error('[Auth] Redirect fallback 失敗:',redirectErr);alert('綁定失敗，請稍後再試。');}
+    }else if(err.code==='auth/credential-already-in-use'){alert('這個 Google 帳號已綁定其他裝置，請換一個 Google 帳號。');}
+    else if(err.code==='auth/popup-closed-by-user'){/* 使用者自己關掉，不提示 */}
+    else if(err.code==='auth/provider-already-linked'){if(window.updateAccountBanner)window.updateAccountBanner();}
+    else{alert('綁定失敗，請稍後再試。（'+err.code+'）');}
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML='<svg width="16" height="16" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 6.293C4.672 4.166 6.656 3.58 9 3.58z" fill="#EA4335"/></svg> 綁定 Google';}
   }
 }
 
 /* ===================================================
-   紀錄頁功能（v1.13.0 ~ v1.16.0）
+   紀錄頁功能
    =================================================== */
 async function fetchRecords(){
-  var container=document.getElementById('recordsContainer');
-  if(!container)return;
-  container.innerHTML='<p style="text-align:center;padding:20px;">載入中...</p>';
-  try{
-    var uid=window.currentUid||'anonymous';
-    var q=window.api.query(
-      window.api.collection(window.db,'walk_records'),
-      window.api.where('userId','==',uid)
-    );
-    var snap=await window.api.getDocs(q);
-    window.currentDocs=[];
-    snap.forEach(function(d){window.currentDocs.push(Object.assign({id:d.id},d.data()));});
-    window.currentDocs.sort(function(a,b){
-      return(b.isPinned-a.isPinned)||((b.createdAt&&b.createdAt.seconds||0)-(a.createdAt&&a.createdAt.seconds||0));
-    });
-    renderStats(window.currentDocs);
-    buildCityFilter(window.currentDocs);
-    renderCards(window.currentDocs);
-  }catch(e){console.error(e);container.innerHTML='<p style="text-align:center;color:red;">載入失敗</p>';}
+  var container=document.getElementById('recordsContainer');if(!container)return;container.innerHTML='<p style="text-align:center;padding:20px;">載入中...</p>';
+  try{var uid=window.currentUid||'anonymous';var q=window.api.query(window.api.collection(window.db,'walk_records'),window.api.where('userId','==',uid));var snap=await window.api.getDocs(q);window.currentDocs=[];snap.forEach(function(d){window.currentDocs.push(Object.assign({id:d.id},d.data()));});window.currentDocs.sort(function(a,b){return(b.isPinned-a.isPinned)||((b.createdAt&&b.createdAt.seconds||0)-(a.createdAt&&a.createdAt.seconds||0));});renderStats(window.currentDocs);buildCityFilter(window.currentDocs);renderCards(window.currentDocs);}
+  catch(e){console.error(e);container.innerHTML='<p style="text-align:center;color:red;">載入失敗</p>';}
 }
-
-function renderStats(docs){
-  var totalKm=0, cities={}, totalEvents=0;
-  docs.forEach(function(d){
-    totalKm+=(d.distance||0);
-    if(d.city)cities[d.city]=true;
-    totalEvents+=(d.events?d.events.length:0);
-  });
-  document.getElementById('statRoutes').innerText=docs.length;
-  document.getElementById('statKm').innerText=totalKm.toFixed(1);
-  document.getElementById('statCities').innerText=Object.keys(cities).length;
-  document.getElementById('statEvents').innerText=totalEvents;
-}
-
-function buildCityFilter(docs){
-  var cities=[], seen={};
-  docs.forEach(function(d){
-    if(d.city&&!seen[d.city]){seen[d.city]=true;cities.push(d.city);}
-  });
-  var sel=document.getElementById('filterCity');
-  while(sel.options.length>1)sel.remove(1);
-  cities.forEach(function(c){
-    var opt=document.createElement('option');
-    opt.value=c; opt.text='🏙 '+c;
-    sel.appendChild(opt);
-  });
-}
-
-function applyFilters(){
-  if(!window.currentDocs)return;
-  var cityVal=document.getElementById('filterCity').value;
-  var kmVal=document.getElementById('filterKm').value;
-  var dateVal=document.getElementById('filterDate').value;
-  var searchVal=(document.getElementById('searchInput').value||'').trim().toLowerCase();
-  var hasFilter=cityVal||kmVal||dateVal||searchVal;
-  document.getElementById('filterCity').classList.toggle('active',!!cityVal);
-  document.getElementById('filterKm').classList.toggle('active',!!kmVal);
-  document.getElementById('filterDate').classList.toggle('active',!!dateVal);
-  document.getElementById('clearFilterBtn').classList.toggle('visible',!!hasFilter);
-  var now=Date.now();
-  var filtered=window.currentDocs.filter(function(d){
-    if(searchVal && !(d.name||'').toLowerCase().includes(searchVal)) return false;
-    if(cityVal&&d.city!==cityVal)return false;
-    if(kmVal){
-      var km=d.distance||0;
-      if(kmVal==='0-1'&&km>=1)return false;
-      if(kmVal==='1-5'&&(km<1||km>=5))return false;
-      if(kmVal==='5-10'&&(km<5||km>=10))return false;
-      if(kmVal==='10+'&&km<10)return false;
-    }
-    if(dateVal&&d.createdAt&&d.createdAt.seconds){
-      var days=parseInt(dateVal);
-      var diffMs=now-(d.createdAt.seconds*1000);
-      if(diffMs>days*24*60*60*1000)return false;
-    }
-    return true;
-  });
-  var countEl=document.getElementById('filterCount');
-  countEl.innerText=hasFilter?('共 '+filtered.length+' 條'):'';
-  renderCards(filtered);
-}
-
-function clearFilters(){
-  document.getElementById('filterCity').value='';
-  document.getElementById('filterKm').value='';
-  document.getElementById('filterDate').value='';
-  document.getElementById('searchInput').value='';
-  document.querySelectorAll('.filter-select').forEach(function(s){s.classList.remove('active');});
-  document.getElementById('clearFilterBtn').classList.remove('visible');
-  document.getElementById('filterCount').innerText='';
-  renderCards(window.currentDocs);
-}
+function renderStats(docs){var totalKm=0,cities={},totalEvents=0;docs.forEach(function(d){totalKm+=(d.distance||0);if(d.city)cities[d.city]=true;totalEvents+=(d.events?d.events.length:0);});document.getElementById('statRoutes').innerText=docs.length;document.getElementById('statKm').innerText=totalKm.toFixed(1);document.getElementById('statCities').innerText=Object.keys(cities).length;document.getElementById('statEvents').innerText=totalEvents;}
+function buildCityFilter(docs){var cities=[],seen={};docs.forEach(function(d){if(d.city&&!seen[d.city]){seen[d.city]=true;cities.push(d.city);}});var sel=document.getElementById('filterCity');while(sel.options.length>1)sel.remove(1);cities.forEach(function(c){var opt=document.createElement('option');opt.value=c;opt.text='🏙 '+c;sel.appendChild(opt);});}
+function applyFilters(){if(!window.currentDocs)return;var cityVal=document.getElementById('filterCity').value;var kmVal=document.getElementById('filterKm').value;var dateVal=document.getElementById('filterDate').value;var searchVal=(document.getElementById('searchInput').value||'').trim().toLowerCase();var hasFilter=cityVal||kmVal||dateVal||searchVal;document.getElementById('filterCity').classList.toggle('active',!!cityVal);document.getElementById('filterKm').classList.toggle('active',!!kmVal);document.getElementById('filterDate').classList.toggle('active',!!dateVal);document.getElementById('clearFilterBtn').classList.toggle('visible',!!hasFilter);var now=Date.now();var filtered=window.currentDocs.filter(function(d){if(searchVal&&!(d.name||'').toLowerCase().includes(searchVal))return false;if(cityVal&&d.city!==cityVal)return false;if(kmVal){var km=d.distance||0;if(kmVal==='0-1'&&km>=1)return false;if(kmVal==='1-5'&&(km<1||km>=5))return false;if(kmVal==='5-10'&&(km<5||km>=10))return false;if(kmVal==='10+'&&km<10)return false;}if(dateVal&&d.createdAt&&d.createdAt.seconds){var days=parseInt(dateVal);var diffMs=now-(d.createdAt.seconds*1000);if(diffMs>days*24*60*60*1000)return false;}return true;});var countEl=document.getElementById('filterCount');countEl.innerText=hasFilter?('共 '+filtered.length+' 條'):'';renderCards(filtered);}
+function clearFilters(){document.getElementById('filterCity').value='';document.getElementById('filterKm').value='';document.getElementById('filterDate').value='';document.getElementById('searchInput').value='';document.querySelectorAll('.filter-select').forEach(function(s){s.classList.remove('active');});document.getElementById('clearFilterBtn').classList.remove('visible');document.getElementById('filterCount').innerText='';renderCards(window.currentDocs);}
 
 function renderCards(docs){
-  var container=document.getElementById('recordsContainer');
-  container.innerHTML='';
-  if(!docs||docs.length===0){
-    container.innerHTML='<p style="text-align:center;padding:30px;color:var(--text-soft);">沒有符合的路線</p>';
-    return;
-  }
-  var pinned=docs.filter(function(d){return d.isPinned;});
-  var unpinned=docs.filter(function(d){return !d.isPinned;});
-  var cityGroups={}, cityOrder=[];
-  unpinned.forEach(function(d){
-    var c=d.city||'未知城市';
-    if(!cityGroups[c]){cityGroups[c]=[];cityOrder.push(c);}
-    cityGroups[c].push(d);
-  });
-  if(pinned.length>0){
-    appendGroupHeader(container,'📌 已釘選');
-    pinned.forEach(function(d){appendCard(container,d);});
-  }
-  cityOrder.forEach(function(city){
-    appendGroupHeader(container, city);
-    cityGroups[city].forEach(function(d){appendCard(container,d);});
-  });
+  var container=document.getElementById('recordsContainer');container.innerHTML='';if(!docs||docs.length===0){container.innerHTML='<p style="text-align:center;padding:30px;color:var(--text-soft);">沒有符合的路線</p>';return;}
+  var pinned=docs.filter(function(d){return d.isPinned;});var unpinned=docs.filter(function(d){return !d.isPinned;});var cityGroups={},cityOrder=[];unpinned.forEach(function(d){var c=d.city||'未知城市';if(!cityGroups[c]){cityGroups[c]=[];cityOrder.push(c);}cityGroups[c].push(d);});
+  if(pinned.length>0){appendGroupHeader(container,'📌 已釘選');pinned.forEach(function(d){appendCard(container,d);});}
+  cityOrder.forEach(function(city){appendGroupHeader(container,city);cityGroups[city].forEach(function(d){appendCard(container,d);});});
 }
-
-function appendGroupHeader(container, label){
-  var header=document.createElement('div');
-  header.className='city-group-header';
-  header.innerText=label;
-  container.appendChild(header);
-}
-
-function appendCard(container, data){
-  var cardColor = data.trackColor || '#8FB9A8';
-  var dateStr = '';
-  if(data.createdAt && data.createdAt.seconds){
-    dateStr = new Date(data.createdAt.seconds*1000)
-      .toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
-  }
-  var metaParts = ['👣 '+(data.distance||0).toFixed(2)+' km', '⏱️ '+data.duration];
-  if(dateStr) metaParts.push('📅 '+dateStr);
-  if(data.city) metaParts.push('🏙 '+data.city);
-  var metaStr = metaParts.join('  ');
-  var row = document.createElement('div');
-  row.className = 'route-row' + (data.isPinned ? ' is-pinned' : '');
-  row.setAttribute('data-id', data.id);
-  row.style.borderLeftColor = data.isPinned ? 'var(--accent-pin)' : cardColor;
-  var pinLabel = data.isPinned ? '📌 取消釘選' : '📌 釘選';
-  row.innerHTML =
-    '<div class="route-row-main" onclick="onRowMainClick(event,\''+data.id+'\')">' +
-      '<div class="route-checkbox-wrap">' +
-        '<div class="route-checkbox" id="chk-'+data.id+'" onclick="event.stopPropagation();toggleSelectCard(\''+data.id+'\')"></div>' +
-      '</div>' +
-      '<div class="route-color-dot" style="background:'+cardColor+'"></div>' +
-      '<div class="route-row-info">' +
-        '<div class="route-row-name">'+data.name+'</div>' +
-        '<div class="route-row-meta">'+metaStr+'</div>' +
-      '</div>' +
-      '<div class="route-row-arrow">▼</div>' +
-    '</div>' +
-    '<div class="route-row-actions">' +
-      '<div class="route-action-btns">' +
-        '<button class="route-action-btn btn-load"  onclick="loadSavedRoute(\''+data.id+'\')">🗺 載入</button>' +
-        '<button class="route-action-btn btn-pin"   onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">'+pinLabel+'</button>' +
-        '<button class="route-action-btn btn-share" onclick="openShareCard(event,\''+data.id+'\')">✦ 分享</button>' +
-        '<button class="route-action-btn btn-del"   onclick="deleteRecord(event,\''+data.id+'\')">🗑️</button>' +
-      '</div>' +
-    '</div>';
+function appendGroupHeader(container,label){var header=document.createElement('div');header.className='city-group-header';header.innerText=label;container.appendChild(header);}
+function appendCard(container,data){
+  var cardColor=data.trackColor||'#8FB9A8';var dateStr='';if(data.createdAt&&data.createdAt.seconds){dateStr=new Date(data.createdAt.seconds*1000).toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});}
+  var metaParts=['👣 '+(data.distance||0).toFixed(2)+' km','⏱️ '+data.duration];if(dateStr)metaParts.push('📅 '+dateStr);if(data.city)metaParts.push('🏙 '+data.city);var metaStr=metaParts.join('  ');
+  var row=document.createElement('div');row.className='route-row'+(data.isPinned?' is-pinned':'');row.setAttribute('data-id',data.id);row.style.borderLeftColor=data.isPinned?'var(--accent-pin)':cardColor;var pinLabel=data.isPinned?'📌 取消釘選':'📌 釘選';
+  row.innerHTML='<div class="route-row-main" onclick="onRowMainClick(event,\''+data.id+'\')">'+'<div class="route-checkbox-wrap"><div class="route-checkbox" id="chk-'+data.id+'" onclick="event.stopPropagation();toggleSelectCard(\''+data.id+'\')"></div></div>'+'<div class="route-color-dot" style="background:'+cardColor+'"></div>'+'<div class="route-row-info"><div class="route-row-name">'+data.name+'</div><div class="route-row-meta">'+metaStr+'</div></div>'+'<div class="route-row-arrow">▼</div></div>'+'<div class="route-row-actions"><div class="route-action-btns">'+'<button class="route-action-btn btn-load" onclick="loadSavedRoute(\''+data.id+'\')">🗺 載入</button>'+'<button class="route-action-btn btn-pin" onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">'+pinLabel+'</button>'+'<button class="route-action-btn btn-share" onclick="openShareCard(event,\''+data.id+'\')">✦ 分享</button>'+'<button class="route-action-btn btn-del" onclick="deleteRecord(event,\''+data.id+'\')">🗑️</button>'+'</div></div>';
   container.appendChild(row);
 }
-
-function onRowMainClick(e, id){
-  if(document.body.classList.contains('select-mode')){
-    toggleSelectCard(id);
-    return;
-  }
-  var row = document.querySelector('.route-row[data-id="'+id+'"]');
-  if(!row) return;
-  var isExpanded = row.classList.contains('expanded');
-  document.querySelectorAll('.route-row.expanded').forEach(function(r){r.classList.remove('expanded');});
-  if(!isExpanded) row.classList.add('expanded');
-}
-
-/* 多選模式管理 */
-function toggleSelectMode(){
-  if(document.body.classList.contains('select-mode')){exitSelectMode();}
-  else{enterSelectMode();}
-}
-function enterSelectMode(){
-  document.body.classList.add('select-mode');
-  window._selectedIds = new Set();
-  document.getElementById('btnManage').classList.add('active');
-  document.getElementById('btnManage').innerText = '完成';
-  document.getElementById('batchDeleteBar').classList.add('visible');
-  updateBatchDeleteBar();
-  document.querySelectorAll('.route-row.expanded').forEach(function(r){r.classList.remove('expanded');});
-}
-function exitSelectMode(){
-  document.body.classList.remove('select-mode');
-  window._selectedIds = new Set();
-  document.getElementById('btnManage').classList.remove('active');
-  document.getElementById('btnManage').innerText = '管理';
-  document.getElementById('batchDeleteBar').classList.remove('visible');
-  document.querySelectorAll('.route-checkbox.checked').forEach(function(c){c.classList.remove('checked');});
-}
-function toggleSelectCard(id){
-  if(!window._selectedIds) window._selectedIds = new Set();
-  var chk = document.getElementById('chk-'+id);
-  if(window._selectedIds.has(id)){
-    window._selectedIds.delete(id);
-    if(chk) chk.classList.remove('checked');
-  } else {
-    window._selectedIds.add(id);
-    if(chk) chk.classList.add('checked');
-  }
-  updateBatchDeleteBar();
-}
-function updateBatchDeleteBar(){
-  var count = window._selectedIds ? window._selectedIds.size : 0;
-  document.getElementById('batchDeleteLabel').innerText = '已選 '+count+' 條';
-  document.getElementById('batchDeleteBtn').disabled = count === 0;
-  document.getElementById('batchDeleteBtn').innerText = count > 0 ? '刪除選取 ('+count+')' : '刪除選取';
-}
-
+function onRowMainClick(e,id){if(document.body.classList.contains('select-mode')){toggleSelectCard(id);return;}var row=document.querySelector('.route-row[data-id="'+id+'"]');if(!row)return;var isExpanded=row.classList.contains('expanded');document.querySelectorAll('.route-row.expanded').forEach(function(r){r.classList.remove('expanded');});if(!isExpanded)row.classList.add('expanded');}
+function toggleSelectMode(){if(document.body.classList.contains('select-mode')){exitSelectMode();}else{enterSelectMode();}}
+function enterSelectMode(){document.body.classList.add('select-mode');window._selectedIds=new Set();document.getElementById('btnManage').classList.add('active');document.getElementById('btnManage').innerText='完成';document.getElementById('batchDeleteBar').classList.add('visible');updateBatchDeleteBar();document.querySelectorAll('.route-row.expanded').forEach(function(r){r.classList.remove('expanded');});}
+function exitSelectMode(){document.body.classList.remove('select-mode');window._selectedIds=new Set();document.getElementById('btnManage').classList.remove('active');document.getElementById('btnManage').innerText='管理';document.getElementById('batchDeleteBar').classList.remove('visible');document.querySelectorAll('.route-checkbox.checked').forEach(function(c){c.classList.remove('checked');});}
+function toggleSelectCard(id){if(!window._selectedIds)window._selectedIds=new Set();var chk=document.getElementById('chk-'+id);if(window._selectedIds.has(id)){window._selectedIds.delete(id);if(chk)chk.classList.remove('checked');}else{window._selectedIds.add(id);if(chk)chk.classList.add('checked');}updateBatchDeleteBar();}
+function updateBatchDeleteBar(){var count=window._selectedIds?window._selectedIds.size:0;document.getElementById('batchDeleteLabel').innerText='已選 '+count+' 條';document.getElementById('batchDeleteBtn').disabled=count===0;document.getElementById('batchDeleteBtn').innerText=count>0?'刪除選取 ('+count+')':'刪除選取';}
 async function batchDelete(){
-  var ids = window._selectedIds ? Array.from(window._selectedIds) : [];
-  if(ids.length === 0) return;
-  if(!confirm('確定要刪除選取的 '+ids.length+' 條路線嗎？\n此操作無法復原。')) return;
-  var btn = document.getElementById('batchDeleteBtn');
-  btn.disabled = true; btn.innerText = '刪除中...';
-  for(var i = 0; i < ids.length; i++){
-    var id = ids[i];
-    var data = window.currentDocs && window.currentDocs.find(function(d){ return d.id === id; });
-    if(data && data.events && window.storage && window.storageApi){
-      var storageDeletes = [];
-      data.events.forEach(function(ev){
-        if(ev.photoUrl && ev.photoUrl.startsWith('https://')){
-          try{
-            var fileRef = window.storageApi.ref(window.storage, ev.photoUrl);
-            storageDeletes.push(window.storageApi.deleteObject(fileRef).catch(function(err){console.warn('[batchDelete] Storage 刪除失敗:', err);}));
-          }catch(err){ console.warn('[batchDelete] ref 建立失敗:', err); }
-        }
-      });
-      if(storageDeletes.length > 0) await Promise.all(storageDeletes);
-    }
-    try{
-      var pathColRef = window.api.collection(window.db,'walk_records',id,'path_points');
-      var pathSnap = await window.api.getDocs(pathColRef);
-      var chunkDeletes = [];
-      pathSnap.forEach(function(chunkDoc){chunkDeletes.push(window.api.deleteDoc(chunkDoc.ref));});
-      if(chunkDeletes.length > 0) await Promise.all(chunkDeletes);
-    }catch(err){console.warn('[batchDelete] 清 path_points 失敗:', err);}
-    try{
-      await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));
-    }catch(err){console.warn('[batchDelete] 刪主文件失敗:', err);}
-  }
-  exitSelectMode();
-  fetchRecords();
+  var ids=window._selectedIds?Array.from(window._selectedIds):[];if(ids.length===0)return;if(!confirm('確定要刪除選取的 '+ids.length+' 條路線嗎？\n此操作無法復原。'))return;
+  var btn=document.getElementById('batchDeleteBtn');btn.disabled=true;btn.innerText='刪除中...';
+  for(var i=0;i<ids.length;i++){var id=ids[i];var data=window.currentDocs&&window.currentDocs.find(function(d){return d.id===id;});if(data&&data.events&&window.storage&&window.storageApi){var storageDeletes=[];data.events.forEach(function(ev){if(ev.photoUrl&&ev.photoUrl.startsWith('https://')){try{var fileRef=window.storageApi.ref(window.storage,ev.photoUrl);storageDeletes.push(window.storageApi.deleteObject(fileRef).catch(function(err){console.warn('[batchDelete] Storage 刪除失敗:',err);}));}catch(err){console.warn('[batchDelete] ref 建立失敗:',err);}}});if(storageDeletes.length>0)await Promise.all(storageDeletes);}try{var pathColRef=window.api.collection(window.db,'walk_records',id,'path_points');var pathSnap=await window.api.getDocs(pathColRef);var chunkDeletes=[];pathSnap.forEach(function(chunkDoc){chunkDeletes.push(window.api.deleteDoc(chunkDoc.ref));});if(chunkDeletes.length>0)await Promise.all(chunkDeletes);}catch(err){console.warn('[batchDelete] 清 path_points 失敗:',err);}try{await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));}catch(err){console.warn('[batchDelete] 刪主文件失敗:',err);}}
+  exitSelectMode();fetchRecords();
 }
-
 async function loadSavedRoute(id){
-  var data=window.currentDocs.find(function(d){return d.id===id;});
-  if(!data)return;
-  switchPage('main');
-  pathLine.setPath([]);
-  historyMarkers.forEach(function(m){m.setMap(null);}); historyMarkers=[];
-  setStatusBar('🔄 載入路線中...','var(--status-locating)');
-  var pts=[];
-  if(data.path && data.path.length > 0){
-    pts = data.path.map(function(p){return{lat:p.lat,lng:p.lng};});
-  } else {
-    try{
-      var pathColRef = window.api.collection(window.db,'walk_records',id,'path_points');
-      var snap = await window.api.getDocs(pathColRef);
-      var chunks=[];
-      snap.forEach(function(d){ chunks.push(d.data()); });
-      chunks.sort(function(a,b){ return a.index - b.index; });
-      chunks.forEach(function(chunk){if(chunk.points) pts = pts.concat(chunk.points);});
-    }catch(err){
-      console.error('[loadSavedRoute] 撈 subcollection 失敗:', err);
-      setStatusBar('City Walker','var(--status-idle)');
-      return;
-    }
-  }
-  if(pts.length === 0){setStatusBar('City Walker','var(--status-idle)');return;}
-  pathLine.setPath(pts);
-  pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
-  if(data.events){
-    data.events.forEach(function(ev){
-      historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||''));
-    });
-  }
-  map.panTo(pts[0]);
-  document.getElementById('btnFocusRoute').classList.remove('hidden');
-  document.getElementById('btnClearRoute').classList.remove('hidden');
-  setStatusBar('City Walker','var(--status-idle)');
+  var data=window.currentDocs.find(function(d){return d.id===id;});if(!data)return;switchPage('main');pathLine.setPath([]);historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];setStatusBar('🔄 載入路線中...','var(--status-locating)');var pts=[];
+  if(data.path&&data.path.length>0){pts=data.path.map(function(p){return{lat:p.lat,lng:p.lng};});}else{try{var pathColRef=window.api.collection(window.db,'walk_records',id,'path_points');var snap=await window.api.getDocs(pathColRef);var chunks=[];snap.forEach(function(d){chunks.push(d.data());});chunks.sort(function(a,b){return a.index-b.index;});chunks.forEach(function(chunk){if(chunk.points)pts=pts.concat(chunk.points);});}catch(err){console.error('[loadSavedRoute] 撈 subcollection 失敗:',err);setStatusBar('City Walker','var(--status-idle)');return;}}
+  if(pts.length===0){setStatusBar('City Walker','var(--status-idle)');return;}
+  pathLine.setPath(pts);pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});if(data.events){data.events.forEach(function(ev){historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||''));});}map.panTo(pts[0]);document.getElementById('btnFocusRoute').classList.remove('hidden');document.getElementById('btnClearRoute').classList.remove('hidden');setStatusBar('City Walker','var(--status-idle)');
 }
+function clearLoadedRoute(){pathLine.setPath([]);pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85,strokeWeight:6});historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];document.getElementById('btnFocusRoute').classList.add('hidden');document.getElementById('btnClearRoute').classList.add('hidden');}
+async function deleteRecord(e,id){e.stopPropagation();if(!confirm('確定要刪除嗎？'))return;var data=window.currentDocs&&window.currentDocs.find(function(d){return d.id===id;});if(data&&data.events&&window.storage&&window.storageApi){var storageDeletes=[];data.events.forEach(function(ev){if(ev.photoUrl&&ev.photoUrl.startsWith('https://')){try{var fileRef=window.storageApi.ref(window.storage,ev.photoUrl);storageDeletes.push(window.storageApi.deleteObject(fileRef).catch(function(err){console.warn('[Storage] 照片刪除失敗:',err);}));}catch(err){console.warn('[Storage] ref 建立失敗:',err);}}});if(storageDeletes.length>0)await Promise.all(storageDeletes);}try{var pathColRef=window.api.collection(window.db,'walk_records',id,'path_points');var pathSnap=await window.api.getDocs(pathColRef);var chunkDeletes=[];pathSnap.forEach(function(chunkDoc){chunkDeletes.push(window.api.deleteDoc(chunkDoc.ref));});if(chunkDeletes.length>0)await Promise.all(chunkDeletes);}catch(err){console.warn('[deleteRecord] 清理 path_points 失敗:',err);}await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));fetchRecords();}
+async function togglePin(e,id,status){e.stopPropagation();await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});fetchRecords();}
 
-function clearLoadedRoute(){
-  pathLine.setPath([]);
-  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85,strokeWeight:6});
-  historyMarkers.forEach(function(m){m.setMap(null);});
-  historyMarkers=[];
-  document.getElementById('btnFocusRoute').classList.add('hidden');
-  document.getElementById('btnClearRoute').classList.add('hidden');
-}
-
-async function deleteRecord(e,id){
-  e.stopPropagation();
-  if(!confirm('確定要刪除嗎？'))return;
-  var data = window.currentDocs && window.currentDocs.find(function(d){ return d.id === id; });
-  if(data && data.events && window.storage && window.storageApi){
-    var storageDeletes = [];
-    data.events.forEach(function(ev){
-      if(ev.photoUrl && ev.photoUrl.startsWith('https://')){
-        try{
-          var fileRef = window.storageApi.ref(window.storage, ev.photoUrl);
-          storageDeletes.push(window.storageApi.deleteObject(fileRef).catch(function(err){console.warn('[Storage] 照片刪除失敗:', err);}));
-        }catch(err){ console.warn('[Storage] ref 建立失敗:', err); }
-      }
-    });
-    if(storageDeletes.length > 0) await Promise.all(storageDeletes);
-  }
-  try{
-    var pathColRef = window.api.collection(window.db,'walk_records',id,'path_points');
-    var pathSnap = await window.api.getDocs(pathColRef);
-    var chunkDeletes = [];
-    pathSnap.forEach(function(chunkDoc){chunkDeletes.push(window.api.deleteDoc(chunkDoc.ref));});
-    if(chunkDeletes.length > 0) await Promise.all(chunkDeletes);
-  }catch(err){console.warn('[deleteRecord] 清理 path_points 失敗:', err);}
-  await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));
-  fetchRecords();
-}
-
-async function togglePin(e,id,status){
-  e.stopPropagation();
-  await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});
-  fetchRecords();
-}
-
-/* IG 分享卡片 */
-async function openShareCard(e, id) {
-  e.stopPropagation();
-  var data = window.currentDocs.find(function(d){ return d.id === id; });
-  if (!data) return;
-  window._shareCardData = data;
-  window._shareCardPhotoIndex = 0;
-  var photoUrls = [];
-  if (data.events) {
-    data.events.forEach(function(ev) { if (ev.photoUrl) photoUrls.push(ev.photoUrl); });
-  }
-  document.getElementById('shareCardModal').style.display = 'flex';
-  var canvas = document.getElementById('shareCardCanvas');
-  canvas.width = 1080; canvas.height = 1350;
-  var ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#F5F0E8'; ctx.fillRect(0, 0, 1080, 1350);
-  ctx.fillStyle = '#8FB9A8'; ctx.font = 'bold 52px Arial'; ctx.textAlign = 'center';
-  ctx.fillText('生成卡片中...', 540, 675); ctx.textAlign = 'left';
-  if (photoUrls.length > 0) {
-    var loadedImgs = await Promise.all(photoUrls.map(function(url) {
-      return new Promise(function(resolve) {
-        var img = new Image(); img.crossOrigin = 'anonymous';
-        img.onload = function() { resolve(img); };
-        img.onerror = function() { resolve(null); };
-        img.src = url;
-      });
-    }));
-    window._shareCardPhotos = loadedImgs.filter(function(img) { return img !== null; });
-  } else {
-    window._shareCardPhotos = [];
-  }
-  var hint = document.getElementById('sharePhotoHint');
-  if (window._shareCardPhotos.length > 1) {
-    hint.style.display = 'block';
-    document.getElementById('sharePhotoIndex').innerText = '1 / ' + window._shareCardPhotos.length;
-  } else {
-    hint.style.display = 'none';
-  }
-  generateShareCard(data, 0);
-}
-
-function cycleSharePhoto() {
-  var photos = window._shareCardPhotos;
-  if (!photos || photos.length <= 1) return;
-  var data = window._shareCardData;
-  if (!data) return;
-  window._shareCardPhotoIndex = (window._shareCardPhotoIndex + 1) % photos.length;
-  var idx = window._shareCardPhotoIndex;
-  document.getElementById('sharePhotoIndex').innerText = (idx + 1) + ' / ' + photos.length;
-  generateShareCard(data, idx);
-}
-
-function closeShareCard() { document.getElementById('shareCardModal').style.display = 'none'; }
-
-function downloadShareCard() {
-  var canvas = document.getElementById('shareCardCanvas');
-  var link = document.createElement('a');
-  link.download = 'citywalk-' + (window._shareCardData && window._shareCardData.city || 'route') + '.png';
-  link.href = canvas.toDataURL('image/png');
-  link.click();
-}
-
-function generateShareCard(data, photoIndex) {
-  window._shareCardData = data;
-  var canvas = document.getElementById('shareCardCanvas');
-  var W = 1080, H = 1350;
-  canvas.width = W; canvas.height = H;
-  var ctx = canvas.getContext('2d');
-  var BG = '#F5F0E8', DARK = '#2C2C2C', GREEN = '#8FB9A8', SOFT = '#7D7D7D', WHITE = '#FFFFFF';
-  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = DARK; ctx.fillRect(0, 0, W, 120);
-  ctx.fillStyle = WHITE; ctx.font = 'bold 44px "Arial", sans-serif'; ctx.letterSpacing = '6px';
-  ctx.fillText('CITY WALKER', 60, 78);
-  ctx.font = '28px "Arial", sans-serif'; ctx.fillStyle = GREEN; ctx.textAlign = 'right';
-  ctx.fillText('✦ city walk', W - 60, 78); ctx.textAlign = 'left';
-  var pts = data.path;
-  if (pts && pts.length > 1) {
-    var minLat = pts[0].lat, maxLat = pts[0].lat, minLng = pts[0].lng, maxLng = pts[0].lng;
-    pts.forEach(function(p) {
-      if (p.lat < minLat) minLat = p.lat; if (p.lat > maxLat) maxLat = p.lat;
-      if (p.lng < minLng) minLng = p.lng; if (p.lng > maxLng) maxLng = p.lng;
-    });
-    var PAD = 80, TX = PAD, TY = 160, TW = W - PAD * 2, TH = 620;
-    var latRange = maxLat - minLat || 0.001, lngRange = maxLng - minLng || 0.001;
-    var scale = Math.min(TW / lngRange, TH / latRange) * 0.85;
-    var offX = TX + (TW - lngRange * scale) / 2, offY = TY + (TH - latRange * scale) / 2;
-    function toX(lng) { return offX + (lng - minLng) * scale; }
-    function toY(lat) { return offY + (maxLat - lat) * scale; }
-    ctx.beginPath(); ctx.moveTo(toX(pts[0].lng), toY(pts[0].lat));
-    pts.forEach(function(p) { ctx.lineTo(toX(p.lng), toY(p.lat)); });
-    ctx.strokeStyle = data.trackColor || GREEN; ctx.lineWidth = 8;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1;
-    ctx.beginPath(); ctx.arc(toX(pts[0].lng), toY(pts[0].lat), 14, 0, Math.PI * 2);
-    ctx.fillStyle = WHITE; ctx.fill(); ctx.strokeStyle = data.trackColor || GREEN; ctx.lineWidth = 5; ctx.stroke();
-    var last = pts[pts.length - 1];
-    ctx.beginPath(); ctx.arc(toX(last.lng), toY(last.lat), 14, 0, Math.PI * 2);
-    ctx.fillStyle = data.trackColor || GREEN; ctx.fill();
-    if (data.events) {
-      data.events.forEach(function(ev) {
-        if (!ev.pos) return;
-        var ex = toX(ev.pos.lng), ey = toY(ev.pos.lat);
-        ctx.font = '32px serif'; ctx.textAlign = 'center';
-        ctx.fillText(ev.icon || '📍', ex, ey - 8); ctx.textAlign = 'left';
-      });
-    }
-  }
-  ctx.strokeStyle = DARK; ctx.globalAlpha = 0.12; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(60, 820); ctx.lineTo(W - 60, 820); ctx.stroke(); ctx.globalAlpha = 1;
-  var dateStr = data.createdAt && data.createdAt.seconds
-    ? new Date(data.createdAt.seconds * 1000).toLocaleDateString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit'})
-    : new Date().toLocaleDateString('zh-TW', {year:'numeric',month:'2-digit',day:'2-digit'});
-  ctx.fillStyle = DARK; ctx.font = 'bold 52px "Arial", sans-serif';
-  ctx.fillText(data.city || '未知城市', 60, 900);
-  ctx.fillStyle = SOFT; ctx.font = '32px "Arial", sans-serif'; ctx.fillText(dateStr, 60, 950);
-  ctx.fillStyle = DARK; ctx.font = 'bold 40px "Arial", sans-serif';
-  ctx.fillText('👣  ' + (data.distance || 0).toFixed(2) + ' km', 60, 1030);
-  ctx.fillText('⏱  ' + (data.duration || '—'), 420, 1030);
-  var seenPlaces = {}, placeNames = [];
-  if (data.events) {
-    data.events.forEach(function(ev) {
-      if (ev.placeName && !seenPlaces[ev.placeName] && placeNames.length < 3) {
-        seenPlaces[ev.placeName] = true;
-        var short = ev.placeName.length > 12 ? ev.placeName.slice(0, 12) + '...' : ev.placeName;
-        placeNames.push(short);
-      }
-    });
-  }
-  if (placeNames.length > 0) {
-    ctx.fillStyle = SOFT; ctx.font = '30px "Arial", sans-serif';
-    placeNames.forEach(function(name, i) { ctx.fillText('📍  ' + name, 60, 1075 + i * 52); });
-  }
-  var photos = window._shareCardPhotos || [];
-  var idx = (typeof photoIndex === 'number' && photoIndex >= 0) ? photoIndex : 0;
-  var selectedImg = photos[idx] || null;
-  if (selectedImg) {
-    var photoW = 260, photoH = 260, photoPad = 16;
-    var px = W - 60 - photoW - photoPad * 2, py = H - 90 - photoH - photoPad * 3;
-    var rot = -2.5 * Math.PI / 180;
-    ctx.save();
-    ctx.translate(px + (photoW + photoPad * 2) / 2, py + (photoH + photoPad * 3) / 2);
-    ctx.rotate(rot); ctx.shadowColor = 'rgba(0,0,0,0.22)'; ctx.shadowBlur = 18;
-    ctx.fillStyle = WHITE;
-    ctx.fillRect(-(photoW / 2 + photoPad), -(photoH / 2 + photoPad), photoW + photoPad * 2, photoH + photoPad * 3);
-    ctx.shadowBlur = 0;
-    ctx.drawImage(selectedImg, -photoW / 2, -(photoH / 2 + photoPad) + photoPad, photoW, photoH);
-    ctx.restore();
-  }
-  ctx.fillStyle = DARK; ctx.globalAlpha = 0.5; ctx.font = '26px "Arial", sans-serif';
-  ctx.textAlign = 'center'; ctx.fillText(data.name || '', W / 2, H - 36);
-  ctx.textAlign = 'left'; ctx.globalAlpha = 1;
+async function openShareCard(e,id){e.stopPropagation();var data=window.currentDocs.find(function(d){return d.id===id;});if(!data)return;window._shareCardData=data;window._shareCardPhotoIndex=0;var photoUrls=[];if(data.events){data.events.forEach(function(ev){if(ev.photoUrl)photoUrls.push(ev.photoUrl);});}document.getElementById('shareCardModal').style.display='flex';var canvas=document.getElementById('shareCardCanvas');canvas.width=1080;canvas.height=1350;var ctx=canvas.getContext('2d');ctx.fillStyle='#F5F0E8';ctx.fillRect(0,0,1080,1350);ctx.fillStyle='#8FB9A8';ctx.font='bold 52px Arial';ctx.textAlign='center';ctx.fillText('生成卡片中...',540,675);ctx.textAlign='left';if(photoUrls.length>0){var loadedImgs=await Promise.all(photoUrls.map(function(url){return new Promise(function(resolve){var img=new Image();img.crossOrigin='anonymous';img.onload=function(){resolve(img);};img.onerror=function(){resolve(null);};img.src=url;});}));window._shareCardPhotos=loadedImgs.filter(function(img){return img!==null;});}else{window._shareCardPhotos=[];}var hint=document.getElementById('sharePhotoHint');if(window._shareCardPhotos.length>1){hint.style.display='block';document.getElementById('sharePhotoIndex').innerText='1 / '+window._shareCardPhotos.length;}else{hint.style.display='none';}generateShareCard(data,0);}
+function cycleSharePhoto(){var photos=window._shareCardPhotos;if(!photos||photos.length<=1)return;var data=window._shareCardData;if(!data)return;window._shareCardPhotoIndex=(window._shareCardPhotoIndex+1)%photos.length;var idx=window._shareCardPhotoIndex;document.getElementById('sharePhotoIndex').innerText=(idx+1)+' / '+photos.length;generateShareCard(data,idx);}
+function closeShareCard(){document.getElementById('shareCardModal').style.display='none';}
+function downloadShareCard(){var canvas=document.getElementById('shareCardCanvas');var link=document.createElement('a');link.download='citywalk-'+(window._shareCardData&&window._shareCardData.city||'route')+'.png';link.href=canvas.toDataURL('image/png');link.click();}
+function generateShareCard(data,photoIndex){
+  window._shareCardData=data;var canvas=document.getElementById('shareCardCanvas');var W=1080,H=1350;canvas.width=W;canvas.height=H;var ctx=canvas.getContext('2d');var BG='#F5F0E8',DARK='#2C2C2C',GREEN='#8FB9A8',SOFT='#7D7D7D',WHITE='#FFFFFF';
+  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);ctx.fillStyle=DARK;ctx.fillRect(0,0,W,120);ctx.fillStyle=WHITE;ctx.font='bold 44px "Arial", sans-serif';ctx.letterSpacing='6px';ctx.fillText('CITY WALKER',60,78);ctx.font='28px "Arial", sans-serif';ctx.fillStyle=GREEN;ctx.textAlign='right';ctx.fillText('✦ city walk',W-60,78);ctx.textAlign='left';
+  var pts=data.path;if(pts&&pts.length>1){var minLat=pts[0].lat,maxLat=pts[0].lat,minLng=pts[0].lng,maxLng=pts[0].lng;pts.forEach(function(p){if(p.lat<minLat)minLat=p.lat;if(p.lat>maxLat)maxLat=p.lat;if(p.lng<minLng)minLng=p.lng;if(p.lng>maxLng)maxLng=p.lng;});var PAD=80,TX=PAD,TY=160,TW=W-PAD*2,TH=620;var latRange=maxLat-minLat||0.001,lngRange=maxLng-minLng||0.001;var scale=Math.min(TW/lngRange,TH/latRange)*0.85;var offX=TX+(TW-lngRange*scale)/2,offY=TY+(TH-latRange*scale)/2;function toX(lng){return offX+(lng-minLng)*scale;}function toY(lat){return offY+(maxLat-lat)*scale;}ctx.beginPath();ctx.moveTo(toX(pts[0].lng),toY(pts[0].lat));pts.forEach(function(p){ctx.lineTo(toX(p.lng),toY(p.lat));});ctx.strokeStyle=data.trackColor||GREEN;ctx.lineWidth=8;ctx.lineCap='round';ctx.lineJoin='round';ctx.globalAlpha=0.9;ctx.stroke();ctx.globalAlpha=1;ctx.beginPath();ctx.arc(toX(pts[0].lng),toY(pts[0].lat),14,0,Math.PI*2);ctx.fillStyle=WHITE;ctx.fill();ctx.strokeStyle=data.trackColor||GREEN;ctx.lineWidth=5;ctx.stroke();var last=pts[pts.length-1];ctx.beginPath();ctx.arc(toX(last.lng),toY(last.lat),14,0,Math.PI*2);ctx.fillStyle=data.trackColor||GREEN;ctx.fill();if(data.events){data.events.forEach(function(ev){if(!ev.pos)return;var ex=toX(ev.pos.lng),ey=toY(ev.pos.lat);ctx.font='32px serif';ctx.textAlign='center';ctx.fillText(ev.icon||'📍',ex,ey-8);ctx.textAlign='left';});}}
+  ctx.strokeStyle=DARK;ctx.globalAlpha=0.12;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(60,820);ctx.lineTo(W-60,820);ctx.stroke();ctx.globalAlpha=1;
+  var dateStr=data.createdAt&&data.createdAt.seconds?new Date(data.createdAt.seconds*1000).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}):new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'});
+  ctx.fillStyle=DARK;ctx.font='bold 52px "Arial", sans-serif';ctx.fillText(data.city||'未知城市',60,900);ctx.fillStyle=SOFT;ctx.font='32px "Arial", sans-serif';ctx.fillText(dateStr,60,950);ctx.fillStyle=DARK;ctx.font='bold 40px "Arial", sans-serif';ctx.fillText('👣  '+(data.distance||0).toFixed(2)+' km',60,1030);ctx.fillText('⏱  '+(data.duration||'—'),420,1030);
+  var seenPlaces={},placeNames=[];if(data.events){data.events.forEach(function(ev){if(ev.placeName&&!seenPlaces[ev.placeName]&&placeNames.length<3){seenPlaces[ev.placeName]=true;var short=ev.placeName.length>12?ev.placeName.slice(0,12)+'...':ev.placeName;placeNames.push(short);}});}if(placeNames.length>0){ctx.fillStyle=SOFT;ctx.font='30px "Arial", sans-serif';placeNames.forEach(function(name,i){ctx.fillText('📍  '+name,60,1075+i*52);});}
+  var photos=window._shareCardPhotos||[];var idx=(typeof photoIndex==='number'&&photoIndex>=0)?photoIndex:0;var selectedImg=photos[idx]||null;
+  if(selectedImg){var photoW=260,photoH=260,photoPad=16;var px=W-60-photoW-photoPad*2,py=H-90-photoH-photoPad*3;var rot=-2.5*Math.PI/180;ctx.save();ctx.translate(px+(photoW+photoPad*2)/2,py+(photoH+photoPad*3)/2);ctx.rotate(rot);ctx.shadowColor='rgba(0,0,0,0.22)';ctx.shadowBlur=18;ctx.fillStyle=WHITE;ctx.fillRect(-(photoW/2+photoPad),-(photoH/2+photoPad),photoW+photoPad*2,photoH+photoPad*3);ctx.shadowBlur=0;ctx.drawImage(selectedImg,-photoW/2,-(photoH/2+photoPad)+photoPad,photoW,photoH);ctx.restore();}
+  ctx.fillStyle=DARK;ctx.globalAlpha=0.5;ctx.font='26px "Arial", sans-serif';ctx.textAlign='center';ctx.fillText(data.name||'',W/2,H-36);ctx.textAlign='left';ctx.globalAlpha=1;
 }
 
 function switchPage(p){
-  document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});
-  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
-  var tp=document.getElementById('page-'+p),tn=document.getElementById('nav-'+p);
-  if(tp)tp.classList.remove('hidden');if(tn)tn.classList.add('active');
-  var mc=document.querySelector('.map-controls'),cp=document.getElementById('colorPicker');
-  var isInit=!document.getElementById('state-init').classList.contains('hidden');
-  if(p==='list'){
-    if(mc)mc.style.display='none';if(cp)cp.style.display='none';
-    /* [v1.17.0] 切換到我的路線頁時同步更新帳號橫幅 */
-    updateAccountBanner();
-  } else {
-    if(document.body.classList.contains('select-mode')) exitSelectMode();
-    if(mc)mc.style.display='flex';if(cp)cp.style.display=isInit?'flex':'none';
-  }
+  document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  var tp=document.getElementById('page-'+p),tn=document.getElementById('nav-'+p);if(tp)tp.classList.remove('hidden');if(tn)tn.classList.add('active');
+  var mc=document.querySelector('.map-controls'),cp=document.getElementById('colorPicker');var isInit=!document.getElementById('state-init').classList.contains('hidden');
+  if(p==='list'){if(mc)mc.style.display='none';if(cp)cp.style.display='none';updateAccountBanner();}else{if(document.body.classList.contains('select-mode'))exitSelectMode();if(mc)mc.style.display='flex';if(cp)cp.style.display=isInit?'flex':'none';}
   if(p==='list')fetchRecords();
 }
 function openSaveModal(){document.getElementById('saveModal').style.display='flex';}
 
-/* 暴露全域函式 */
-window.onload=initMap;
-window.focusOnMe=focusOnMe; window.focusOnRouteStart=focusOnRouteStart;
-window.openEventCanvas=openEventCanvas; window.closeEventModal=closeEventModal;
-window.saveEvent=saveEvent; window.openSaveModal=openSaveModal;
-window.executeCloudSave=executeCloudSave; window.switchPage=switchPage;
-window.closeMemoryBox=closeMemoryBox; window.deleteRecord=deleteRecord;
-window.togglePin=togglePin; window.toggleColorPicker=toggleColorPicker;
-window.selectColor=selectColor; window.endWalk=endWalk; window.startWalk=startWalk;
-window.openCamera=openCamera; window.handlePhotoSelected=handlePhotoSelected;
-window.retakePhoto=retakePhoto; window.cancelPhoto=cancelPhoto; window.confirmPhoto=confirmPhoto;
-window.clearLoadedRoute=clearLoadedRoute;
-window.applyFilters=applyFilters; window.clearFilters=clearFilters;
-window.onRowMainClick=onRowMainClick; window.toggleSelectMode=toggleSelectMode;
-window.exitSelectMode=exitSelectMode; window.toggleSelectCard=toggleSelectCard;
-window.batchDelete=batchDelete;
-window.openShareCard=openShareCard; window.closeShareCard=closeShareCard;
-window.downloadShareCard=downloadShareCard; window.cycleSharePhoto=cycleSharePhoto;
-/* [新增 v1.17.0] */
-window.linkGoogleAccount=linkGoogleAccount;
-window.updateAccountBanner=updateAccountBanner;
+window.initMap=initMap;window.focusOnMe=focusOnMe;window.focusOnRouteStart=focusOnRouteStart;
+window.openEventCanvas=openEventCanvas;window.closeEventModal=closeEventModal;window.saveEvent=saveEvent;window.openSaveModal=openSaveModal;
+window.executeCloudSave=executeCloudSave;window.switchPage=switchPage;window.closeMemoryBox=closeMemoryBox;window.deleteRecord=deleteRecord;
+window.togglePin=togglePin;window.toggleColorPicker=toggleColorPicker;window.selectColor=selectColor;window.endWalk=endWalk;window.startWalk=startWalk;
+window.openCamera=openCamera;window.handlePhotoSelected=handlePhotoSelected;window.retakePhoto=retakePhoto;window.cancelPhoto=cancelPhoto;window.confirmPhoto=confirmPhoto;
+window.clearLoadedRoute=clearLoadedRoute;window.applyFilters=applyFilters;window.clearFilters=clearFilters;
+window.onRowMainClick=onRowMainClick;window.toggleSelectMode=toggleSelectMode;window.exitSelectMode=exitSelectMode;window.toggleSelectCard=toggleSelectCard;window.batchDelete=batchDelete;
+window.openShareCard=openShareCard;window.closeShareCard=closeShareCard;window.downloadShareCard=downloadShareCard;window.cycleSharePhoto=cycleSharePhoto;
+window.linkGoogleAccount=linkGoogleAccount;window.updateAccountBanner=updateAccountBanner;
 </script>
 
 <script>
-/* PSEUDO: 用 Maps SDK 官方 callback 參數觸發 initMap
-   確保 google.maps 完全就緒後才執行
-   避免 loading=async 情況下 importLibrary is not a function */
-window.__mapsReady = function() {
-  if(window.initMap) window.initMap();
-};
+/* [v1.17.0 bugfix] Maps SDK callback 觸發，確保 importLibrary 就緒 */
+window.__mapsReady = function() { if(window.initMap) window.initMap(); };
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&callback=__mapsReady" async defer></script>
 </body>
