@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.18.0</title>
+<title>City Walker - v1.19.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -206,6 +206,119 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
   opacity:0.6;
 }
 #btnAccountSetting:active { background:var(--bg-warm); opacity:1; }
+
+/* ===================================================
+   [v1.19.0] 探索頁 CSS
+   =================================================== */
+#page-explore { z-index:25; background:var(--bg-warm); padding-top:60px; }
+
+/* 距離 pill 篩選列 */
+#explorePillBar {
+  width:92%; max-width:450px; margin:0 auto 16px;
+  display:flex; gap:8px; overflow-x:auto;
+  scrollbar-width:none; -ms-overflow-style:none;
+  padding-bottom:2px; box-sizing:border-box;
+}
+#explorePillBar::-webkit-scrollbar { display:none; }
+.explore-pill {
+  flex-shrink:0; padding:8px 18px; border-radius:20px;
+  font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif;
+  background:var(--white); color:var(--text-soft);
+  border:1.5px solid var(--border-light); cursor:pointer;
+  transition:all 0.2s; white-space:nowrap;
+}
+.explore-pill.active {
+  background:var(--accent-positive); color:var(--white);
+  border-color:var(--accent-positive); font-weight:bold;
+}
+.explore-pill:active { opacity:0.8; }
+
+/* 探索卡片 */
+.explore-card {
+  width:92%; max-width:450px; margin:8px auto;
+  background:var(--white); border-radius:16px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.05);
+  border-left:5px solid var(--accent-positive);
+  box-sizing:border-box; overflow:hidden;
+  display:flex; align-items:center;
+  padding:14px 14px 14px 16px; gap:12px;
+}
+.explore-card-color {
+  width:10px; height:10px; border-radius:50%; flex-shrink:0;
+}
+.explore-card-info { flex:1; min-width:0; }
+.explore-card-name {
+  font-size:15px; font-weight:bold; color:var(--text-main);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  margin-bottom:3px;
+}
+.explore-card-meta {
+  font-size:12px; color:var(--text-soft); letter-spacing:0.3px;
+}
+.explore-card-dist {
+  font-size:11px; color:var(--accent-positive);
+  font-weight:bold; margin-top:3px;
+}
+.btn-explore-load {
+  flex-shrink:0; padding:9px 14px; border-radius:12px; border:none;
+  background:#EEF6F3; color:var(--accent-positive); font-size:13px;
+  font-weight:bold; cursor:pointer; white-space:nowrap;
+  font-family:'Poly','Microsoft JhengHei',sans-serif;
+  transition:opacity 0.15s;
+}
+.btn-explore-load:active { opacity:0.7; }
+
+/* 空狀態 */
+#exploreEmpty {
+  text-align:center; padding:40px 20px;
+  color:var(--text-soft); font-size:14px; line-height:1.8;
+  display:none;
+}
+#exploreLoading {
+  text-align:center; padding:30px; color:var(--text-soft);
+}
+
+/* saveModal 公開 toggle */
+#publicToggleRow {
+  display:flex; align-items:center; justify-content:space-between;
+  margin:10px 0 4px; padding:10px 12px; border-radius:12px;
+  background:var(--bg-warm); border:1.5px solid var(--border-light);
+}
+#publicToggleLabel {
+  font-size:13px; color:var(--text-main);
+}
+#publicToggleLabel span {
+  display:block; font-size:11px; color:var(--text-soft);
+  margin-top:2px; letter-spacing:0.3px;
+}
+/* iOS-style toggle */
+.toggle-switch {
+  position:relative; width:44px; height:24px;
+  flex-shrink:0;
+}
+.toggle-switch input { display:none; }
+.toggle-slider {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  background:var(--border-light); border-radius:24px;
+  cursor:pointer; transition:background 0.25s;
+}
+.toggle-slider::before {
+  content:''; position:absolute;
+  width:18px; height:18px; border-radius:50%;
+  background:white; left:3px; top:3px;
+  transition:transform 0.25s;
+  box-shadow:0 1px 4px rgba(0,0,0,0.2);
+}
+.toggle-switch input:checked + .toggle-slider {
+  background:var(--accent-positive);
+}
+.toggle-switch input:checked + .toggle-slider::before {
+  transform:translateX(20px);
+}
+
+/* 我的路線卡片：公開按鈕 */
+.btn-public { background:var(--bg-warm); color:var(--text-soft); }
+.btn-public.is-public { background:#E8F5F1; color:var(--accent-positive); font-weight:bold; }
 </style>
 
 <!-- [v1.17.1] Firebase — 新增 linkWithPopup -->
@@ -346,8 +459,19 @@ getRedirectResult(auth).then(function(result){
 <div id="saveModal">
   <div class="modal-content">
     <div style="font-weight:bold;font-size:18px;text-align:center;">保存這趟漫遊</div>
-    <input type="text" id="routeName" placeholder="為這條路線命名..." style="width:100%;border:1px solid #EEE;padding:12px;border-radius:12px;margin:15px 0;box-sizing:border-box;">
-    <div style="display:flex;gap:12px;">
+    <input type="text" id="routeName" placeholder="為這條路線命名..." style="width:100%;border:1px solid #EEE;padding:12px;border-radius:12px;margin:15px 0 10px;box-sizing:border-box;">
+    <!-- [v1.19.0] 公開設定 toggle -->
+    <div id="publicToggleRow">
+      <label id="publicToggleLabel" for="publicToggle">
+        🌐 公開到探索頁
+        <span>讓其他使用者在探索頁看見這條路線</span>
+      </label>
+      <label class="toggle-switch">
+        <input type="checkbox" id="publicToggle">
+        <div class="toggle-slider"></div>
+      </label>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:14px;">
       <button class="btn-base" style="background:#EEE;color:#666;" onclick="document.getElementById('saveModal').style.display='none'">取消</button>
       <button class="btn-base btn-main" id="btnConfirmSave" onclick="executeCloudSave()">確認加入</button>
     </div>
@@ -496,7 +620,32 @@ getRedirectResult(auth).then(function(result){
 <nav id="navBar">
   <div class="nav-item active" id="nav-main" onclick="switchPage('main')">📍<span>漫遊</span></div>
   <div class="nav-item" id="nav-list" onclick="switchPage('list')">🗺<span>我的路線</span></div>
+  <div class="nav-item" id="nav-explore" onclick="switchPage('explore')">🔭<span>探索</span></div>
 </nav>
+
+<!-- ===================================================
+     [v1.19.0] 探索頁
+     =================================================== -->
+<div id="page-explore" class="page hidden">
+  <h2 style="text-align:center;letter-spacing:2px;margin:0 0 16px;padding-top:60px;">EXPLORE</h2>
+
+  <!-- 距離 pill 篩選列 -->
+  <div id="explorePillBar">
+    <div class="explore-pill" data-km="1" onclick="selectExplorePill(this)">1 km</div>
+    <div class="explore-pill" data-km="3" onclick="selectExplorePill(this)">3 km</div>
+    <div class="explore-pill active" data-km="5" onclick="selectExplorePill(this)">5 km</div>
+    <div class="explore-pill" data-km="10" onclick="selectExplorePill(this)">10 km</div>
+  </div>
+
+  <!-- 載入中 / 卡片容器 / 空狀態 -->
+  <div id="exploreLoading">載入中...</div>
+  <div id="exploreContainer"></div>
+  <div id="exploreEmpty">
+    <div style="font-size:40px;margin-bottom:12px;">🔭</div>
+    附近還沒有公開的路線<br>
+    <span style="font-size:12px;">試著拉大範圍，或成為第一個在這裡分享路線的人！</span>
+  </div>
+</div>
 
 <script>
 var map, userMarker, pathLine, watchId, geocoder;
@@ -615,7 +764,20 @@ async function endWalk(){
 var PATH_CHUNK_SIZE=500;
 async function executeCloudSave(){
   var btn=document.getElementById('btnConfirmSave');if(btn)btn.disabled=true;
-  try{var docRef=await window.api.addDoc(window.api.collection(window.db,'walk_records'),{name:document.getElementById('routeName').value||'未命名漫遊',city:cityName,distance:totalDistance,duration:durationStr,events:eventsData,trackColor:selectedTrackColor,isPinned:false,createdAt:window.api.serverTimestamp(),userId:window.currentUid||'anonymous'});var pathColRef=window.api.collection(window.db,'walk_records',docRef.id,'path_points');var chunkPromises=[];for(var i=0;i<walkPath.length;i+=PATH_CHUNK_SIZE){var chunk=walkPath.slice(i,i+PATH_CHUNK_SIZE);var chunkIndex=Math.floor(i/PATH_CHUNK_SIZE);var chunkDocRef=window.api.doc(pathColRef,'chunk_'+chunkIndex);chunkPromises.push(window.api.setDoc(chunkDocRef,{index:chunkIndex,points:chunk}));}await Promise.all(chunkPromises);location.reload();}
+  /* [v1.19.0] 讀取公開 toggle 狀態 */
+  var isPublic = document.getElementById('publicToggle') ? document.getElementById('publicToggle').checked : false;
+  try{var docRef=await window.api.addDoc(window.api.collection(window.db,'walk_records'),{
+    name:document.getElementById('routeName').value||'未命名漫遊',
+    city:cityName,distance:totalDistance,duration:durationStr,
+    events:eventsData,trackColor:selectedTrackColor,
+    isPinned:false,
+    /* [v1.19.0] 公開設定 + 作者預留欄位 */
+    isPublic:isPublic,
+    authorDisplayName:'',
+    authorPhotoUrl:'',
+    createdAt:window.api.serverTimestamp(),
+    userId:window.currentUid||'anonymous'
+  });var pathColRef=window.api.collection(window.db,'walk_records',docRef.id,'path_points');var chunkPromises=[];for(var i=0;i<walkPath.length;i+=PATH_CHUNK_SIZE){var chunk=walkPath.slice(i,i+PATH_CHUNK_SIZE);var chunkIndex=Math.floor(i/PATH_CHUNK_SIZE);var chunkDocRef=window.api.doc(pathColRef,'chunk_'+chunkIndex);chunkPromises.push(window.api.setDoc(chunkDocRef,{index:chunkIndex,points:chunk}));}await Promise.all(chunkPromises);location.reload();}
   catch(e){console.error('[Save] 儲存失敗:',e);alert('儲存失敗');if(btn)btn.disabled=false;}
 }
 
@@ -698,7 +860,10 @@ function appendCard(container,data){
   var cardColor=data.trackColor||'#8FB9A8';var dateStr='';if(data.createdAt&&data.createdAt.seconds){dateStr=new Date(data.createdAt.seconds*1000).toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});}
   var metaParts=['👣 '+(data.distance||0).toFixed(2)+' km','⏱️ '+data.duration];if(dateStr)metaParts.push('📅 '+dateStr);if(data.city)metaParts.push('🏙 '+data.city);var metaStr=metaParts.join('  ');
   var row=document.createElement('div');row.className='route-row'+(data.isPinned?' is-pinned':'');row.setAttribute('data-id',data.id);row.style.borderLeftColor=data.isPinned?'var(--accent-pin)':cardColor;var pinLabel=data.isPinned?'📌 取消釘選':'📌 釘選';
-  row.innerHTML='<div class="route-row-main" onclick="onRowMainClick(event,\''+data.id+'\')">'+'<div class="route-checkbox-wrap"><div class="route-checkbox" id="chk-'+data.id+'" onclick="event.stopPropagation();toggleSelectCard(\''+data.id+'\')"></div></div>'+'<div class="route-color-dot" style="background:'+cardColor+'"></div>'+'<div class="route-row-info"><div class="route-row-name">'+data.name+'</div><div class="route-row-meta">'+metaStr+'</div></div>'+'<div class="route-row-arrow">▼</div></div>'+'<div class="route-row-actions"><div class="route-action-btns">'+'<button class="route-action-btn btn-load" onclick="loadSavedRoute(\''+data.id+'\')">🗺 載入</button>'+'<button class="route-action-btn btn-pin" onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">'+pinLabel+'</button>'+'<button class="route-action-btn btn-share" onclick="openShareCard(event,\''+data.id+'\')">✦ 分享</button>'+'<button class="route-action-btn btn-del" onclick="deleteRecord(event,\''+data.id+'\')">🗑️</button>'+'</div></div>';
+  /* [v1.19.0] 公開按鈕文字與樣式 */
+  var publicLabel=data.isPublic?'🌐 公開':'🔒 私人';
+  var publicClass='route-action-btn btn-public'+(data.isPublic?' is-public':'');
+  row.innerHTML='<div class="route-row-main" onclick="onRowMainClick(event,\''+data.id+'\')">'+'<div class="route-checkbox-wrap"><div class="route-checkbox" id="chk-'+data.id+'" onclick="event.stopPropagation();toggleSelectCard(\''+data.id+'\')"></div></div>'+'<div class="route-color-dot" style="background:'+cardColor+'"></div>'+'<div class="route-row-info"><div class="route-row-name">'+data.name+'</div><div class="route-row-meta">'+metaStr+'</div></div>'+'<div class="route-row-arrow">▼</div></div>'+'<div class="route-row-actions"><div class="route-action-btns">'+'<button class="route-action-btn btn-load" onclick="loadSavedRoute(\''+data.id+'\')">🗺 載入</button>'+'<button class="route-action-btn btn-pin" onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">'+pinLabel+'</button>'+'<button class="'+publicClass+'" onclick="togglePublic(event,\''+data.id+'\','+!!data.isPublic+')">'+publicLabel+'</button>'+'<button class="route-action-btn btn-share" onclick="openShareCard(event,\''+data.id+'\')">✦ 分享</button>'+'<button class="route-action-btn btn-del" onclick="deleteRecord(event,\''+data.id+'\')">🗑️</button>'+'</div></div>';
   container.appendChild(row);
 }
 function onRowMainClick(e,id){if(document.body.classList.contains('select-mode')){toggleSelectCard(id);return;}var row=document.querySelector('.route-row[data-id="'+id+'"]');if(!row)return;var isExpanded=row.classList.contains('expanded');document.querySelectorAll('.route-row.expanded').forEach(function(r){r.classList.remove('expanded');});if(!isExpanded)row.classList.add('expanded');}
@@ -744,10 +909,242 @@ function switchPage(p){
   document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   var tp=document.getElementById('page-'+p),tn=document.getElementById('nav-'+p);if(tp)tp.classList.remove('hidden');if(tn)tn.classList.add('active');
   var mc=document.querySelector('.map-controls'),cp=document.getElementById('colorPicker');var isInit=!document.getElementById('state-init').classList.contains('hidden');
-  if(p==='list'){if(mc)mc.style.display='none';if(cp)cp.style.display='none';updateAccountBanner();}else{if(document.body.classList.contains('select-mode'))exitSelectMode();if(mc)mc.style.display='flex';if(cp)cp.style.display=isInit?'flex':'none';}
+  if(p==='list'){
+    if(mc)mc.style.display='none';if(cp)cp.style.display='none';updateAccountBanner();
+  } else if(p==='explore'){
+    /* [v1.19.0] 探索頁：隱藏地圖控制，載入公開路線 */
+    if(mc)mc.style.display='none';if(cp)cp.style.display='none';
+    if(document.body.classList.contains('select-mode'))exitSelectMode();
+    fetchExploreRoutes();
+  } else {
+    if(document.body.classList.contains('select-mode'))exitSelectMode();
+    if(mc)mc.style.display='flex';if(cp)cp.style.display=isInit?'flex':'none';
+  }
   if(p==='list')fetchRecords();
 }
-function openSaveModal(){document.getElementById('saveModal').style.display='flex';}
+function openSaveModal(){
+  /* [v1.19.0] 每次開啟時重置 toggle 為關閉 */
+  var toggle=document.getElementById('publicToggle');
+  if(toggle) toggle.checked=false;
+  document.getElementById('saveModal').style.display='flex';
+}
+
+/* ===================================================
+   [v1.19.0] 切換路線公開狀態（我的路線頁）
+   PSEUDO:
+   直接 updateDoc isPublic 欄位取反，
+   然後重新 fetchRecords 更新卡片
+   =================================================== */
+async function togglePublic(e, id, currentStatus){
+  e.stopPropagation();
+  try{
+    await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPublic:!currentStatus});
+    fetchRecords();
+  }catch(err){
+    console.error('[togglePublic] 失敗:',err);
+    alert('切換失敗，請稍後再試。');
+  }
+}
+
+/* ===================================================
+   [v1.19.0] 探索頁核心邏輯
+   =================================================== */
+
+/* 當前選取的距離（km），預設 5 */
+var exploreDistKm = 5;
+/* 快取撈到的公開路線（前端篩距用） */
+var _exploreAllDocs = [];
+/* 使用者目前位置（探索頁用） */
+var _exploreUserPos = null;
+
+/* PSEUDO: Haversine 公式計算兩點距離（km）
+   入參：{lat, lng} × 2，回傳 km 數字 */
+function haversineKm(a, b){
+  var R=6371;
+  var dLat=(b.lat-a.lat)*Math.PI/180;
+  var dLng=(b.lng-a.lng)*Math.PI/180;
+  var lat1=a.lat*Math.PI/180;
+  var lat2=b.lat*Math.PI/180;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+
+        Math.cos(lat1)*Math.cos(lat2)*
+        Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+/* PSEUDO: 點擊 pill → 更新 exploreDistKm → 重繪 */
+function selectExplorePill(el){
+  document.querySelectorAll('.explore-pill').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active');
+  exploreDistKm=parseInt(el.getAttribute('data-km'));
+  renderExploreCards();
+}
+
+/* PSEUDO: 探索頁入口
+   1. 取使用者目前位置（GPS / 地圖 marker）
+   2. Firestore query：isPublic==true，createdAt DESC，limit 20
+   3. 前端過濾：userId != currentUid
+   4. 快取到 _exploreAllDocs，呼叫 renderExploreCards
+*/
+async function fetchExploreRoutes(){
+  var loading=document.getElementById('exploreLoading');
+  var container=document.getElementById('exploreContainer');
+  var empty=document.getElementById('exploreEmpty');
+  loading.style.display='block';
+  container.innerHTML='';
+  empty.style.display='none';
+
+  /* 取使用者位置 */
+  _exploreUserPos = getUserPosition();
+  if(!_exploreUserPos){
+    /* 若地圖 marker 尚未就緒，嘗試 GPS */
+    try{
+      _exploreUserPos = await new Promise(function(resolve,reject){
+        navigator.geolocation.getCurrentPosition(
+          function(pos){resolve({lat:pos.coords.latitude,lng:pos.coords.longitude});},
+          reject,
+          {enableHighAccuracy:true,timeout:8000,maximumAge:30000}
+        );
+      });
+    }catch(e){
+      /* 無法取得位置也可繼續，顯示所有公開路線（不篩距） */
+      _exploreUserPos = null;
+    }
+  }
+
+  try{
+    /* PSEUDO: 撈 isPublic==true 的路線，依 createdAt DESC，limit 20
+       注意：Firestore 需要 composite index（isPublic + createdAt）
+       若 index 未建立，初期先用 getDocs 全撈再前端排序 */
+    var q = window.api.query(
+      window.api.collection(window.db,'walk_records'),
+      window.api.where('isPublic','==',true),
+      window.api.orderBy('createdAt','desc')
+    );
+    /* PSEUDO: Firestore limit() 需要 import，目前版本未 import，
+       改為前端 slice(0,20) 控制 */
+    var snap=await window.api.getDocs(q);
+    var uid=window.currentUid||'anonymous';
+    _exploreAllDocs=[];
+    snap.forEach(function(d){
+      var data=Object.assign({id:d.id},d.data());
+      /* 前端過濾：不顯示自己的 */
+      if(data.userId!==uid) _exploreAllDocs.push(data);
+    });
+    /* 前端 limit 20（已依 createdAt DESC 排序） */
+    _exploreAllDocs=_exploreAllDocs.slice(0,20);
+  }catch(err){
+    console.error('[explore] Firestore query 失敗:',err);
+    _exploreAllDocs=[];
+  }
+
+  loading.style.display='none';
+  renderExploreCards();
+}
+
+/* PSEUDO: 依當前 exploreDistKm 篩選並渲染探索卡片
+   若無使用者位置，顯示全部（不篩距）
+   距離基準：路線 walkPath[0] 起點（儲存在 path_points chunk_0）
+   MVP：起點座標存在 events[0].pos fallback，若兩者都沒有則不顯示距離
+   ★ 注意：path_points 是 subcollection，卡片層不撈 path，
+     改用事件第一個 pos 或 city 做 fallback，不顯示精確起點距離
+     （精確距離留 v1.20.0 優化，改存起點到主文件）
+*/
+function renderExploreCards(){
+  var container=document.getElementById('exploreContainer');
+  var empty=document.getElementById('exploreEmpty');
+  container.innerHTML='';
+
+  var filtered=_exploreAllDocs.filter(function(data){
+    /* 若無使用者位置，不篩距，全顯示 */
+    if(!_exploreUserPos) return true;
+    /* 取路線起點：用 events[0].pos 當 fallback */
+    var startPos=null;
+    if(data.events&&data.events.length>0&&data.events[0].pos){
+      startPos=data.events[0].pos;
+    }
+    if(!startPos) return true; /* 無起點資料，一律顯示 */
+    var dist=haversineKm(_exploreUserPos,startPos);
+    return dist<=exploreDistKm;
+  });
+
+  if(filtered.length===0){
+    empty.style.display='block';
+    return;
+  }
+  empty.style.display='none';
+
+  filtered.forEach(function(data){
+    var cardColor=data.trackColor||'#8FB9A8';
+    var metaParts=['👣 '+(data.distance||0).toFixed(2)+' km'];
+    if(data.duration) metaParts.push('⏱️ '+data.duration);
+    if(data.city) metaParts.push('🏙 '+data.city);
+    var metaStr=metaParts.join('  ');
+
+    /* 計算距離文字 */
+    var distStr='';
+    if(_exploreUserPos&&data.events&&data.events.length>0&&data.events[0].pos){
+      var d=haversineKm(_exploreUserPos,data.events[0].pos);
+      distStr=d<1?'📍 距你約 '+(d*1000).toFixed(0)+' m':'📍 距你約 '+d.toFixed(1)+' km';
+    }
+
+    var card=document.createElement('div');
+    card.className='explore-card';
+    card.style.borderLeftColor=cardColor;
+    card.innerHTML=
+      '<div class="explore-card-color" style="background:'+cardColor+'"></div>'+
+      '<div class="explore-card-info">'+
+        '<div class="explore-card-name">'+escapeHtml(data.name||'未命名路線')+'</div>'+
+        '<div class="explore-card-meta">'+metaStr+'</div>'+
+        (distStr?'<div class="explore-card-dist">'+distStr+'</div>':'')+
+      '</div>'+
+      '<button class="btn-explore-load" onclick="loadExploreRoute(\''+data.id+'\')">🗺 載入</button>';
+    container.appendChild(card);
+  });
+}
+
+/* PSEUDO: 簡單 HTML escape，防止 XSS（路線名稱來自使用者輸入） */
+function escapeHtml(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* PSEUDO: 從探索頁載入路線到地圖
+   與 loadSavedRoute 類似但：
+   1. 切換到漫遊頁
+   2. 路線不屬於自己，不給編輯，只顯示
+*/
+async function loadExploreRoute(id){
+  var data=_exploreAllDocs.find(function(d){return d.id===id;});
+  if(!data) return;
+  switchPage('main');
+  pathLine.setPath([]);
+  historyMarkers.forEach(function(m){m.setMap(null);}); historyMarkers=[];
+  setStatusBar('🔄 載入路線中...','var(--status-locating)');
+  var pts=[];
+  try{
+    var pathColRef=window.api.collection(window.db,'walk_records',id,'path_points');
+    var snap=await window.api.getDocs(pathColRef);
+    var chunks=[];
+    snap.forEach(function(d){chunks.push(d.data());});
+    chunks.sort(function(a,b){return a.index-b.index;});
+    chunks.forEach(function(chunk){if(chunk.points)pts=pts.concat(chunk.points);});
+  }catch(err){
+    console.error('[loadExploreRoute] 撈 path_points 失敗:',err);
+    setStatusBar('City Walker','var(--status-idle)');
+    return;
+  }
+  if(pts.length===0){setStatusBar('City Walker','var(--status-idle)');return;}
+  pathLine.setPath(pts);
+  pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
+  if(data.events){
+    data.events.forEach(function(ev){
+      historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||''));
+    });
+  }
+  map.panTo(pts[0]);
+  document.getElementById('btnFocusRoute').classList.remove('hidden');
+  document.getElementById('btnClearRoute').classList.remove('hidden');
+  setStatusBar('City Walker','var(--status-idle)');
+}
 
 window.initMap=initMap;window.focusOnMe=focusOnMe;window.focusOnRouteStart=focusOnRouteStart;
 window.openEventCanvas=openEventCanvas;window.closeEventModal=closeEventModal;window.saveEvent=saveEvent;window.openSaveModal=openSaveModal;
@@ -760,6 +1157,11 @@ window.openShareCard=openShareCard;window.closeShareCard=closeShareCard;window.d
 window.linkGoogleAccount=linkGoogleAccount;window.updateAccountBanner=updateAccountBanner;
 window.openAccountSheet=openAccountSheet;window.closeAccountSheet=closeAccountSheet;
 window.signOutAccount=signOutAccount;window.deleteAccount=deleteAccount;
+/* [v1.19.0] 探索頁 */
+window.togglePublic=togglePublic;
+window.selectExplorePill=selectExplorePill;
+window.fetchExploreRoutes=fetchExploreRoutes;
+window.loadExploreRoute=loadExploreRoute;
 
 /* ===================================================
    [v1.18.0] Bottom Sheet 帳號設定功能
