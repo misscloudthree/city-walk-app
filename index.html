@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.17.1</title>
+<title>City Walker - v1.18.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -148,13 +148,71 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
 #btnLinkGoogle { flex-shrink:0; display:flex; align-items:center; gap:6px; padding:9px 14px; border-radius:12px; border:1.5px solid var(--border-light); background:var(--white); color:var(--text-main); font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif; cursor:pointer; white-space:nowrap; font-weight:bold; box-shadow:0 2px 8px rgba(0,0,0,0.06); transition:opacity 0.2s; }
 #btnLinkGoogle:disabled { opacity:0.5; cursor:not-allowed; }
 #btnLinkGoogle:active { opacity:0.8; }
+
+/* ===================================================
+   [v1.18.0] Bottom Sheet — 帳號設定選單
+   =================================================== */
+#accountSettingSheet {
+  position:fixed; bottom:0; left:0; width:100%; z-index:9500;
+  display:none; flex-direction:column;
+}
+#accountSettingSheet.open { display:flex; }
+#sheetBackdrop {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.4); z-index:9490;
+  display:none; opacity:0; transition:opacity 0.25s ease;
+}
+#sheetBackdrop.open { display:block; opacity:1; }
+#sheetPanel {
+  background:var(--white); border-radius:24px 24px 0 0;
+  padding:16px 20px 36px; box-sizing:border-box;
+  box-shadow:0 -4px 30px rgba(0,0,0,0.12);
+  transform:translateY(100%); transition:transform 0.3s ease;
+}
+#accountSettingSheet.open #sheetPanel { transform:translateY(0); }
+#sheetHandle {
+  width:40px; height:4px; border-radius:2px;
+  background:var(--border-light); margin:0 auto 16px;
+}
+#sheetUserInfo {
+  display:flex; align-items:center; gap:10px;
+  padding-bottom:14px; margin-bottom:14px;
+  border-bottom:1px solid var(--border-light);
+}
+#sheetAvatar {
+  width:40px; height:40px; border-radius:50%;
+  background:var(--accent-positive); color:white;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; font-weight:bold; flex-shrink:0;
+}
+.sheet-btn {
+  display:flex; align-items:center; gap:12px;
+  width:100%; padding:14px 4px; background:transparent;
+  border:none; border-radius:12px; cursor:pointer;
+  font-size:15px; font-family:'Poly','Microsoft JhengHei',sans-serif;
+  color:var(--text-main); text-align:left;
+  transition:background 0.15s;
+}
+.sheet-btn:active { background:var(--bg-warm); }
+.sheet-btn.danger { color:#E57373; }
+.sheet-btn-icon { font-size:20px; width:28px; text-align:center; flex-shrink:0; }
+.sheet-divider { height:1px; background:var(--border-light); margin:4px 0; }
+/* ⚙️ 已綁定橫幅旁的設定按鈕 */
+#btnAccountSetting {
+  width:30px; height:30px; border-radius:50%; border:none;
+  background:transparent; cursor:pointer; font-size:18px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; transition:background 0.15s; margin-left:auto;
+  opacity:0.6;
+}
+#btnAccountSetting:active { background:var(--bg-warm); opacity:1; }
 </style>
 
 <!-- [v1.17.1] Firebase — 新增 linkWithPopup -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, setDoc, serverTimestamp, query, where, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, linkWithCredential, signInWithPopup, signInWithRedirect, getRedirectResult, linkWithPopup } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, linkWithCredential, signInWithPopup, signInWithRedirect, getRedirectResult, linkWithPopup, signOut, deleteUser } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
@@ -183,6 +241,9 @@ window._signInWithRedirect = signInWithRedirect;
 window._getRedirectResult = getRedirectResult;
 /* [v1.17.1] 新增 linkWithPopup 暴露 */
 window._linkWithPopup = linkWithPopup;
+/* [v1.18.0] 新增 signOut, deleteUser 暴露 */
+window._signOut = signOut;
+window._deleteUser = deleteUser;
 
 signInAnonymously(auth).catch(function(err){ console.warn('[Auth] 匿名登入失敗:', err); });
 
@@ -350,7 +411,41 @@ getRedirectResult(auth).then(function(result){
           <div style="font-size:11px;color:var(--text-soft);">✅ 已綁定 Google 帳號</div>
           <div style="font-size:13px;color:var(--text-main);font-weight:bold;" id="bannerEmail"></div>
         </div>
+        <!-- [v1.18.0] ⚙️ 帳號設定入口 -->
+        <button id="btnAccountSetting" onclick="openAccountSheet()" title="帳號設定">⚙️</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ===================================================
+       [v1.18.0] Bottom Sheet — 帳號設定選單
+       PSEUDO:
+       - #sheetBackdrop：半透明黑色遮罩，點擊關閉
+       - #sheetPanel：從底部滑入的白色面板
+       - 兩個操作：登出 / 刪除帳號
+       =================================================== -->
+  <div id="sheetBackdrop" onclick="closeAccountSheet()"></div>
+  <div id="accountSettingSheet">
+    <div id="sheetPanel">
+      <div id="sheetHandle"></div>
+      <!-- 使用者資訊列 -->
+      <div id="sheetUserInfo">
+        <div id="sheetAvatar">G</div>
+        <div>
+          <div style="font-size:11px;color:var(--text-soft);letter-spacing:0.3px;">登入帳號</div>
+          <div style="font-size:14px;font-weight:bold;color:var(--text-main);" id="sheetEmail">—</div>
+        </div>
+      </div>
+      <!-- 操作列 -->
+      <button class="sheet-btn" onclick="signOutAccount()">
+        <span class="sheet-btn-icon">🚪</span>
+        <span>登出帳號</span>
+      </button>
+      <div class="sheet-divider"></div>
+      <button class="sheet-btn danger" onclick="deleteAccount()">
+        <span class="sheet-btn-icon">🗑️</span>
+        <span>刪除帳號與所有資料</span>
+      </button>
     </div>
   </div>
 
@@ -663,6 +758,146 @@ window.clearLoadedRoute=clearLoadedRoute;window.applyFilters=applyFilters;window
 window.onRowMainClick=onRowMainClick;window.toggleSelectMode=toggleSelectMode;window.exitSelectMode=exitSelectMode;window.toggleSelectCard=toggleSelectCard;window.batchDelete=batchDelete;
 window.openShareCard=openShareCard;window.closeShareCard=closeShareCard;window.downloadShareCard=downloadShareCard;window.cycleSharePhoto=cycleSharePhoto;
 window.linkGoogleAccount=linkGoogleAccount;window.updateAccountBanner=updateAccountBanner;
+window.openAccountSheet=openAccountSheet;window.closeAccountSheet=closeAccountSheet;
+window.signOutAccount=signOutAccount;window.deleteAccount=deleteAccount;
+
+/* ===================================================
+   [v1.18.0] Bottom Sheet 帳號設定功能
+   =================================================== */
+
+/* PSEUDO: 開啟 Bottom Sheet
+   1. 填入使用者 email 到 sheetEmail 和 sheetAvatar
+   2. 加 open class 觸發 CSS 動畫（backdrop 淡入、panel 上滑）
+*/
+function openAccountSheet(){
+  var user=window._firebaseUser;
+  var email=user&&user.email?user.email:'';
+  document.getElementById('sheetEmail').innerText=email||'未知帳號';
+  document.getElementById('sheetAvatar').innerText=email?email[0].toUpperCase():'G';
+  document.getElementById('sheetBackdrop').classList.add('open');
+  document.getElementById('accountSettingSheet').classList.add('open');
+}
+
+/* PSEUDO: 關閉 Bottom Sheet
+   移除 open class，CSS transition 自動執行滑出動畫
+*/
+function closeAccountSheet(){
+  document.getElementById('sheetBackdrop').classList.remove('open');
+  document.getElementById('accountSettingSheet').classList.remove('open');
+}
+
+/* PSEUDO: 登出帳號
+   1. 呼叫 Firebase signOut(auth)
+   2. 登出後 Firebase 自動觸發 onAuthStateChanged
+      → 頁面重載前先 alert，reload 後回匿名狀態
+   PSEUDO 注意：signOut 不刪資料，只切換身份
+   登出後的新匿名 uid 與原 Google uid 不同，
+   「我的路線」因 userId 過濾自然不顯示舊資料
+*/
+async function signOutAccount(){
+  closeAccountSheet();
+  var auth=window._auth;
+  var signOutFn=window._signOut;
+  if(!auth||!signOutFn){alert('Auth 尚未就緒，請稍後再試。');return;}
+  try{
+    await signOutFn(auth);
+    alert('已成功登出。');
+    /* PSEUDO: reload 讓 signInAnonymously 重新執行，取得新匿名 uid */
+    location.reload();
+  }catch(err){
+    console.error('[Auth] 登出失敗:',err);
+    alert('登出失敗，請稍後再試。');
+  }
+}
+
+/* PSEUDO: 刪除帳號（GDPR 三層清理）
+   流程：
+   1. confirm() 一次確認
+   2. 撈該 uid 的所有 walk_records
+   3. 對每筆 record：
+      a. 刪除 events 中所有 photoUrl（Storage）
+      b. 刪除 path_points subcollection 所有 chunk
+      c. 刪除主文件
+   4. deleteUser(auth.currentUser) 刪除 Firebase Auth 帳號
+   5. reload
+   PSEUDO 注意：deleteUser 需要使用者剛剛登入（recent sign-in），
+   若 token 過舊會拋 requires-recent-login 錯誤
+   → 目前先 catch 並提示使用者重新登入（edge case）
+*/
+async function deleteAccount(){
+  closeAccountSheet();
+  var confirmed=confirm('是否確認刪除帳號？（所有路線、個人資訊皆會一併刪除，之後重新綁定也無法尋回）');
+  if(!confirmed)return;
+
+  var auth=window._auth;
+  var deleteUserFn=window._deleteUser;
+  var uid=window.currentUid;
+  if(!auth||!deleteUserFn||!uid){alert('Auth 尚未就緒，請稍後再試。');return;}
+
+  /* PSEUDO: 顯示刪除中狀態（用 statusBar 提示，不阻擋 UI） */
+  var statusBar=document.getElementById('statusBar');
+  if(statusBar){statusBar.innerText='🗑️ 刪除帳號中...';}
+
+  try{
+    /* Step 1: 撈所有 walk_records（此 uid） */
+    var q=window.api.query(
+      window.api.collection(window.db,'walk_records'),
+      window.api.where('userId','==',uid)
+    );
+    var snap=await window.api.getDocs(q);
+    var docs=[];snap.forEach(function(d){docs.push({id:d.id,data:d.data()});});
+
+    /* Step 2: 逐筆清理 Storage + path_points + 主文件 */
+    for(var i=0;i<docs.length;i++){
+      var docId=docs[i].id;
+      var data=docs[i].data;
+
+      /* 2a. 清 Storage 照片 */
+      if(data.events&&window.storage&&window.storageApi){
+        var photoDeletes=[];
+        data.events.forEach(function(ev){
+          if(ev.photoUrl&&ev.photoUrl.startsWith('https://')){
+            try{
+              var fileRef=window.storageApi.ref(window.storage,ev.photoUrl);
+              photoDeletes.push(window.storageApi.deleteObject(fileRef).catch(function(e){
+                console.warn('[deleteAccount] Storage photo 刪除失敗:',e);
+              }));
+            }catch(e){console.warn('[deleteAccount] ref 建立失敗:',e);}
+          }
+        });
+        if(photoDeletes.length>0)await Promise.all(photoDeletes);
+      }
+
+      /* 2b. 清 path_points subcollection */
+      try{
+        var pathColRef=window.api.collection(window.db,'walk_records',docId,'path_points');
+        var pathSnap=await window.api.getDocs(pathColRef);
+        var chunkDeletes=[];
+        pathSnap.forEach(function(cd){chunkDeletes.push(window.api.deleteDoc(cd.ref));});
+        if(chunkDeletes.length>0)await Promise.all(chunkDeletes);
+      }catch(e){console.warn('[deleteAccount] path_points 刪除失敗:',e);}
+
+      /* 2c. 刪主文件 */
+      try{
+        await window.api.deleteDoc(window.api.doc(window.db,'walk_records',docId));
+      }catch(e){console.warn('[deleteAccount] 主文件刪除失敗:',e);}
+    }
+
+    /* Step 3: 刪除 Firebase Auth 帳號 */
+    await deleteUserFn(auth.currentUser);
+    alert('帳號已刪除，感謝你使用 City Walker。');
+    location.reload();
+
+  }catch(err){
+    console.error('[Auth] 刪除帳號失敗:',err);
+    if(err.code==='auth/requires-recent-login'){
+      alert('為了安全，請先登出後重新登入，再執行刪除帳號。');
+    }else{
+      alert('刪除失敗，請稍後再試。（'+err.code+'）');
+    }
+    if(statusBar){statusBar.innerText='City Walker';}
+  }
+}
 </script>
 
 <script>
