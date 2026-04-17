@@ -319,6 +319,22 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
 /* 我的路線卡片：公開按鈕 */
 .btn-public { background:var(--bg-warm); color:var(--text-soft); }
 .btn-public.is-public { background:#E8F5F1; color:var(--accent-positive); font-weight:bold; }
+
+/* [v1.19.1] 無 GPS 提示條 */
+#exploreNoGpsHint {
+  width:92%; max-width:450px; margin:0 auto 12px;
+  padding:10px 14px; border-radius:12px; box-sizing:border-box;
+  background:#FFF9EC; border:1.5px solid #FFE5A0;
+  font-size:12px; color:var(--text-soft); line-height:1.6;
+}
+/* pill 禁用狀態 */
+#explorePillBar.no-gps .explore-pill {
+  opacity:0.35; cursor:not-allowed; pointer-events:none;
+}
+#explorePillBar.no-gps .explore-pill.active {
+  background:var(--border-light); color:var(--text-soft);
+  border-color:var(--border-light);
+}
 </style>
 
 <!-- [v1.17.1] Firebase — 新增 linkWithPopup -->
@@ -636,6 +652,9 @@ getRedirectResult(auth).then(function(result){
     <div class="explore-pill active" data-km="5" onclick="selectExplorePill(this)">5 km</div>
     <div class="explore-pill" data-km="10" onclick="selectExplorePill(this)">10 km</div>
   </div>
+
+  <!-- [v1.19.1] 無 GPS 提示條 -->
+  <div id="exploreNoGpsHint" style="display:none;"></div>
 
   <!-- 載入中 / 卡片容器 / 空狀態 -->
   <div id="exploreLoading">載入中...</div>
@@ -989,14 +1008,17 @@ async function fetchExploreRoutes(){
   var loading=document.getElementById('exploreLoading');
   var container=document.getElementById('exploreContainer');
   var empty=document.getElementById('exploreEmpty');
+  var hint=document.getElementById('exploreNoGpsHint');
+  var pillBar=document.getElementById('explorePillBar');
   loading.style.display='block';
   container.innerHTML='';
   empty.style.display='none';
+  hint.style.display='none';
+  pillBar.classList.remove('no-gps');
 
   /* 取使用者位置 */
   _exploreUserPos = getUserPosition();
   if(!_exploreUserPos){
-    /* 若地圖 marker 尚未就緒，嘗試 GPS */
     try{
       _exploreUserPos = await new Promise(function(resolve,reject){
         navigator.geolocation.getCurrentPosition(
@@ -1006,31 +1028,30 @@ async function fetchExploreRoutes(){
         );
       });
     }catch(e){
-      /* 無法取得位置也可繼續，顯示所有公開路線（不篩距） */
       _exploreUserPos = null;
     }
   }
 
+  /* [v1.19.1] 無位置：顯示提示條，pill 禁用 */
+  if(!_exploreUserPos){
+    hint.style.display='block';
+    hint.innerHTML='📡 無法取得你的位置，距離篩選暫不可用。<br>以下顯示全部公開路線。';
+    pillBar.classList.add('no-gps');
+  }
+
   try{
-    /* PSEUDO: 撈 isPublic==true 的路線，依 createdAt DESC，limit 20
-       注意：Firestore 需要 composite index（isPublic + createdAt）
-       若 index 未建立，初期先用 getDocs 全撈再前端排序 */
     var q = window.api.query(
       window.api.collection(window.db,'walk_records'),
       window.api.where('isPublic','==',true),
       window.api.orderBy('createdAt','desc')
     );
-    /* PSEUDO: Firestore limit() 需要 import，目前版本未 import，
-       改為前端 slice(0,20) 控制 */
     var snap=await window.api.getDocs(q);
     var uid=window.currentUid||'anonymous';
     _exploreAllDocs=[];
     snap.forEach(function(d){
       var data=Object.assign({id:d.id},d.data());
-      /* 前端過濾：不顯示自己的 */
       if(data.userId!==uid) _exploreAllDocs.push(data);
     });
-    /* 前端 limit 20（已依 createdAt DESC 排序） */
     _exploreAllDocs=_exploreAllDocs.slice(0,20);
   }catch(err){
     console.error('[explore] Firestore query 失敗:',err);
