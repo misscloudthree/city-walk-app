@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.20.0</title>
+<title>City Walker - v1.21.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -92,6 +92,27 @@ body {
 .place-tag:active { transform:scale(0.95); }
 .place-tag.selected { background:#EEF6F3; border-color:var(--accent-positive); color:var(--accent-positive); font-weight:bold; }
 .place-detecting { font-size:12px; color:var(--text-soft); font-style:italic; }
+
+/* [新增 v1.21.0] 地標搜尋框 */
+#placeSearchWrap {
+  display:flex; align-items:center; gap:6px;
+  margin-top:8px;
+}
+#placeSearchInput {
+  flex:1; padding:6px 12px; border-radius:20px;
+  border:1.5px solid var(--border-light);
+  font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif;
+  background:var(--bg-warm); color:var(--text-main);
+  outline:none; transition:border-color 0.2s;
+}
+#placeSearchInput:focus { border-color:var(--accent-positive); }
+#placeSearchInput::placeholder { color:var(--text-soft); }
+#placeSearchClear {
+  flex-shrink:0; font-size:15px; color:var(--text-soft);
+  cursor:pointer; padding:4px; display:none;
+  line-height:1; border-radius:50%;
+}
+#placeSearchClear.visible { display:block; }
 
 #eventText { font-family:'Caveat','Microsoft JhengHei',sans-serif !important; font-size:16px !important; line-height:1.6; }
 #memoryText { font-family:'Caveat','Microsoft JhengHei',sans-serif !important; font-size:19px !important; line-height:1.7; }
@@ -455,6 +476,13 @@ getRedirectResult(auth).then(function(result){
     <div id="placeSection">
       <div id="placeLabel">📍 附近地標</div>
       <div id="placeTags"><span class="place-detecting">偵測中...</span></div>
+      <!-- [新增 v1.21.0] 地標搜尋框 -->
+      <div id="placeSearchWrap">
+        <input id="placeSearchInput" type="text" placeholder="🔍 搜尋地標..."
+          oninput="onPlaceSearchInput(this.value)"
+          autocomplete="off" autocorrect="off" spellcheck="false">
+        <span id="placeSearchClear" onclick="clearPlaceSearch()">✕</span>
+      </div>
     </div>
     <textarea id="eventText" placeholder="寫下心情..." maxlength="100" style="width:100%;height:68px;border:1px solid #EEE;padding:10px;border-radius:12px;margin:8px 0 8px;box-sizing:border-box;outline:none;resize:none;"></textarea>
     <div id="photoSection">
@@ -759,11 +787,116 @@ function confirmPhoto(){document.getElementById('photoConfirmModal').style.displ
 
 async function openEventCanvas(){
   document.getElementById('eventModal').style.display='flex';selectedPlace=null;nearbyPlaces=[];document.getElementById('placeTags').innerHTML='<span class="place-detecting">偵測中...</span>';
+  /* [v1.21.0] 重置搜尋框 */
+  document.getElementById('placeSearchInput').value='';
+  document.getElementById('placeSearchClear').classList.remove('visible');
+  if(window._placeSearchTimer){clearTimeout(window._placeSearchTimer);window._placeSearchTimer=null;}
   switchIconCategory(0);document.getElementById('selectedIconPreview').innerText=selectedIcon;
   selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('photoPreviewThumb').style.display='none';document.getElementById('photoPreviewThumb').src='';document.getElementById('cameraBtn').innerText='📷 加入照片';
   var currentPos=getUserPosition();if(!currentPos){document.getElementById('placeTags').innerHTML='<span class="place-detecting">（無法取得位置）</span>';return;}
-  try{var {Place}=await google.maps.importLibrary('places');var {places}=await Place.searchNearby({fields:['displayName','location','id'],locationRestriction:{center:currentPos,radius:100}});var tagsContainer=document.getElementById('placeTags');tagsContainer.innerHTML='';if(!places||places.length===0){tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';return;}places.slice(0,3).forEach(function(place){if(!place.location)return;var placeData={name:place.displayName,placeId:place.id,lat:place.location.lat(),lng:place.location.lng()};nearbyPlaces.push(placeData);var shortName=place.displayName.length>10?place.displayName.slice(0,10)+'...':place.displayName;var tag=document.createElement('div');tag.className='place-tag';tag.innerText='📍 '+shortName;tag.onclick=function(){if(selectedPlace&&selectedPlace.placeId===placeData.placeId){selectedPlace=null;tag.classList.remove('selected');}else{selectedPlace=placeData;document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});tag.classList.add('selected');}};tagsContainer.appendChild(tag);});if(tagsContainer.children.length===0)tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';}catch(err){console.error('[Places]',err);document.getElementById('placeTags').innerHTML='<span class="place-detecting">（地標偵測失敗）</span>';}
+  try{var {Place}=await google.maps.importLibrary('places');var {places}=await Place.searchNearby({fields:['displayName','location','id'],locationRestriction:{center:currentPos,radius:100}});var tagsContainer=document.getElementById('placeTags');tagsContainer.innerHTML='';if(!places||places.length===0){tagsContainer.innerHTML='<span class="place-detecting">（附近無地標，請用搜尋）</span>';return;}places.slice(0,3).forEach(function(place){if(!place.location)return;var placeData={name:place.displayName,placeId:place.id,lat:place.location.lat(),lng:place.location.lng()};nearbyPlaces.push(placeData);var shortName=place.displayName.length>10?place.displayName.slice(0,10)+'...':place.displayName;var tag=document.createElement('div');tag.className='place-tag';tag.innerText='📍 '+shortName;tag.onclick=function(){if(selectedPlace&&selectedPlace.placeId===placeData.placeId){selectedPlace=null;tag.classList.remove('selected');}else{selectedPlace=placeData;document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});tag.classList.add('selected');}};tagsContainer.appendChild(tag);});if(tagsContainer.children.length===0)tagsContainer.innerHTML='<span class="place-detecting">（附近無地標，請用搜尋）</span>';}catch(err){console.error('[Places]',err);document.getElementById('placeTags').innerHTML='<span class="place-detecting">（地標偵測失敗）</span>';}
 }
+/* ===================================================
+   [新增 v1.21.0] 地標搜尋函式群組
+
+   onPlaceSearchInput(val)
+   PSEUDO: 使用者打字時 debounce 500ms，避免每個字都打 API
+   - 若 val 空 → 清除搜尋，恢復附近地標 tag
+   - 顯示 ✕ 清除按鈕
+
+   searchPlaceByText(val)
+   PSEUDO: 呼叫 Place.searchByText()
+   - locationBias: 目前位置 2km 圓形（讓結果有地理相關性但不限死）
+   - fields: displayName, location, id
+   - 最多顯示 4 筆結果
+   - tag 點擊邏輯與附近地標相同
+
+   renderPlaceTags(places, source)
+   PSEUDO: source='nearby'|'search'，統一渲染 tag 列表
+
+   clearPlaceSearch()
+   PSEUDO: 清空輸入框，恢復附近偵測結果
+   =================================================== */
+function onPlaceSearchInput(val){
+  var clearBtn=document.getElementById('placeSearchClear');
+  clearBtn.classList.toggle('visible', val.length>0);
+  if(window._placeSearchTimer) clearTimeout(window._placeSearchTimer);
+  if(!val.trim()){
+    /* PSEUDO: 搜尋框清空 → 恢復附近地標 */
+    renderPlaceTags(nearbyPlaces,'nearby');
+    return;
+  }
+  /* PSEUDO: debounce 500ms */
+  window._placeSearchTimer=setTimeout(function(){searchPlaceByText(val.trim());},500);
+}
+
+async function searchPlaceByText(val){
+  var tagsContainer=document.getElementById('placeTags');
+  tagsContainer.innerHTML='<span class="place-detecting">搜尋中...</span>';
+  selectedPlace=null;
+  try{
+    var {Place}=await google.maps.importLibrary('places');
+    var currentPos=getUserPosition();
+    var searchOptions={
+      textQuery: val,
+      fields: ['displayName','location','id'],
+      maxResultCount: 4
+    };
+    /* PSEUDO: 有位置時加 locationBias，讓結果偏向當前區域 */
+    if(currentPos){
+      var {LatLng}=await google.maps.importLibrary('core');
+      var {CircleLiteral}=await google.maps.importLibrary('core');
+      searchOptions.locationBias = new google.maps.Circle({center:currentPos, radius:2000});
+    }
+    var {places}=await Place.searchByText(searchOptions);
+    if(!places||places.length===0){
+      tagsContainer.innerHTML='<span class="place-detecting">（查無結果）</span>';
+      return;
+    }
+    renderPlaceTags(places.map(function(p){
+      if(!p.location) return null;
+      return {name:p.displayName, placeId:p.id, lat:p.location.lat(), lng:p.location.lng()};
+    }).filter(Boolean), 'search');
+  }catch(err){
+    console.error('[PlaceSearch]',err);
+    tagsContainer.innerHTML='<span class="place-detecting">（搜尋失敗）</span>';
+  }
+}
+
+function renderPlaceTags(places, source){
+  var tagsContainer=document.getElementById('placeTags');
+  tagsContainer.innerHTML='';
+  if(!places||places.length===0){
+    tagsContainer.innerHTML='<span class="place-detecting">'+(source==='search'?'（查無結果）':'（附近無地標，請用搜尋）')+'</span>';
+    return;
+  }
+  places.forEach(function(placeData){
+    if(!placeData) return;
+    var shortName=placeData.name.length>12?placeData.name.slice(0,12)+'...':placeData.name;
+    var tag=document.createElement('div');
+    tag.className='place-tag';
+    tag.innerText=(source==='search'?'🔍 ':'📍 ')+shortName;
+    tag.onclick=function(){
+      if(selectedPlace&&selectedPlace.placeId===placeData.placeId){
+        selectedPlace=null; tag.classList.remove('selected');
+      } else {
+        selectedPlace=placeData;
+        document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});
+        tag.classList.add('selected');
+      }
+    };
+    tagsContainer.appendChild(tag);
+  });
+}
+
+function clearPlaceSearch(){
+  document.getElementById('placeSearchInput').value='';
+  document.getElementById('placeSearchClear').classList.remove('visible');
+  if(window._placeSearchTimer){clearTimeout(window._placeSearchTimer);window._placeSearchTimer=null;}
+  selectedPlace=null;
+  renderPlaceTags(nearbyPlaces,'nearby');
+}
+
 function closeEventModal(){selectedPlace=null;selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('eventModal').style.display='none';}
 
 async function saveEvent(){
@@ -1183,6 +1316,8 @@ window.clearLoadedRoute=clearLoadedRoute;window.applyFilters=applyFilters;window
 window.onRowMainClick=onRowMainClick;window.toggleSelectMode=toggleSelectMode;window.exitSelectMode=exitSelectMode;window.toggleSelectCard=toggleSelectCard;window.batchDelete=batchDelete;
 window.openShareCard=openShareCard;window.closeShareCard=closeShareCard;window.downloadShareCard=downloadShareCard;window.cycleSharePhoto=cycleSharePhoto;
 window.linkGoogleAccount=linkGoogleAccount;window.updateAccountBanner=updateAccountBanner;
+/* [新增 v1.21.0] */
+window.onPlaceSearchInput=onPlaceSearchInput;window.clearPlaceSearch=clearPlaceSearch;
 window.openAccountSheet=openAccountSheet;window.closeAccountSheet=closeAccountSheet;
 window.signOutAccount=signOutAccount;window.deleteAccount=deleteAccount;
 /* [v1.19.0] 探索頁 */
