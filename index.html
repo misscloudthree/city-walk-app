@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.22.0</title>
+<title>City Walker - v1.23.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -640,6 +640,10 @@ getRedirectResult(auth).then(function(result){
     </div>
     <div id="state-recording" class="hidden">
       <button class="btn-base btn-event" onclick="openEventCanvas()">紀錄事件！</button>
+      <!-- [新增 v1.23.0] GPS 中斷 3 分鐘後顯示，點擊重新啟動 watchPosition 銜接路線 -->
+      <button id="btnResumeWalk" class="btn-base hidden"
+        style="background:#FFF3CD;color:#856404;margin-top:10px;border:1.5px solid #FFE5A0;"
+        onclick="window._resumeWatching && window._resumeWatching()">📡 繼續記錄</button>
       <button class="btn-base" style="background:#f5f5f5;color:#666;margin-top:10px;" onclick="endWalk()">結束本次漫遊</button>
     </div>
     <div id="state-finished" class="hidden">
@@ -811,6 +815,15 @@ var startTime, durationStr, cityName='未知城市', selectedIcon='📸';
 var historyMarkers=[], locatingTimer=null, selectedTrackColor='#333333';
 var rawGpsBuffer=[], ROADS_API_KEY='AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
 var pauseWindowPoints=[], pauseWindowStart=null;
+/* [新增 v1.23.0] GPS 中斷恢復機制
+   PSEUDO:
+   - isGpsLost: GPS error callback 觸發時設為 true
+     → success callback 收到第一個有效點時清空 buffer，強制允許接入
+   - lostTimer: GPS 中斷後啟動 3 分鐘計時
+     → 3 分鐘內未恢復 → clearWatch 停止監聽，節省資源
+     → UI 顯示「定位中斷」提示 + 「繼續記錄」按鈕
+     → 成功恢復時 clearTimeout(lostTimer) */
+var isGpsLost=false, lostTimer=null;
 var nearbyPlaces=[], selectedPlace=null;
 var selectedPhotoBlob=null, selectedPhotoDataUrl=null;
 
@@ -975,25 +988,131 @@ async function snapToRoads(points){
 }
 async function flushRawBuffer(){if(rawGpsBuffer.length>0){var r=rawGpsBuffer.slice();rawGpsBuffer=[];await snapToRoads(r);}}
 
+/* [改版 v1.23.0] startWalk
+   PSEUDO:
+   ① 開始時 60 秒 locatingTimer 不變（完全沒收到任何點才觸發）
+   ② success callback 開頭：
+      - 若 isGpsLost === true（剛從中斷恢復）
+          → clearTimeout(lostTimer), lostTimer=null
+          → rawGpsBuffer 清空（避免和中斷前舊點比距離被過濾）
+          → lastRaw = null（強制跳過跳點過濾，允許新點直接接入）
+          → isGpsLost = false
+          → 隱藏「繼續記錄」按鈕，狀態列恢復漫步中
+      - 其餘邏輯不變
+   ③ error callback：
+      - isGpsLost = true
+      - 狀態列顯示「📡 重新取得定位中...」
+      - 若 lostTimer 尚未啟動 → 啟動 3 分鐘計時
+          → 逾時：clearWatch（停止消耗資源）
+          → 狀態列顯示「⚠️ 定位中斷，請點擊繼續記錄」
+          → 顯示「繼續記錄」按鈕（點擊重新 watchPosition 銜接路線）
+*/
 function startWalk(){
-  startTime=new Date();document.getElementById('state-init').classList.add('hidden');document.getElementById('state-recording').classList.remove('hidden');
-  setStatusBar('📡 取得定位狀態中','var(--status-locating)');document.getElementById('colorPicker').style.display='none';
-  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85});pauseWindowPoints=[];pauseWindowStart=new Date();
-  locatingTimer=setTimeout(function(){navigator.geolocation.clearWatch(watchId);setStatusBar('⚠️ 定位失敗','var(--status-ended)');document.getElementById('state-recording').classList.add('hidden');document.getElementById('state-finished').classList.remove('hidden');document.getElementById('summaryBox').innerHTML='<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';},60000);
-  watchId=navigator.geolocation.watchPosition(function(pos){
-    var newPoint={lat:pos.coords.latitude,lng:pos.coords.longitude};if(pos.coords.accuracy>40)return;
-    var lastRaw=rawGpsBuffer.length>0?rawGpsBuffer[rawGpsBuffer.length-1]:(walkPath.length>0?walkPath[walkPath.length-1]:null);
-    if(lastRaw){var dist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(lastRaw.lat,lastRaw.lng),new google.maps.LatLng(newPoint.lat,newPoint.lng));if(dist<3||dist>80)return;}
-    if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
-    rawGpsBuffer.push(newPoint);userMarker.setPosition(newPoint);
-    if(rawGpsBuffer.length>=5){var batch=rawGpsBuffer.slice();rawGpsBuffer=[];snapToRoads(batch);}
-    var now=new Date();pauseWindowPoints.push({point:newPoint,time:now});pauseWindowPoints=pauseWindowPoints.filter(function(item){return(now-item.time)<=15000;});
-    var windowDist=0;if(pauseWindowPoints.length>=2){var first=pauseWindowPoints[0].point,last=pauseWindowPoints[pauseWindowPoints.length-1].point;windowDist=google.maps.geometry.spherical.computeDistanceBetween(new google.maps.LatLng(first.lat,first.lng),new google.maps.LatLng(last.lat,last.lng));}
-    var currentKm=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
-    if(windowDist>7){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');pauseWindowPoints=[{point:newPoint,time:now}];pauseWindowStart=now;}
-    else if((now-pauseWindowStart)>=15000){setStatusBar('☕ 暫停一下...','var(--status-paused)');}
-    else if(currentKm>0){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');}
-  },function(err){console.error('[GPS]',err);setStatusBar('📡 取得定位狀態中','var(--status-locating)');},{enableHighAccuracy:true,maximumAge:0,timeout:10000});
+  startTime=new Date();
+  isGpsLost=false; lostTimer=null;
+  document.getElementById('state-init').classList.add('hidden');
+  document.getElementById('state-recording').classList.remove('hidden');
+  setStatusBar('📡 取得定位狀態中','var(--status-locating)');
+  document.getElementById('colorPicker').style.display='none';
+  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85});
+  pauseWindowPoints=[];pauseWindowStart=new Date();
+
+  /* PSEUDO: 開始 60 秒逾時（完全沒收到任何有效點才終止） */
+  locatingTimer=setTimeout(function(){
+    navigator.geolocation.clearWatch(watchId);
+    setStatusBar('⚠️ 定位失敗','var(--status-ended)');
+    document.getElementById('state-recording').classList.add('hidden');
+    document.getElementById('state-finished').classList.remove('hidden');
+    document.getElementById('summaryBox').innerHTML='<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';
+  },60000);
+
+  /* PSEUDO: 內部函式，用來（重新）啟動 watchPosition
+     endWalk 時也需要 clearWatch，所以 watchId 存到外層 */
+  function startWatching(){
+    watchId=navigator.geolocation.watchPosition(function(pos){
+      var newPoint={lat:pos.coords.latitude,lng:pos.coords.longitude};
+      if(pos.coords.accuracy>40)return;
+
+      /* PSEUDO: ② 從 GPS 中斷恢復 → 重置比對基準，讓新點直接接入
+         skipDistCheck=true 讓這個點跳過跳點過濾，直接加入 walkPath */
+      var skipDistCheck=false;
+      if(isGpsLost){
+        if(lostTimer){clearTimeout(lostTimer);lostTimer=null;}
+        rawGpsBuffer=[];   /* 清空舊 buffer，避免與中斷前舊點比距離 */
+        isGpsLost=false;
+        skipDistCheck=true; /* 恢復後第一個點無條件接入，不做跳點過濾 */
+        document.getElementById('btnResumeWalk').classList.add('hidden');
+        var currentKm=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
+        setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');
+      }
+
+      /* PSEUDO: skipDistCheck=true 時跳過距離過濾（恢復後第一個點） */
+      if(!skipDistCheck){
+        var lastRaw=rawGpsBuffer.length>0
+          ? rawGpsBuffer[rawGpsBuffer.length-1]
+          : (walkPath.length>0?walkPath[walkPath.length-1]:null);
+        if(lastRaw){
+          var dist=google.maps.geometry.spherical.computeDistanceBetween(
+            new google.maps.LatLng(lastRaw.lat,lastRaw.lng),
+            new google.maps.LatLng(newPoint.lat,newPoint.lng));
+          if(dist<3||dist>80)return;
+        }
+      }
+
+      if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
+      rawGpsBuffer.push(newPoint);userMarker.setPosition(newPoint);
+      if(rawGpsBuffer.length>=5){var batch=rawGpsBuffer.slice();rawGpsBuffer=[];snapToRoads(batch);}
+
+      var now=new Date();
+      pauseWindowPoints.push({point:newPoint,time:now});
+      pauseWindowPoints=pauseWindowPoints.filter(function(item){return(now-item.time)<=15000;});
+      var windowDist=0;
+      if(pauseWindowPoints.length>=2){
+        var first=pauseWindowPoints[0].point,last2=pauseWindowPoints[pauseWindowPoints.length-1].point;
+        windowDist=google.maps.geometry.spherical.computeDistanceBetween(
+          new google.maps.LatLng(first.lat,first.lng),
+          new google.maps.LatLng(last2.lat,last2.lng));
+      }
+      var currentKm=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
+      if(windowDist>7){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');pauseWindowPoints=[{point:newPoint,time:now}];pauseWindowStart=now;}
+      else if((now-pauseWindowStart)>=15000){setStatusBar('☕ 暫停一下...','var(--status-paused)');}
+      else if(currentKm>0){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');}
+
+    },function(err){
+      /* PSEUDO: ③ GPS error callback
+         - 設 isGpsLost = true
+         - 啟動 lostTimer（3 分鐘），逾時後停止監聽並顯示「繼續記錄」按鈕
+         - 已經是 lost 狀態就不重複啟動 timer */
+      console.warn('[GPS] 定位中斷:',err.code, err.message);
+      if(!isGpsLost){
+        isGpsLost=true;
+        setStatusBar('📡 重新取得定位中...','var(--status-locating)');
+        lostTimer=setTimeout(function(){
+          /* PSEUDO: 3 分鐘仍未恢復 → 停止 GPS 監聽（節省電量）
+             顯示「繼續記錄」按鈕，讓使用者手動重啟 */
+          navigator.geolocation.clearWatch(watchId);
+          watchId=null;
+          setStatusBar('⚠️ 定位中斷，請點繼續記錄','var(--status-paused)');
+          document.getElementById('btnResumeWalk').classList.remove('hidden');
+        },3*60*1000); /* 3 分鐘 */
+      }
+    },{enableHighAccuracy:true,maximumAge:0,timeout:10000});
+  }
+
+  /* PSEUDO: 暴露 startWatching 給「繼續記錄」按鈕使用 */
+  window._resumeWatching=function(){
+    /* PSEUDO: 使用者點「繼續記錄」
+       → 清除 lostTimer（如果還在跑）
+       → isGpsLost 重置（下一個成功點會走恢復流程）
+       → 重新啟動 watchPosition 銜接現有 walkPath */
+    if(lostTimer){clearTimeout(lostTimer);lostTimer=null;}
+    isGpsLost=true; /* PSEUDO: 設為 true，讓下一個成功點走「恢復流程」清空 buffer */
+    document.getElementById('btnResumeWalk').classList.add('hidden');
+    setStatusBar('📡 重新取得定位中...','var(--status-locating)');
+    startWatching();
+  };
+
+  startWatching();
 }
 
 function openCamera(){document.getElementById('photoFileInput').click();}
@@ -1132,7 +1251,12 @@ async function saveEvent(){
 }
 
 async function endWalk(){
-  navigator.geolocation.clearWatch(watchId);if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
+  navigator.geolocation.clearWatch(watchId);
+  if(locatingTimer){clearTimeout(locatingTimer);locatingTimer=null;}
+  /* [v1.23.0] 結束時同步清除 GPS 中斷計時器與旗標 */
+  if(lostTimer){clearTimeout(lostTimer);lostTimer=null;}
+  isGpsLost=false;
+  document.getElementById('btnResumeWalk').classList.add('hidden');
   setStatusBar('✅ 漫遊結束','var(--status-ended)');document.getElementById('state-recording').classList.add('hidden');document.getElementById('state-finished').classList.remove('hidden');
   document.getElementById('encourageBox').innerText='「'+getDailyEncouragement()+'」';await flushRawBuffer();
   totalDistance=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;durationStr=Math.floor(Math.abs(new Date()-startTime)/60000)+' 分鐘';
