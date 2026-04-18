@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.19.0</title>
+<title>City Walker - v1.20.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -95,6 +95,8 @@ body {
 
 #eventText { font-family:'Caveat','Microsoft JhengHei',sans-serif !important; font-size:16px !important; line-height:1.6; }
 #memoryText { font-family:'Caveat','Microsoft JhengHei',sans-serif !important; font-size:19px !important; line-height:1.7; }
+/* [新增 v1.20.0] 事件時間戳記 */
+#memoryTime { font-family:'Caveat','Microsoft JhengHei',sans-serif; font-size:12px; color:var(--text-soft); margin-top:2px; margin-bottom:4px; }
 
 #photoSection { margin:8px 0 4px; display:flex; align-items:center; gap:10px; }
 #cameraBtn { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:20px; font-size:13px; background:var(--bg-warm); color:var(--text-soft); border:1.5px solid var(--border-light); cursor:pointer; white-space:nowrap; transition:all 0.2s; }
@@ -436,7 +438,8 @@ getRedirectResult(auth).then(function(result){
   <div class="modal-content" onclick="event.stopPropagation()" style="position:relative;text-align:center;padding-top:40px;">
     <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
     <div id="memoryIcon" style="font-size:50px;margin-bottom:8px;">📸</div>
-    <div id="memoryPlace" style="font-size:12px;color:var(--text-soft);margin-bottom:6px;"></div>
+    <div id="memoryPlace" style="font-size:12px;color:var(--text-soft);margin-bottom:2px;"></div>
+    <div id="memoryTime"></div>
     <div id="memoryPolaroid" class="hidden">
       <div class="polaroid-wrap">
         <img id="memoryPhoto" src="" alt="記憶照片" crossorigin="anonymous">
@@ -768,8 +771,9 @@ async function saveEvent(){
   if(selectedPlace){eventPos={lat:selectedPlace.lat,lng:selectedPlace.lng};placeName=selectedPlace.name;placeId=selectedPlace.placeId;}else{eventPos=getUserPosition()||{lat:0,lng:0};placeName='';placeId='';}
   var photoUrl='';
   if(selectedPhotoBlob&&window.storage&&window.storageApi&&window.currentUid){var confirmBtn=document.querySelector('#eventModal .btn-event');var originalText=confirmBtn?confirmBtn.innerText:'';if(confirmBtn){confirmBtn.disabled=true;confirmBtn.innerText='上傳中...';}try{var timestamp=Date.now();var rand=Math.floor(Math.random()*9000+1000);var filePath='photos/'+window.currentUid+'/'+timestamp+'_'+rand+'.jpg';var fileRef=window.storageApi.ref(window.storage,filePath);await window.storageApi.uploadBytes(fileRef,selectedPhotoBlob,{contentType:'image/jpeg'});photoUrl=await window.storageApi.getDownloadURL(fileRef);}catch(err){console.warn('[Storage] 照片上傳失敗:',err);photoUrl='';}finally{if(confirmBtn){confirmBtn.disabled=false;confirmBtn.innerText=originalText;}}}
-  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl});
-  createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl);document.getElementById('eventText').value='';selectedPlace=null;selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('eventModal').style.display='none';
+  var eventCreatedAt = new Date().toISOString();
+  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl,createdAt:eventCreatedAt});
+  createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl,eventCreatedAt);document.getElementById('eventText').value='';selectedPlace=null;selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('eventModal').style.display='none';
 }
 
 async function endWalk(){
@@ -800,13 +804,16 @@ async function executeCloudSave(){
   catch(e){console.error('[Save] 儲存失敗:',e);alert('儲存失敗');if(btn)btn.disabled=false;}
 }
 
-function createEventMarker(pos,icon,text,placeName,photoUrl){
-  function EmojiOverlay(position,icon,text,placeName,photoUrl){this.position_=new google.maps.LatLng(position.lat,position.lng);this.icon_=icon;this.text_=text;this.placeName_=placeName||'';this.photoUrl_=photoUrl||'';this.div_=null;this.setMap(map);}
+function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt){
+  function EmojiOverlay(position,icon,text,placeName,photoUrl,createdAt){this.position_=new google.maps.LatLng(position.lat,position.lng);this.icon_=icon;this.text_=text;this.placeName_=placeName||'';this.photoUrl_=photoUrl||'';this.createdAt_=createdAt||'';this.div_=null;this.setMap(map);}
   EmojiOverlay.prototype=Object.create(google.maps.OverlayView.prototype);
-  EmojiOverlay.prototype.onAdd=function(){var div=document.createElement('div');div.className='event-marker-div';div.innerText=this.icon_;var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_;function showMemory(e){e.stopPropagation();if(e.preventDefault)e.preventDefault();document.getElementById('memoryIcon').innerText=ci||'📸';document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';var polaroid=document.getElementById('memoryPolaroid');var memPhoto=document.getElementById('memoryPhoto');if(cph){memPhoto.src=cph;polaroid.classList.remove('hidden');}else{polaroid.classList.add('hidden');memPhoto.src='';}document.getElementById('memoryBox').style.display='flex';}div.addEventListener('click',showMemory);div.addEventListener('touchstart',showMemory,{passive:false});this.div_=div;this.getPanes().overlayMouseTarget.appendChild(div);};
+  EmojiOverlay.prototype.onAdd=function(){var div=document.createElement('div');div.className='event-marker-div';div.innerText=this.icon_;var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_,cat=this.createdAt_;function showMemory(e){e.stopPropagation();if(e.preventDefault)e.preventDefault();document.getElementById('memoryIcon').innerText=ci||'📸';document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';
+  /* [v1.20.0] PSEUDO: 若有 createdAt ISO 字串，parse 成 HH:MM 顯示；舊資料無此欄位則清空不報錯 */
+  var timeEl=document.getElementById('memoryTime');if(cat){try{var d=new Date(cat);var hh=String(d.getHours()).padStart(2,'0');var mm=String(d.getMinutes()).padStart(2,'0');timeEl.innerText='🕐 '+hh+':'+mm+' 在這裡';}catch(e){timeEl.innerText='';}}else{timeEl.innerText='';}
+  var polaroid=document.getElementById('memoryPolaroid');var memPhoto=document.getElementById('memoryPhoto');if(cph){memPhoto.src=cph;polaroid.classList.remove('hidden');}else{polaroid.classList.add('hidden');memPhoto.src='';}document.getElementById('memoryBox').style.display='flex';}div.addEventListener('click',showMemory);div.addEventListener('touchstart',showMemory,{passive:false});this.div_=div;this.getPanes().overlayMouseTarget.appendChild(div);};
   EmojiOverlay.prototype.draw=function(){var pt=this.getProjection().fromLatLngToDivPixel(this.position_);if(this.div_&&pt){this.div_.style.left=pt.x+'px';this.div_.style.top=pt.y+'px';}};
   EmojiOverlay.prototype.onRemove=function(){if(this.div_){this.div_.parentNode.removeChild(this.div_);this.div_=null;}};
-  return new EmojiOverlay(pos,icon,text,placeName,photoUrl);
+  return new EmojiOverlay(pos,icon,text,placeName,photoUrl,createdAt);
 }
 
 /* ===================================================
@@ -901,7 +908,7 @@ async function loadSavedRoute(id){
   var data=window.currentDocs.find(function(d){return d.id===id;});if(!data)return;switchPage('main');pathLine.setPath([]);historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];setStatusBar('🔄 載入路線中...','var(--status-locating)');var pts=[];
   if(data.path&&data.path.length>0){pts=data.path.map(function(p){return{lat:p.lat,lng:p.lng};});}else{try{var pathColRef=window.api.collection(window.db,'walk_records',id,'path_points');var snap=await window.api.getDocs(pathColRef);var chunks=[];snap.forEach(function(d){chunks.push(d.data());});chunks.sort(function(a,b){return a.index-b.index;});chunks.forEach(function(chunk){if(chunk.points)pts=pts.concat(chunk.points);});}catch(err){console.error('[loadSavedRoute] 撈 subcollection 失敗:',err);setStatusBar('City Walker','var(--status-idle)');return;}}
   if(pts.length===0){setStatusBar('City Walker','var(--status-idle)');return;}
-  pathLine.setPath(pts);pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});if(data.events){data.events.forEach(function(ev){historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||''));});}map.panTo(pts[0]);document.getElementById('btnFocusRoute').classList.remove('hidden');document.getElementById('btnClearRoute').classList.remove('hidden');setStatusBar('City Walker','var(--status-idle)');
+  pathLine.setPath(pts);pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});if(data.events){data.events.forEach(function(ev){historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||'',ev.createdAt||''));});}map.panTo(pts[0]);document.getElementById('btnFocusRoute').classList.remove('hidden');document.getElementById('btnClearRoute').classList.remove('hidden');setStatusBar('City Walker','var(--status-idle)');
 }
 function clearLoadedRoute(){pathLine.setPath([]);pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85,strokeWeight:6});historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];document.getElementById('btnFocusRoute').classList.add('hidden');document.getElementById('btnClearRoute').classList.add('hidden');}
 async function deleteRecord(e,id){e.stopPropagation();if(!confirm('確定要刪除嗎？'))return;var data=window.currentDocs&&window.currentDocs.find(function(d){return d.id===id;});if(data&&data.events&&window.storage&&window.storageApi){var storageDeletes=[];data.events.forEach(function(ev){if(ev.photoUrl&&ev.photoUrl.startsWith('https://')){try{var fileRef=window.storageApi.ref(window.storage,ev.photoUrl);storageDeletes.push(window.storageApi.deleteObject(fileRef).catch(function(err){console.warn('[Storage] 照片刪除失敗:',err);}));}catch(err){console.warn('[Storage] ref 建立失敗:',err);}}});if(storageDeletes.length>0)await Promise.all(storageDeletes);}try{var pathColRef=window.api.collection(window.db,'walk_records',id,'path_points');var pathSnap=await window.api.getDocs(pathColRef);var chunkDeletes=[];pathSnap.forEach(function(chunkDoc){chunkDeletes.push(window.api.deleteDoc(chunkDoc.ref));});if(chunkDeletes.length>0)await Promise.all(chunkDeletes);}catch(err){console.warn('[deleteRecord] 清理 path_points 失敗:',err);}await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));fetchRecords();}
@@ -1158,7 +1165,7 @@ async function loadExploreRoute(id){
   pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
   if(data.events){
     data.events.forEach(function(ev){
-      historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||''));
+      historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||'',ev.createdAt||''));
     });
   }
   map.panTo(pts[0]);
