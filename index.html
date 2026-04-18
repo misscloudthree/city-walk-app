@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.21.0</title>
+<title>City Walker - v1.22.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -115,18 +115,105 @@ body {
 #placeSearchClear.visible { display:block; }
 
 #eventText { font-family:'Caveat','Microsoft JhengHei',sans-serif !important; font-size:16px !important; line-height:1.6; }
-#memoryText { font-family:'Caveat','Microsoft JhengHei',sans-serif !important; font-size:19px !important; line-height:1.7; }
-/* [新增 v1.20.0] 事件時間戳記 */
-#memoryTime { font-family:'Caveat','Microsoft JhengHei',sans-serif; font-size:12px; color:var(--text-soft); margin-top:2px; margin-bottom:4px; }
+/* ===================================================
+   [改版 v1.22.0] 回憶視窗 — 拍立得長方形排版
+   =================================================== */
+/* modal-content 覆寫：回憶視窗專用，讓它更窄更高 */
+#memoryBox .modal-content {
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: 20px !important;
+  max-width: 320px !important;
+  text-align: left !important;
+}
+/* 頂部 meta 列：icon + 地標 + 時間 */
+#memoryHeader {
+  display: flex; align-items: center; gap:8px;
+  padding: 14px 16px 10px;
+}
+#memoryIcon {
+  font-size: 28px; line-height: 1; flex-shrink: 0;
+}
+#memoryMeta { flex: 1; min-width: 0; }
+#memoryPlace {
+  font-size: 12px; color: var(--text-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#memoryTime {
+  font-family: 'Caveat', 'Microsoft JhengHei', sans-serif;
+  font-size: 12px; color: var(--text-soft);
+  margin-top: 1px;
+}
+/* 拍立得照片區：有照片時撐開，無照片時隱藏 */
+#memoryPolaroid {
+  margin: 0 16px 12px;
+}
+.polaroid-wrap {
+  background: #F5F0E8;
+  padding: 10px 10px 28px 10px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.15);
+  border-radius: 2px;
+  display: block;          /* 改 block 讓它全寬 */
+  transform: rotate(-1deg);
+  position: relative;
+}
+/* [v1.22.0] 拿掉黃色膠帶 ::before */
+.polaroid-wrap::before { display: none; }
+.polaroid-wrap img {
+  width: 100%; height: 220px;   /* 固定高度，放大照片 */
+  object-fit: cover; display: block; border-radius: 1px;
+}
+/* 文字區 */
+#memoryTextWrap {
+  padding: 0 16px 16px;
+}
+#memoryText {
+  font-family: 'Caveat', 'Microsoft JhengHei', sans-serif !important;
+  font-size: 19px !important; line-height: 1.7;
+  color: #333; min-height: 36px;
+}
+/* [新增 v1.22.0] inline 編輯 textarea */
+#memoryEditArea {
+  width: 100%; box-sizing: border-box;
+  font-family: 'Caveat', 'Microsoft JhengHei', sans-serif;
+  font-size: 19px; line-height: 1.7; color: #333;
+  border: 1.5px solid var(--accent-positive);
+  border-radius: 10px; padding: 8px 10px;
+  resize: none; outline: none; height: 80px;
+  background: var(--bg-warm);
+  display: none;
+}
+/* 編輯按鈕列 */
+#memoryActions {
+  display: flex; gap: 8px;
+  padding: 0 16px 14px;
+  justify-content: flex-end;
+}
+.memory-action-btn {
+  padding: 7px 14px; border-radius: 12px; border: none;
+  font-size: 13px; cursor: pointer;
+  font-family: 'Poly', 'Microsoft JhengHei', sans-serif;
+  transition: opacity 0.15s;
+}
+.memory-action-btn:active { opacity: 0.7; }
+.btn-memory-edit  { background: var(--bg-warm); color: var(--text-soft); }
+.btn-memory-save  { background: var(--accent-positive); color: white; font-weight: bold; display: none; }
+.btn-memory-cancel{ background: #EEE; color: #666; display: none; }
+/* close 按鈕位置微調 */
+#memoryCloseBtn {
+  position: absolute; top: 12px; right: 12px;
+  font-size: 18px; color: var(--text-soft); cursor: pointer;
+  padding: 4px 8px; border-radius: 50%; z-index: 10;
+  transition: background 0.2s;
+}
+#memoryCloseBtn:active { background: var(--bg-warm); }
 
 #photoSection { margin:8px 0 4px; display:flex; align-items:center; gap:10px; }
 #cameraBtn { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:20px; font-size:13px; background:var(--bg-warm); color:var(--text-soft); border:1.5px solid var(--border-light); cursor:pointer; white-space:nowrap; transition:all 0.2s; }
 #cameraBtn:active { background:#EEF6F3; border-color:var(--accent-positive); }
 #photoPreviewThumb { width:48px; height:48px; border-radius:8px; object-fit:cover; border:2px solid var(--accent-positive); cursor:pointer; display:none; }
 
-.polaroid-wrap { background:#F5F0E8; padding:10px 10px 32px 10px; box-shadow:0 4px 18px rgba(0,0,0,0.18); border-radius:2px; display:inline-block; margin:20px auto 8px; transform:rotate(-1.5deg); max-width:240px; position:relative; }
-.polaroid-wrap::before { content:''; position:absolute; top:-12px; left:50%; transform:translateX(-50%) rotate(1deg); width:60px; height:22px; background:rgba(255,235,150,0.65); border-radius:2px; box-shadow:0 1px 3px rgba(0,0,0,0.1); background-image:repeating-linear-gradient(90deg,transparent,transparent 4px,rgba(255,255,255,0.15) 4px,rgba(255,255,255,0.15) 5px); }
-.polaroid-wrap img { width:100%; max-height:200px; object-fit:cover; display:block; border-radius:1px; }
+
 
 #listPageHeader { width:92%; max-width:450px; margin:0 auto 12px; display:flex; justify-content:flex-end; align-items:center; }
 #btnManage { padding:7px 16px; border-radius:20px; border:1.5px solid var(--border-light); font-size:12px; background:var(--white); color:var(--text-soft); cursor:pointer; letter-spacing:0.5px; transition:all 0.2s; }
@@ -456,17 +543,37 @@ getRedirectResult(auth).then(function(result){
 </div>
 
 <div id="memoryBox" onclick="closeMemoryBox()">
-  <div class="modal-content" onclick="event.stopPropagation()" style="position:relative;text-align:center;padding-top:40px;">
+  <div class="modal-content" onclick="event.stopPropagation()" style="position:relative;">
     <div id="memoryCloseBtn" onclick="closeMemoryBox()">✕</div>
-    <div id="memoryIcon" style="font-size:50px;margin-bottom:8px;">📸</div>
-    <div id="memoryPlace" style="font-size:12px;color:var(--text-soft);margin-bottom:2px;"></div>
-    <div id="memoryTime"></div>
+
+    <!-- 頂部 meta 列 -->
+    <div id="memoryHeader">
+      <div id="memoryIcon">📸</div>
+      <div id="memoryMeta">
+        <div id="memoryPlace"></div>
+        <div id="memoryTime"></div>
+      </div>
+    </div>
+
+    <!-- 拍立得照片（有照片才顯示） -->
     <div id="memoryPolaroid" class="hidden">
       <div class="polaroid-wrap">
         <img id="memoryPhoto" src="" alt="記憶照片" crossorigin="anonymous">
       </div>
     </div>
-    <div id="memoryText" style="color:#333;line-height:1.7;min-height:40px;margin-top:8px;"></div>
+
+    <!-- 文字區（含 inline 編輯） -->
+    <div id="memoryTextWrap">
+      <div id="memoryText"></div>
+      <textarea id="memoryEditArea" maxlength="100" placeholder="修改心情..."></textarea>
+    </div>
+
+    <!-- 操作按鈕列 -->
+    <div id="memoryActions">
+      <button class="memory-action-btn btn-memory-cancel" id="btnMemoryCancel" onclick="cancelMemoryEdit()">✕ 取消</button>
+      <button class="memory-action-btn btn-memory-save"   id="btnMemorySave"   onclick="saveMemoryEdit()">✓ 儲存</button>
+      <button class="memory-action-btn btn-memory-edit"   id="btnMemoryEdit"   onclick="enterMemoryEdit()">✏️ 編輯</button>
+    </div>
   </div>
 </div>
 
@@ -722,7 +829,118 @@ function renderIconGrid(idx){var grid=document.getElementById('iconGrid');grid.i
 var ENCOURAGE_LIST=['每一步都是在和這座城市說你好。','你走過的路，都成為了你的一部分。','不趕時間的移動，才看得見風景。','今天的漫遊，是送給未來的你的禮物。','走路是最誠實的旅行方式。','迷路也是一種探索。','城市的故事，藏在你停下來的每個瞬間。','腳步慢下來，世界就大了起來。','你不是在趕路，你是在收集記憶。','走著走著，就找到了答案。','每條路都值得被好好走過。','今天的你，多認識了一點這座城市。','散步是一種溫柔的勇氣。','你的足跡，是這座城市最好的地圖。','好好走路，是對自己最好的陪伴。','慢慢走，什麼都會來的。','城市不大，只要你願意用腳丈量。','今天走過的路，明天會變成想念。','每次 City Walk，都是一次小小的冒險。','謝謝你今天也好好走路了。'];
 function getDailyEncouragement(){var t=new Date();var s=t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate();return ENCOURAGE_LIST[s%ENCOURAGE_LIST.length];}
 function setStatusBar(t,bg){var b=document.getElementById('statusBar');b.innerText=t;b.style.backgroundColor=bg||'var(--status-idle)';}
-function closeMemoryBox(){document.getElementById('memoryBox').style.display='none';}
+function closeMemoryBox(){
+  exitMemoryEditMode();
+  document.getElementById('memoryBox').style.display='none';
+}
+
+/* ===================================================
+   [新增 v1.22.0] 回憶視窗 inline 編輯函式群組
+
+   enterMemoryEdit()
+   PSEUDO: 把 memoryText 隱藏、顯示 textarea（預填當前文字）
+   顯示「✓ 儲存」「✕ 取消」，隱藏「✏️ 編輯」
+
+   exitMemoryEditMode()
+   PSEUDO: 恢復正常顯示狀態（可被 cancel 和 closeMemoryBox 呼叫）
+
+   saveMemoryEdit()
+   PSEUDO:
+   1. 取 textarea 新文字
+   2. 更新 memoryText 顯示
+   3. 讀 memoryBox.dataset.routeId / eventIndex
+   4. routeId 空 → 更新 eventsData[] + 重建 marker
+   5. routeId 有值 → 更新 _loadedRouteEvents[] + updateDoc Firestore + 重建 historyMarkers[idx]
+   =================================================== */
+function enterMemoryEdit(){
+  var currentText = document.getElementById('memoryText').innerText;
+  /* 若是預設佔位文字，清空讓使用者輸入 */
+  if(currentText === '那一天，在這裡留下了足跡...') currentText = '';
+  document.getElementById('memoryEditArea').value = currentText;
+  document.getElementById('memoryText').style.display = 'none';
+  document.getElementById('memoryEditArea').style.display = 'block';
+  document.getElementById('btnMemoryEdit').style.display = 'none';
+  document.getElementById('btnMemorySave').style.display = 'inline-block';
+  document.getElementById('btnMemoryCancel').style.display = 'inline-block';
+  document.getElementById('memoryEditArea').focus();
+}
+
+function exitMemoryEditMode(){
+  document.getElementById('memoryText').style.display = 'block';
+  document.getElementById('memoryEditArea').style.display = 'none';
+  document.getElementById('btnMemoryEdit').style.display = 'inline-block';
+  document.getElementById('btnMemorySave').style.display = 'none';
+  document.getElementById('btnMemoryCancel').style.display = 'none';
+}
+
+function cancelMemoryEdit(){ exitMemoryEditMode(); }
+
+async function saveMemoryEdit(){
+  var newText = document.getElementById('memoryEditArea').value.trim();
+  var box = document.getElementById('memoryBox');
+  var routeId = box.dataset.routeId || '';
+  var eventIndex = parseInt(box.dataset.eventIndex);
+
+  /* 更新視窗顯示 */
+  document.getElementById('memoryText').innerText = newText || '那一天，在這裡留下了足跡...';
+  exitMemoryEditMode();
+
+  /* --- 情境 A：走路中（routeId 空）--- */
+  if(!routeId){
+    if(isNaN(eventIndex)||eventIndex<0||!eventsData[eventIndex]) return;
+    eventsData[eventIndex].text = newText;
+    /* PSEUDO: 移除舊 overlay，重建新 marker（text 更新） */
+    var oldOverlay = eventsData[eventIndex]._overlay;
+    if(oldOverlay) oldOverlay.setMap(null);
+    var ev = eventsData[eventIndex];
+    var newOverlay = createEventMarker(ev.pos,ev.icon,newText,ev.placeName,ev.photoUrl,ev.createdAt,'',eventIndex);
+    eventsData[eventIndex]._overlay = newOverlay;
+    return;
+  }
+
+  /* --- 情境 B：歷史路線（routeId 有值）--- */
+  if(isNaN(eventIndex)||eventIndex<0) return;
+
+  /* PSEUDO: 更新本地快取 _loadedRouteEvents */
+  if(window._loadedRouteEvents && window._loadedRouteEvents[eventIndex]){
+    window._loadedRouteEvents[eventIndex].text = newText;
+  }
+
+  /* PSEUDO: 重建地圖上的 historyMarker
+     historyMarkers[eventIndex] 就是對應的 overlay */
+  if(window._loadedRouteEvents && historyMarkers[eventIndex]){
+    var oldH = historyMarkers[eventIndex];
+    if(oldH) oldH.setMap(null);
+    var evH = window._loadedRouteEvents[eventIndex];
+    historyMarkers[eventIndex] = createEventMarker(
+      evH.pos, evH.icon, newText,
+      evH.placeName||'', evH.photoUrl||'', evH.createdAt||'',
+      routeId, eventIndex
+    );
+  }
+
+  /* PSEUDO: 更新 Firestore events[] 整個陣列覆寫
+     （Firestore 不支援 array index 更新，需整個 array 覆寫） */
+  try{
+    var updatedEvents = window._loadedRouteEvents ? window._loadedRouteEvents.slice() : [];
+    /* 移除 _overlay 這個 JS 物件，不能存 Firestore */
+    var cleanEvents = updatedEvents.map(function(ev){
+      var c = Object.assign({},ev); delete c._overlay; return c;
+    });
+    await window.api.updateDoc(
+      window.api.doc(window.db,'walk_records',routeId),
+      {events: cleanEvents}
+    );
+    /* 同步更新 currentDocs 快取 */
+    if(window.currentDocs){
+      var docInCache = window.currentDocs.find(function(d){return d.id===routeId;});
+      if(docInCache) docInCache.events = cleanEvents;
+    }
+  }catch(err){
+    console.error('[saveMemoryEdit] Firestore 更新失敗:',err);
+    alert('儲存失敗，請稍後再試。');
+  }
+}
 function toggleColorPicker(){document.getElementById('colorOptions').classList.toggle('open');}
 function selectColor(el){selectedTrackColor=el.getAttribute('data-color');document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;document.querySelectorAll('.color-dot').forEach(function(d){d.classList.remove('selected');});el.classList.add('selected');if(pathLine)pathLine.setOptions({strokeColor:selectedTrackColor});document.getElementById('colorOptions').classList.remove('open');}
 document.addEventListener('click',function(e){var p=document.getElementById('colorPicker');if(p&&!p.contains(e.target))document.getElementById('colorOptions').classList.remove('open');});
@@ -905,8 +1123,12 @@ async function saveEvent(){
   var photoUrl='';
   if(selectedPhotoBlob&&window.storage&&window.storageApi&&window.currentUid){var confirmBtn=document.querySelector('#eventModal .btn-event');var originalText=confirmBtn?confirmBtn.innerText:'';if(confirmBtn){confirmBtn.disabled=true;confirmBtn.innerText='上傳中...';}try{var timestamp=Date.now();var rand=Math.floor(Math.random()*9000+1000);var filePath='photos/'+window.currentUid+'/'+timestamp+'_'+rand+'.jpg';var fileRef=window.storageApi.ref(window.storage,filePath);await window.storageApi.uploadBytes(fileRef,selectedPhotoBlob,{contentType:'image/jpeg'});photoUrl=await window.storageApi.getDownloadURL(fileRef);}catch(err){console.warn('[Storage] 照片上傳失敗:',err);photoUrl='';}finally{if(confirmBtn){confirmBtn.disabled=false;confirmBtn.innerText=originalText;}}}
   var eventCreatedAt = new Date().toISOString();
+  var eventIndex = eventsData.length; /* 存 push 前的 index */
   eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl,createdAt:eventCreatedAt});
-  createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl,eventCreatedAt);document.getElementById('eventText').value='';selectedPlace=null;selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('eventModal').style.display='none';
+  /* [v1.22.0] routeId='' 表示當次走路中，eventIndex 供編輯定位 */
+  var overlay = createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl,eventCreatedAt,'',eventIndex);
+  eventsData[eventIndex]._overlay = overlay; /* 存 overlay 實例，供重建用 */
+  document.getElementById('eventText').value='';selectedPlace=null;selectedPhotoBlob=null;selectedPhotoDataUrl=null;document.getElementById('eventModal').style.display='none';
 }
 
 async function endWalk(){
@@ -937,16 +1159,64 @@ async function executeCloudSave(){
   catch(e){console.error('[Save] 儲存失敗:',e);alert('儲存失敗');if(btn)btn.disabled=false;}
 }
 
-function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt){
-  function EmojiOverlay(position,icon,text,placeName,photoUrl,createdAt){this.position_=new google.maps.LatLng(position.lat,position.lng);this.icon_=icon;this.text_=text;this.placeName_=placeName||'';this.photoUrl_=photoUrl||'';this.createdAt_=createdAt||'';this.div_=null;this.setMap(map);}
+/* ===================================================
+   [改版 v1.22.0] createEventMarker
+   PSEUDO 新增參數：
+   - routeId: 歷史路線的 Firestore doc id，走路中為 ''
+   - eventIndex: 事件在 events[] 中的 index，供編輯時定位
+   - 回傳 overlay 實例，供外部 rebuild 用
+   =================================================== */
+function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,eventIndex){
+  routeId = routeId || '';
+  eventIndex = (typeof eventIndex === 'number') ? eventIndex : -1;
+
+  function EmojiOverlay(position,icon,text,placeName,photoUrl,createdAt){
+    this.position_=new google.maps.LatLng(position.lat,position.lng);
+    this.icon_=icon; this.text_=text; this.placeName_=placeName||'';
+    this.photoUrl_=photoUrl||''; this.createdAt_=createdAt||'';
+    this.div_=null; this.setMap(map);
+  }
   EmojiOverlay.prototype=Object.create(google.maps.OverlayView.prototype);
-  EmojiOverlay.prototype.onAdd=function(){var div=document.createElement('div');div.className='event-marker-div';div.innerText=this.icon_;var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_,cat=this.createdAt_;function showMemory(e){e.stopPropagation();if(e.preventDefault)e.preventDefault();document.getElementById('memoryIcon').innerText=ci||'📸';document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';
-  /* [v1.20.0] PSEUDO: 若有 createdAt ISO 字串，parse 成 HH:MM 顯示；舊資料無此欄位則清空不報錯 */
-  var timeEl=document.getElementById('memoryTime');if(cat){try{var d=new Date(cat);var hh=String(d.getHours()).padStart(2,'0');var mm=String(d.getMinutes()).padStart(2,'0');timeEl.innerText='🕐 '+hh+':'+mm+' 在這裡';}catch(e){timeEl.innerText='';}}else{timeEl.innerText='';}
-  var polaroid=document.getElementById('memoryPolaroid');var memPhoto=document.getElementById('memoryPhoto');if(cph){memPhoto.src=cph;polaroid.classList.remove('hidden');}else{polaroid.classList.add('hidden');memPhoto.src='';}document.getElementById('memoryBox').style.display='flex';}div.addEventListener('click',showMemory);div.addEventListener('touchstart',showMemory,{passive:false});this.div_=div;this.getPanes().overlayMouseTarget.appendChild(div);};
-  EmojiOverlay.prototype.draw=function(){var pt=this.getProjection().fromLatLngToDivPixel(this.position_);if(this.div_&&pt){this.div_.style.left=pt.x+'px';this.div_.style.top=pt.y+'px';}};
-  EmojiOverlay.prototype.onRemove=function(){if(this.div_){this.div_.parentNode.removeChild(this.div_);this.div_=null;}};
-  return new EmojiOverlay(pos,icon,text,placeName,photoUrl,createdAt);
+  EmojiOverlay.prototype.onAdd=function(){
+    var div=document.createElement('div');
+    div.className='event-marker-div'; div.innerText=this.icon_;
+    var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_,cat=this.createdAt_;
+    function showMemory(e){
+      e.stopPropagation(); if(e.preventDefault)e.preventDefault();
+      /* 填入 icon / place / time */
+      document.getElementById('memoryIcon').innerText=ci||'📸';
+      document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';
+      var timeEl=document.getElementById('memoryTime');
+      if(cat){try{var d=new Date(cat);var hh=String(d.getHours()).padStart(2,'0');var mm=String(d.getMinutes()).padStart(2,'0');timeEl.innerText='🕐 '+hh+':'+mm+' 在這裡';}catch(ex){timeEl.innerText='';}}else{timeEl.innerText='';}
+      /* 填入照片 */
+      var polaroid=document.getElementById('memoryPolaroid');
+      var memPhoto=document.getElementById('memoryPhoto');
+      if(cph){memPhoto.src=cph;polaroid.classList.remove('hidden');}
+      else{polaroid.classList.add('hidden');memPhoto.src='';}
+      /* 填入文字 */
+      document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';
+      /* [v1.22.0] PSEUDO: 把 routeId / eventIndex 存到 memoryBox dataset，
+         供 saveMemoryEdit() 讀取，知道要更新哪筆資料 */
+      var box=document.getElementById('memoryBox');
+      box.dataset.routeId=routeId;
+      box.dataset.eventIndex=eventIndex;
+      /* 重設編輯狀態 */
+      exitMemoryEditMode();
+      document.getElementById('memoryBox').style.display='flex';
+    }
+    div.addEventListener('click',showMemory);
+    div.addEventListener('touchstart',showMemory,{passive:false});
+    this.div_=div; this.getPanes().overlayMouseTarget.appendChild(div);
+  };
+  EmojiOverlay.prototype.draw=function(){
+    var pt=this.getProjection().fromLatLngToDivPixel(this.position_);
+    if(this.div_&&pt){this.div_.style.left=pt.x+'px';this.div_.style.top=pt.y+'px';}
+  };
+  EmojiOverlay.prototype.onRemove=function(){
+    if(this.div_){this.div_.parentNode.removeChild(this.div_);this.div_=null;}
+  };
+  var overlay = new EmojiOverlay(pos,icon,text,placeName,photoUrl,createdAt);
+  return overlay;
 }
 
 /* ===================================================
@@ -1041,9 +1311,26 @@ async function loadSavedRoute(id){
   var data=window.currentDocs.find(function(d){return d.id===id;});if(!data)return;switchPage('main');pathLine.setPath([]);historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];setStatusBar('🔄 載入路線中...','var(--status-locating)');var pts=[];
   if(data.path&&data.path.length>0){pts=data.path.map(function(p){return{lat:p.lat,lng:p.lng};});}else{try{var pathColRef=window.api.collection(window.db,'walk_records',id,'path_points');var snap=await window.api.getDocs(pathColRef);var chunks=[];snap.forEach(function(d){chunks.push(d.data());});chunks.sort(function(a,b){return a.index-b.index;});chunks.forEach(function(chunk){if(chunk.points)pts=pts.concat(chunk.points);});}catch(err){console.error('[loadSavedRoute] 撈 subcollection 失敗:',err);setStatusBar('City Walker','var(--status-idle)');return;}}
   if(pts.length===0){setStatusBar('City Walker','var(--status-idle)');return;}
-  pathLine.setPath(pts);pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});if(data.events){data.events.forEach(function(ev){historyMarkers.push(createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||'',ev.createdAt||''));});}map.panTo(pts[0]);document.getElementById('btnFocusRoute').classList.remove('hidden');document.getElementById('btnClearRoute').classList.remove('hidden');setStatusBar('City Walker','var(--status-idle)');
+  pathLine.setPath(pts);pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
+  if(data.events){
+    data.events.forEach(function(ev,idx){
+      /* [v1.22.0] 傳入 routeId=id、eventIndex=idx，供編輯後更新 Firestore */
+      var overlay = createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||'',ev.createdAt||'',id,idx);
+      historyMarkers.push(overlay);
+    });
+  }
+  /* [v1.22.0] 存一份目前載入的路線 id 和 events，供 saveMemoryEdit() 用 */
+  window._loadedRouteId = id;
+  window._loadedRouteEvents = data.events ? data.events.slice() : [];
+  map.panTo(pts[0]);document.getElementById('btnFocusRoute').classList.remove('hidden');document.getElementById('btnClearRoute').classList.remove('hidden');setStatusBar('City Walker','var(--status-idle)');
 }
-function clearLoadedRoute(){pathLine.setPath([]);pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85,strokeWeight:6});historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];document.getElementById('btnFocusRoute').classList.add('hidden');document.getElementById('btnClearRoute').classList.add('hidden');}
+function clearLoadedRoute(){
+  pathLine.setPath([]);pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85,strokeWeight:6});
+  historyMarkers.forEach(function(m){m.setMap(null);});historyMarkers=[];
+  /* [v1.22.0] 清除歷史路線快取 */
+  window._loadedRouteId=''; window._loadedRouteEvents=[];
+  document.getElementById('btnFocusRoute').classList.add('hidden');document.getElementById('btnClearRoute').classList.add('hidden');
+}
 async function deleteRecord(e,id){e.stopPropagation();if(!confirm('確定要刪除嗎？'))return;var data=window.currentDocs&&window.currentDocs.find(function(d){return d.id===id;});if(data&&data.events&&window.storage&&window.storageApi){var storageDeletes=[];data.events.forEach(function(ev){if(ev.photoUrl&&ev.photoUrl.startsWith('https://')){try{var fileRef=window.storageApi.ref(window.storage,ev.photoUrl);storageDeletes.push(window.storageApi.deleteObject(fileRef).catch(function(err){console.warn('[Storage] 照片刪除失敗:',err);}));}catch(err){console.warn('[Storage] ref 建立失敗:',err);}}});if(storageDeletes.length>0)await Promise.all(storageDeletes);}try{var pathColRef=window.api.collection(window.db,'walk_records',id,'path_points');var pathSnap=await window.api.getDocs(pathColRef);var chunkDeletes=[];pathSnap.forEach(function(chunkDoc){chunkDeletes.push(window.api.deleteDoc(chunkDoc.ref));});if(chunkDeletes.length>0)await Promise.all(chunkDeletes);}catch(err){console.warn('[deleteRecord] 清理 path_points 失敗:',err);}await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));fetchRecords();}
 async function togglePin(e,id,status){e.stopPropagation();await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});fetchRecords();}
 
@@ -1318,6 +1605,9 @@ window.openShareCard=openShareCard;window.closeShareCard=closeShareCard;window.d
 window.linkGoogleAccount=linkGoogleAccount;window.updateAccountBanner=updateAccountBanner;
 /* [新增 v1.21.0] */
 window.onPlaceSearchInput=onPlaceSearchInput;window.clearPlaceSearch=clearPlaceSearch;
+/* [新增 v1.22.0] */
+window.enterMemoryEdit=enterMemoryEdit;window.cancelMemoryEdit=cancelMemoryEdit;
+window.saveMemoryEdit=saveMemoryEdit;window.exitMemoryEditMode=exitMemoryEditMode;
 window.openAccountSheet=openAccountSheet;window.closeAccountSheet=closeAccountSheet;
 window.signOutAccount=signOutAccount;window.deleteAccount=deleteAccount;
 /* [v1.19.0] 探索頁 */
