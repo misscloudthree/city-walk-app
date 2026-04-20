@@ -461,6 +461,7 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
 }
 #inspireBackdrop.open { display:block; opacity:1; }
 #inspirePanel {
+  position:relative; z-index:9500;
   background:var(--white); border-radius:24px 24px 0 0;
   padding:16px 20px 40px; box-sizing:border-box;
   box-shadow:0 -4px 30px rgba(0,0,0,0.12);
@@ -784,7 +785,7 @@ getRedirectResult(auth).then(function(result){
      =================================================== -->
 <div id="inspireSheet">
   <div id="inspireBackdrop" onclick="closeInspireSheet()"></div>
-  <div id="inspirePanel">
+  <div id="inspirePanel" onclick="event.stopPropagation()">
     <div class="sheet-handle" style="width:40px;height:4px;border-radius:2px;background:var(--border-light);margin:0 auto 20px;"></div>
     <div style="font-weight:bold;font-size:18px;margin-bottom:4px;">今天想找什麼？</div>
     <div style="font-size:12px;color:var(--text-soft);margin-bottom:20px;letter-spacing:0.3px;">選好後幫你標出附近的好去處 ✦</div>
