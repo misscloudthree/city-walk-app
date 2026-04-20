@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.24.0</title>
+<title>City Walker - v1.25.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -446,6 +446,91 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
 .btn-public { background:var(--bg-warm); color:var(--text-soft); }
 .btn-public.is-public { background:#E8F5F1; color:var(--accent-positive); font-weight:bold; }
 
+/* ===================================================
+   [新增 v1.25.0] 靈感規劃 Bottom Sheet
+   =================================================== */
+#inspireSheet {
+  position:fixed; bottom:0; left:0; width:100%; z-index:9500;
+  display:none; flex-direction:column;
+}
+#inspireSheet.open { display:flex; }
+#inspireBackdrop {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.4); z-index:9490;
+  display:none; opacity:0; transition:opacity 0.25s ease;
+}
+#inspireBackdrop.open { display:block; opacity:1; }
+#inspirePanel {
+  background:var(--white); border-radius:24px 24px 0 0;
+  padding:16px 20px 40px; box-sizing:border-box;
+  box-shadow:0 -4px 30px rgba(0,0,0,0.12);
+  transform:translateY(100%); transition:transform 0.3s ease;
+  max-height:85vh; overflow-y:auto;
+}
+#inspireSheet.open #inspirePanel { transform:translateY(0); }
+.inspire-section-label {
+  font-size:11px; letter-spacing:1.5px; color:var(--text-soft);
+  text-transform:uppercase; margin-bottom:10px; font-weight:bold;
+}
+/* 距離 pills */
+#distancePills { display:flex; gap:8px; flex-wrap:wrap; }
+.dist-pill {
+  padding:8px 18px; border-radius:20px;
+  font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif;
+  background:var(--bg-warm); color:var(--text-soft);
+  border:1.5px solid var(--border-light); cursor:pointer;
+  transition:all 0.2s; white-space:nowrap; user-select:none;
+}
+.dist-pill.active {
+  background:var(--text-main); color:var(--white);
+  border-color:var(--text-main); font-weight:bold;
+}
+/* 心情標籤 */
+#moodTags {
+  display:flex; flex-wrap:wrap; gap:10px; margin-top:4px;
+}
+.mood-tag {
+  display:flex; align-items:center; gap:6px;
+  padding:9px 14px; border-radius:20px;
+  font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif;
+  background:var(--bg-warm); color:var(--text-main);
+  border:1.5px solid var(--border-light); cursor:pointer;
+  transition:all 0.2s; user-select:none; position:relative;
+}
+.mood-tag.active {
+  background:#EEF6F3; border-color:var(--accent-positive);
+  color:var(--accent-positive); font-weight:bold;
+}
+.mood-tag:active { transform:scale(0.95); }
+/* 計數 badge */
+.mood-badge {
+  display:none; width:20px; height:20px; border-radius:50%;
+  background:var(--accent-positive); color:white;
+  font-size:11px; font-weight:bold; line-height:20px; text-align:center;
+  flex-shrink:0;
+}
+.mood-tag.active .mood-badge { display:flex; align-items:center; justify-content:center; }
+/* 靈感 marker */
+.inspire-marker-div {
+  position:absolute; font-size:26px; cursor:pointer;
+  transform:translate(-50%,-50%); user-select:none;
+  -webkit-user-select:none; pointer-events:auto; z-index:998;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+  transition:transform 0.15s;
+}
+.inspire-marker-div:active { transform:translate(-50%,-50%) scale(0.88); }
+/* 靈感 marker 名稱 tooltip */
+.inspire-tooltip {
+  position:absolute; bottom:110%; left:50%; transform:translateX(-50%);
+  background:var(--text-main); color:var(--white);
+  font-size:11px; padding:4px 8px; border-radius:8px;
+  white-space:nowrap; pointer-events:none;
+  font-family:'Poly','Microsoft JhengHei',sans-serif;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+  opacity:0; transition:opacity 0.2s;
+}
+.inspire-marker-div.show-tip .inspire-tooltip { opacity:1; }
+
 /* [v1.19.1] 無 GPS 提示條 */
 #exploreNoGpsHint {
   width:92%; max-width:450px; margin:0 auto 12px;
@@ -658,6 +743,8 @@ getRedirectResult(auth).then(function(result){
   <div id="functionPanel">
     <div id="state-init">
       <button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button>
+      <!-- [新增 v1.25.0] 走前規劃靈感入口 -->
+      <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);margin-top:10px;border:1.5px solid var(--border-light);" onclick="openInspireSheet()">✦ 規劃靈感</button>
     </div>
     <div id="state-recording" class="hidden">
       <button class="btn-base btn-event" onclick="openEventCanvas()">紀錄事件！</button>
@@ -682,6 +769,52 @@ getRedirectResult(auth).then(function(result){
   <div id="shareCardBtns" onclick="event.stopPropagation()">
     <button style="background:#EEE;color:#666;" onclick="closeShareCard()">關閉</button>
     <button style="background:var(--accent-positive);color:white;" onclick="downloadShareCard()">⬇ 下載圖片</button>
+  </div>
+</div>
+
+<!-- ===================================================
+     [新增 v1.25.0] 靈感規劃 Bottom Sheet
+     PSEUDO:
+     - 距離 pills：1 / 2 / 5 / 10 km，預設 2km，單選
+     - 心情標籤：每 tap +1 個地點（最多 5），再 tap 歸零
+     - 總點數超過 8 顯示溫和提示
+     - 點「找附近好去處」→ Places API searchNearby
+       每個心情類型個別搜尋，取前 N 個結果
+     - 結果以 emoji overlay 標示在地圖上
+     =================================================== -->
+<div id="inspireSheet">
+  <div id="inspireBackdrop" onclick="closeInspireSheet()"></div>
+  <div id="inspirePanel">
+    <div class="sheet-handle" style="width:40px;height:4px;border-radius:2px;background:var(--border-light);margin:0 auto 20px;"></div>
+    <div style="font-weight:bold;font-size:18px;margin-bottom:4px;">今天想找什麼？</div>
+    <div style="font-size:12px;color:var(--text-soft);margin-bottom:20px;letter-spacing:0.3px;">選好後幫你標出附近的好去處 ✦</div>
+
+    <!-- 距離選擇 -->
+    <div class="inspire-section-label">想走多遠？</div>
+    <div id="distancePills">
+      <div class="dist-pill" data-km="1" onclick="selectInspireDistance(this)">1 km</div>
+      <div class="dist-pill active" data-km="2" onclick="selectInspireDistance(this)">2 km</div>
+      <div class="dist-pill" data-km="5" onclick="selectInspireDistance(this)">5 km</div>
+      <div class="dist-pill" data-km="10" onclick="selectInspireDistance(this)">10 km</div>
+    </div>
+
+    <!-- 心情標籤 -->
+    <div class="inspire-section-label" style="margin-top:20px;">
+      今日心情
+      <span style="font-weight:normal;color:var(--text-soft);letter-spacing:0;text-transform:none;">
+        — 點一下 +1 個地點，最多 5 個
+      </span>
+    </div>
+    <div id="moodTags"></div>
+
+    <!-- 總點數提示（超過 8 個顯示） -->
+    <div id="inspireTotalHint" style="font-size:12px;color:var(--accent-warm);margin-top:10px;display:none;line-height:1.6;">
+      ✦ 地點太多會少了漫遊的感覺，建議 8 個以內
+    </div>
+
+    <!-- 操作按鈕 -->
+    <button class="btn-base btn-event" style="margin-top:20px;" onclick="searchInspireSpots()">✦ 找附近好去處</button>
+    <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);margin-top:10px;" onclick="closeInspireSheet()">取消</button>
   </div>
 </div>
 
@@ -1747,6 +1880,237 @@ window.clearLoadedRoute=clearLoadedRoute;window.applyFilters=applyFilters;window
 window.onRowMainClick=onRowMainClick;window.toggleSelectMode=toggleSelectMode;window.exitSelectMode=exitSelectMode;window.toggleSelectCard=toggleSelectCard;window.batchDelete=batchDelete;
 window.openShareCard=openShareCard;window.closeShareCard=closeShareCard;window.downloadShareCard=downloadShareCard;window.cycleSharePhoto=cycleSharePhoto;
 window.linkGoogleAccount=linkGoogleAccount;window.updateAccountBanner=updateAccountBanner;
+
+/* ===================================================
+   [新增 v1.25.0] 靈感規劃系統
+
+   MOOD_TAGS：心情標籤設定，含 emoji / 顯示名稱 / Places API type
+   inspireDistance：目前選擇的距離（km）
+   moodCounts：{ cafe: 2, bakery: 1, ... } 各類型想要幾個點
+   inspireMarkers：地圖上的靈感 overlay 陣列，clearInspireMarkers 時清除
+
+   距離 → 搜尋半徑換算（出去回來的概念，適度保守）：
+     1km → 250m / 2km → 550m / 5km → 1400m / 10km → 2800m
+   =================================================== */
+var MOOD_TAGS = [
+  { emoji:'☕', label:'咖啡時光', type:'cafe' },
+  { emoji:'🥐', label:'烘焙香氣', type:'bakery' },
+  { emoji:'🍜', label:'在地小吃', type:'restaurant' },
+  { emoji:'📚', label:'書店尋訪', type:'book_store' },
+  { emoji:'🌿', label:'公園綠地', type:'park' },
+  { emoji:'🏛️', label:'文化地標', type:'museum' }
+];
+var INSPIRE_RADIUS_MAP = { 1:250, 2:550, 5:1400, 10:2800 };
+var inspireDistance = 2;
+var moodCounts = {};
+var inspireMarkers = [];
+
+/* PSEUDO: 開啟靈感規劃 Sheet
+   - 重置 moodCounts（每次打開重新選）
+   - buildMoodTags() 渲染標籤
+   - 顯示 backdrop + panel（同帳號 Sheet 動畫邏輯） */
+function openInspireSheet(){
+  moodCounts = {};
+  buildMoodTags();
+  updateInspireTotalHint();
+  document.getElementById('inspireSheet').classList.add('open');
+  document.getElementById('inspireBackdrop').classList.add('open');
+}
+
+/* PSEUDO: 關閉 Sheet，收回動畫由 CSS transition 處理 */
+function closeInspireSheet(){
+  document.getElementById('inspireSheet').classList.remove('open');
+  document.getElementById('inspireBackdrop').classList.remove('open');
+}
+
+/* PSEUDO: 依 MOOD_TAGS 動態渲染心情標籤
+   每個 tag 顯示 emoji + label + count badge
+   badge 僅在 count > 0 時顯示（CSS .mood-tag.active 控制） */
+function buildMoodTags(){
+  var container = document.getElementById('moodTags');
+  container.innerHTML = '';
+  MOOD_TAGS.forEach(function(tag){
+    var div = document.createElement('div');
+    div.className = 'mood-tag' + ((moodCounts[tag.type]||0) > 0 ? ' active' : '');
+    div.setAttribute('data-type', tag.type);
+    div.innerHTML =
+      '<span>' + tag.emoji + ' ' + tag.label + '</span>' +
+      '<span class="mood-badge">' + (moodCounts[tag.type]||0) + '</span>';
+    div.onclick = function(){ onMoodTagTap(tag.type); };
+    container.appendChild(div);
+  });
+}
+
+/* PSEUDO: 距離 pill 單選，更新 inspireDistance */
+function selectInspireDistance(el){
+  document.querySelectorAll('.dist-pill').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+  inspireDistance = parseInt(el.getAttribute('data-km'));
+}
+
+/* PSEUDO: 心情標籤計數邏輯
+   每 tap +1，超過 5 歸零（取消選取）
+   更新 badge 文字與 active class，再更新總點數提示 */
+function onMoodTagTap(type){
+  var cur = moodCounts[type] || 0;
+  cur = cur >= 5 ? 0 : cur + 1;
+  moodCounts[type] = cur;
+
+  /* 更新對應 tag DOM */
+  var tagEl = document.querySelector('.mood-tag[data-type="'+type+'"]');
+  if(!tagEl) return;
+  tagEl.classList.toggle('active', cur > 0);
+  tagEl.querySelector('.mood-badge').innerText = cur;
+
+  updateInspireTotalHint();
+}
+
+/* PSEUDO: 計算所有類型總點數，超過 8 顯示提示 */
+function updateInspireTotalHint(){
+  var total = Object.values(moodCounts).reduce(function(s,v){ return s+v; }, 0);
+  document.getElementById('inspireTotalHint').style.display = total > 8 ? 'block' : 'none';
+}
+
+/* PSEUDO: 清除地圖上所有靈感標記 overlay */
+function clearInspireMarkers(){
+  inspireMarkers.forEach(function(m){ m.setMap(null); });
+  inspireMarkers = [];
+}
+
+/* PSEUDO: searchInspireSpots()
+   1. 取得目前位置（若無則提示）
+   2. 計算搜尋半徑（INSPIRE_RADIUS_MAP[inspireDistance]）
+   3. 確認至少選了一個心情
+   4. 對每個 count > 0 的 type 呼叫 Places API searchNearby
+      includedTypes: [type]，取前 count 個結果
+   5. clearInspireMarkers()
+   6. 每個結果建 createInspireMarker()
+   7. 地圖 fitBounds 讓所有結果可見
+   8. closeInspireSheet() */
+async function searchInspireSpots(){
+  var total = Object.values(moodCounts).reduce(function(s,v){ return s+v; }, 0);
+  if(total === 0){
+    alert('請先選擇至少一種心情 ✦');
+    return;
+  }
+
+  var currentPos = getUserPosition();
+  if(!currentPos){
+    alert('無法取得目前位置，請先允許定位');
+    return;
+  }
+
+  /* PSEUDO: 按鈕 loading 狀態 */
+  var searchBtn = document.querySelector('#inspirePanel .btn-event');
+  if(searchBtn){ searchBtn.disabled = true; searchBtn.innerText = '搜尋中...'; }
+
+  var radius = INSPIRE_RADIUS_MAP[inspireDistance] || 550;
+
+  try{
+    var {Place} = await google.maps.importLibrary('places');
+    clearInspireMarkers();
+
+    var bounds = new google.maps.LatLngBounds();
+    bounds.extend(new google.maps.LatLng(currentPos.lat, currentPos.lng));
+
+    /* PSEUDO: 逐一對每個 type 呼叫 Places API
+       count 決定最多取幾個結果（slice(0, count)） */
+    var searchTasks = MOOD_TAGS
+      .filter(function(tag){ return (moodCounts[tag.type]||0) > 0; })
+      .map(async function(tag){
+        var count = moodCounts[tag.type];
+        try{
+          var result = await Place.searchNearby({
+            fields: ['displayName','location','id'],
+            locationRestriction: { center: currentPos, radius: radius },
+            includedTypes: [tag.type]
+          });
+          var places = result.places || [];
+          places.slice(0, count).forEach(function(place){
+            if(!place.location) return;
+            var pos = { lat: place.location.lat(), lng: place.location.lng() };
+            var overlay = createInspireMarker(pos, tag.emoji, place.displayName || tag.label);
+            inspireMarkers.push(overlay);
+            bounds.extend(new google.maps.LatLng(pos.lat, pos.lng));
+          });
+        }catch(err){
+          console.warn('[Inspire] Places API 失敗 type='+tag.type, err);
+        }
+      });
+
+    await Promise.all(searchTasks);
+
+    closeInspireSheet();
+
+    if(inspireMarkers.length === 0){
+      setStatusBar('附近沒有找到符合的地點', 'var(--status-paused)');
+      setTimeout(function(){ setStatusBar('City Walker','var(--status-idle)'); }, 3000);
+      return;
+    }
+
+    /* PSEUDO: fitBounds 讓所有結果可見，padding 避免被 functionPanel 遮住 */
+    map.fitBounds(bounds, { top:80, right:30, bottom:160, left:30 });
+    setStatusBar('✦ 找到 '+inspireMarkers.length+' 個好去處', 'var(--status-walking)');
+    setTimeout(function(){ setStatusBar('City Walker','var(--status-idle)'); }, 4000);
+
+  }catch(err){
+    console.error('[Inspire] 搜尋失敗:', err);
+    alert('搜尋失敗，請稍後再試');
+  }finally{
+    if(searchBtn){ searchBtn.disabled = false; searchBtn.innerText = '✦ 找附近好去處'; }
+  }
+}
+
+/* PSEUDO: 建立靈感 OverlayView
+   點擊顯示地點名稱 tooltip（3 秒後自動消失）
+   不開啟 memoryBox（v1.26.0 加入路線規劃後再整合） */
+function createInspireMarker(pos, emoji, name){
+  function InspireOverlay(position, emoji, name){
+    this.position_ = new google.maps.LatLng(position.lat, position.lng);
+    this.emoji_ = emoji; this.name_ = name;
+    this.div_ = null; this.tipTimer_ = null;
+    this.setMap(map);
+  }
+  InspireOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
+  InspireOverlay.prototype.onAdd = function(){
+    var div = document.createElement('div');
+    div.className = 'inspire-marker-div';
+    var tip = document.createElement('div');
+    tip.className = 'inspire-tooltip';
+    tip.innerText = this.name_;
+    div.innerText = this.emoji_;
+    div.appendChild(tip);
+    var self = this;
+    function showTip(e){
+      if(e.preventDefault) e.preventDefault();
+      e.stopPropagation();
+      /* PSEUDO: toggle tooltip，3 秒後自動隱藏 */
+      div.classList.add('show-tip');
+      if(self.tipTimer_) clearTimeout(self.tipTimer_);
+      self.tipTimer_ = setTimeout(function(){ div.classList.remove('show-tip'); }, 3000);
+    }
+    div.addEventListener('click', showTip);
+    div.addEventListener('touchstart', showTip, {passive:false});
+    this.div_ = div;
+    this.getPanes().overlayMouseTarget.appendChild(div);
+  };
+  InspireOverlay.prototype.draw = function(){
+    var pt = this.getProjection().fromLatLngToDivPixel(this.position_);
+    if(this.div_ && pt){ this.div_.style.left = pt.x+'px'; this.div_.style.top = pt.y+'px'; }
+  };
+  InspireOverlay.prototype.onRemove = function(){
+    if(this.tipTimer_) clearTimeout(this.tipTimer_);
+    if(this.div_){ this.div_.parentNode.removeChild(this.div_); this.div_ = null; }
+  };
+  return new InspireOverlay(pos, emoji, name);
+}
+
+/* [v1.25.0] 暴露全域 */
+window.openInspireSheet=openInspireSheet;
+window.closeInspireSheet=closeInspireSheet;
+window.selectInspireDistance=selectInspireDistance;
+window.searchInspireSpots=searchInspireSpots;
+window.clearInspireMarkers=clearInspireMarkers;
 /* [新增 v1.21.0] */
 window.onPlaceSearchInput=onPlaceSearchInput;window.clearPlaceSearch=clearPlaceSearch;
 /* [新增 v1.22.0] */
