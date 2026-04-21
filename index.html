@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.26.0</title>
+<title>City Walker - v1.27.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1014,6 +1014,37 @@ var isGpsLost=false, lostTimer=null;
 var nearbyPlaces=[], selectedPlace=null;
 var selectedPhotoBlob=null, selectedPhotoDataUrl=null;
 
+/* ===================================================
+   [新增 v1.27.0] EMOJI_TO_PLACE_TYPE 映射表
+   PSEUDO: icon emoji → Google Places type 字串
+   用途：
+   1. saveEvent() 存入 placeType 欄位（供 Layer 1 稀缺推薦使用）
+   2. Layer 1 舊資料 fallback：舊事件無 placeType 欄位時，
+      用 ev.icon 反查此表補上類型
+   =================================================== */
+var EMOJI_TO_PLACE_TYPE = {
+  /* 美食類 */
+  '☕':'cafe', '🍔':'restaurant', '🍜':'restaurant', '🍣':'restaurant',
+  '🧁':'bakery', '🍺':'bar', '🧃':'cafe', '🍦':'ice_cream_shop',
+  '🥐':'bakery', '🍱':'restaurant',
+  /* 自然類 */
+  '🌸':'park', '🌳':'park', '🌊':'natural_feature', '🌙':'',
+  '☀️':'', '🌧️':'', '🍂':'park', '🌈':'', '🏔️':'natural_feature', '🌺':'park',
+  /* 地點類 */
+  '🏛️':'museum', '🏪':'store', '🚉':'transit_station', '🌉':'tourist_attraction',
+  '🏠':'lodging', '🎭':'theater', '🏟️':'stadium', '⛩️':'tourist_attraction',
+  '🗼':'tourist_attraction', '🛣️':'',
+  /* 心情類（無對應 type，留空） */
+  '✨':'', '❤️':'', '😊':'', '🥹':'', '😮':'', '💡':'',
+  '🤔':'', '😴':'', '🥰':'', '🎉':'',
+  /* 活動類 */
+  '📸':'tourist_attraction', '🎵':'night_club', '🛍️':'shopping_mall',
+  '📖':'book_store', '🎨':'art_gallery', '🏃':'park', '🚲':'park',
+  '⚽':'stadium', '🎮':'', '🎤':'night_club',
+  /* 特別類 */
+  '⭐':'', '🏆':'', '💎':'', '🎁':'', '🔖':'', '📌':'',
+  '🗓️':'', '💫':'', '🕐':'', '🎊':''
+};  
 var ICON_CATEGORIES=[
   {name:'美食',emoji:'🍽️',icons:['☕','🍔','🍜','🍣','🧁','🍺','🧃','🍦','🥐','🍱']},
   {name:'自然',emoji:'🌿',icons:['🌸','🌳','🌊','🌙','☀️','🌧️','🍂','🌈','🏔️','🌺']},
@@ -1430,7 +1461,10 @@ async function saveEvent(){
   if(selectedPhotoBlob&&window.storage&&window.storageApi&&window.currentUid){var confirmBtn=document.querySelector('#eventModal .btn-event');var originalText=confirmBtn?confirmBtn.innerText:'';if(confirmBtn){confirmBtn.disabled=true;confirmBtn.innerText='上傳中...';}try{var timestamp=Date.now();var rand=Math.floor(Math.random()*9000+1000);var filePath='photos/'+window.currentUid+'/'+timestamp+'_'+rand+'.jpg';var fileRef=window.storageApi.ref(window.storage,filePath);await window.storageApi.uploadBytes(fileRef,selectedPhotoBlob,{contentType:'image/jpeg'});photoUrl=await window.storageApi.getDownloadURL(fileRef);}catch(err){console.warn('[Storage] 照片上傳失敗:',err);photoUrl='';}finally{if(confirmBtn){confirmBtn.disabled=false;confirmBtn.innerText=originalText;}}}
   var eventCreatedAt = new Date().toISOString();
   var eventIndex = eventsData.length; /* 存 push 前的 index */
-  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl,createdAt:eventCreatedAt});
+  /* [v1.27.0] 加入 placeType 欄位，供 Layer 1 稀缺推薦使用
+     PSEUDO: 優先用 selectedIcon 查映射表；無對應則空字串 */
+  var resolvedPlaceType = EMOJI_TO_PLACE_TYPE[selectedIcon] || '';
+  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl,placeType:resolvedPlaceType});
   /* [v1.22.0] routeId='' 表示當次走路中，eventIndex 供編輯定位 */
   var overlay = createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl,eventCreatedAt,'',eventIndex);
   eventsData[eventIndex]._overlay = overlay; /* 存 overlay 實例，供重建用 */
