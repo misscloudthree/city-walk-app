@@ -2184,6 +2184,17 @@ async function searchInspireSpots(){
     await Promise.all(searchTasks);
     closeInspireSheet();
 
+    /* [v1.26.1 bugfix] 跨類型去重（同一個 placeId 可能被 cafe + restaurant 都推薦）
+       PSEUDO: 用 placeId 建 seen map，第一個出現的保留，後續重複的丟棄
+       無 placeId 的地點（Places API 偶發無 id）不做去重，直接保留 */
+    var _seenPlaceIds = {};
+    rawSpots = rawSpots.filter(function(spot){
+      if(!spot.placeId) return true;          /* 無 id → 保留 */
+      if(_seenPlaceIds[spot.placeId]) return false; /* 重複 → 丟棄 */
+      _seenPlaceIds[spot.placeId] = true;
+      return true;
+    });
+
     if(rawSpots.length === 0){
       setStatusBar('附近沒有找到符合的地點', 'var(--status-paused)');
       setTimeout(function(){ setStatusBar('City Walker','var(--status-idle)'); }, 3000);
