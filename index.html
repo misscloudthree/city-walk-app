@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.25.0</title>
+<title>City Walker - v1.26.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -520,6 +520,15 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
   transition:transform 0.15s;
 }
 .inspire-marker-div:active { transform:translate(-50%,-50%) scale(0.88); }
+/* [v1.26.0] 順序 badge：右上角小圓數字 */
+.inspire-order-badge {
+  position:absolute; top:-8px; right:-10px;
+  width:20px; height:20px; border-radius:50%;
+  background:var(--text-main); color:white;
+  font-size:11px; font-weight:bold; line-height:20px; text-align:center;
+  font-family:'Poly',sans-serif; pointer-events:none;
+  box-shadow:0 2px 6px rgba(0,0,0,0.25); flex-shrink:0;
+}
 /* 靈感 marker 名稱 tooltip */
 .inspire-tooltip {
   position:absolute; bottom:110%; left:50%; transform:translateX(-50%);
@@ -531,6 +540,23 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
   opacity:0; transition:opacity 0.2s;
 }
 .inspire-marker-div.show-tip .inspire-tooltip { opacity:1; }
+/* [v1.26.0] 虛線路徑提示列 */
+#inspireRouteHint {
+  position:fixed; bottom:160px; left:50%; transform:translateX(-50%);
+  background:var(--white); border-radius:20px;
+  padding:8px 18px; font-size:13px; color:var(--text-soft);
+  box-shadow:0 4px 16px rgba(0,0,0,0.1); z-index:1400;
+  display:none; white-space:nowrap; letter-spacing:0.3px;
+}
+/* [v1.26.0] 以靈感開始漫遊按鈕 */
+#btnStartFromInspire {
+  display:none; margin-top:10px; width:100%;
+  padding:16px 24px; font-size:15px; font-weight:bold;
+  border:none; border-radius:14px; cursor:pointer; outline:none;
+  background:var(--accent-positive); color:var(--white);
+  font-family:'Poly','Microsoft JhengHei',sans-serif;
+  letter-spacing:1px;
+}
 
 /* [v1.19.1] 無 GPS 提示條 */
 #exploreNoGpsHint {
@@ -744,6 +770,8 @@ getRedirectResult(auth).then(function(result){
   <div id="functionPanel">
     <div id="state-init">
       <button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button>
+      <!-- [v1.26.0] 靈感搜尋完成後顯示「以此靈感開始漫遊」按鈕 -->
+      <button id="btnStartFromInspire" onclick="startWalkFromInspire()">✦ 以此靈感開始漫遊</button>
       <!-- [新增 v1.25.0] 走前規劃靈感入口 -->
       <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);margin-top:10px;border:1.5px solid var(--border-light);" onclick="openInspireSheet()">✦ 規劃靈感</button>
     </div>
@@ -929,6 +957,9 @@ getRedirectResult(auth).then(function(result){
     <button id="batchDeleteBtn" disabled onclick="batchDelete()">刪除選取</button>
   </div>
 </div>
+
+<!-- [v1.26.0] 靈感路徑距離提示列 -->
+<div id="inspireRouteHint"></div>
 
 <nav id="navBar">
   <div class="nav-item active" id="nav-main" onclick="switchPage('main')">📍<span>漫遊</span></div>
@@ -1883,15 +1914,15 @@ window.openShareCard=openShareCard;window.closeShareCard=closeShareCard;window.d
 window.linkGoogleAccount=linkGoogleAccount;window.updateAccountBanner=updateAccountBanner;
 
 /* ===================================================
-   [新增 v1.25.0] 靈感規劃系統
+   [v1.26.0] 靈感規劃系統（完整版）
+   承接 v1.25.0：新增 TSP 排序、Routes API 虛線路徑、
+   marker 順序 badge、「以此靈感開始漫遊」按鈕
 
-   MOOD_TAGS：心情標籤設定，含 emoji / 顯示名稱 / Places API type
-   inspireDistance：目前選擇的距離（km）
-   moodCounts：{ cafe: 2, bakery: 1, ... } 各類型想要幾個點
-   inspireMarkers：地圖上的靈感 overlay 陣列，clearInspireMarkers 時清除
-
-   距離 → 搜尋半徑換算（出去回來的概念，適度保守）：
-     1km → 250m / 2km → 550m / 5km → 1400m / 10km → 2800m
+   全域變數：
+   - inspireMarkers：地圖靈感 overlay 陣列
+   - _inspirePath：Routes API 虛線 Polyline（清除時一起清）
+   - _inspireRouteData：TSP 排序後的地點陣列
+     { pos, emoji, name, placeId, order }
    =================================================== */
 var MOOD_TAGS = [
   { emoji:'☕', label:'咖啡時光', type:'cafe' },
@@ -1905,11 +1936,9 @@ var INSPIRE_RADIUS_MAP = { 1:250, 2:550, 5:1400, 10:2800 };
 var inspireDistance = 2;
 var moodCounts = {};
 var inspireMarkers = [];
+var _inspirePath = null;       /* [v1.26.0] Routes API 虛線 Polyline */
+var _inspireRouteData = [];    /* [v1.26.0] TSP 排序後的地點資料 */
 
-/* PSEUDO: 開啟靈感規劃 Sheet
-   - 重置 moodCounts（每次打開重新選）
-   - buildMoodTags() 渲染標籤
-   - 顯示 backdrop + panel（同帳號 Sheet 動畫邏輯） */
 function openInspireSheet(){
   moodCounts = {};
   buildMoodTags();
@@ -1917,16 +1946,10 @@ function openInspireSheet(){
   document.getElementById('inspireSheet').classList.add('open');
   document.getElementById('inspireBackdrop').classList.add('open');
 }
-
-/* PSEUDO: 關閉 Sheet，收回動畫由 CSS transition 處理 */
 function closeInspireSheet(){
   document.getElementById('inspireSheet').classList.remove('open');
   document.getElementById('inspireBackdrop').classList.remove('open');
 }
-
-/* PSEUDO: 依 MOOD_TAGS 動態渲染心情標籤
-   每個 tag 顯示 emoji + label + count badge
-   badge 僅在 count > 0 時顯示（CSS .mood-tag.active 控制） */
 function buildMoodTags(){
   var container = document.getElementById('moodTags');
   container.innerHTML = '';
@@ -1941,81 +1964,199 @@ function buildMoodTags(){
     container.appendChild(div);
   });
 }
-
-/* PSEUDO: 距離 pill 單選，更新 inspireDistance */
 function selectInspireDistance(el){
   document.querySelectorAll('.dist-pill').forEach(function(p){ p.classList.remove('active'); });
   el.classList.add('active');
   inspireDistance = parseInt(el.getAttribute('data-km'));
 }
-
-/* PSEUDO: 心情標籤計數邏輯
-   每 tap +1，超過 5 歸零（取消選取）
-   更新 badge 文字與 active class，再更新總點數提示 */
 function onMoodTagTap(type){
   var cur = moodCounts[type] || 0;
   cur = cur >= 5 ? 0 : cur + 1;
   moodCounts[type] = cur;
-
-  /* 更新對應 tag DOM */
   var tagEl = document.querySelector('.mood-tag[data-type="'+type+'"]');
   if(!tagEl) return;
   tagEl.classList.toggle('active', cur > 0);
   tagEl.querySelector('.mood-badge').innerText = cur;
-
   updateInspireTotalHint();
 }
-
-/* PSEUDO: 計算所有類型總點數，超過 8 顯示提示 */
 function updateInspireTotalHint(){
   var total = Object.values(moodCounts).reduce(function(s,v){ return s+v; }, 0);
   document.getElementById('inspireTotalHint').style.display = total > 8 ? 'block' : 'none';
 }
 
-/* PSEUDO: 清除地圖上所有靈感標記 overlay */
+/* PSEUDO: clearInspireMarkers()
+   [v1.26.0] 同時清除：
+   1. inspireMarkers（所有 OverlayView）
+   2. _inspirePath（虛線 Polyline）
+   3. _inspireRouteData（TSP 路線陣列）
+   4. 隱藏路徑提示列 + 「以此靈感開始漫遊」按鈕 */
 function clearInspireMarkers(){
   inspireMarkers.forEach(function(m){ m.setMap(null); });
   inspireMarkers = [];
+  if(_inspirePath){ _inspirePath.setMap(null); _inspirePath = null; }
+  _inspireRouteData = [];
+  document.getElementById('inspireRouteHint').style.display = 'none';
+  document.getElementById('btnStartFromInspire').style.display = 'none';
 }
 
-/* PSEUDO: searchInspireSpots()
-   1. 取得目前位置（若無則提示）
-   2. 計算搜尋半徑（INSPIRE_RADIUS_MAP[inspireDistance]）
-   3. 確認至少選了一個心情
-   4. 對每個 count > 0 的 type 呼叫 Places API searchNearby
-      includedTypes: [type]，取前 count 個結果
-   5. clearInspireMarkers()
-   6. 每個結果建 createInspireMarker()
-   7. 地圖 fitBounds 讓所有結果可見
-   8. closeInspireSheet() */
+/* ===================================================
+   [v1.26.0] TSP 貪心算法（Nearest Neighbor）
+   PSEUDO:
+   1. 起點 = 使用者目前位置
+   2. 未訪地點池 = rawSpots（含 pos / emoji / name / placeId）
+   3. 每輪：找距當前位置最近的未訪地點，加入路線，移除出池
+   4. 重複直到所有地點都被訪問
+   5. 回傳排序後的陣列（不含起點）
+   =================================================== */
+function tspNearestNeighbor(startPos, spots){
+  if(!spots || spots.length === 0) return [];
+  var remaining = spots.slice();
+  var sorted = [];
+  var cur = startPos;
+  while(remaining.length > 0){
+    var bestIdx = 0;
+    var bestDist = Infinity;
+    remaining.forEach(function(spot, idx){
+      var d = haversineMeters(cur.lat, cur.lng, spot.pos.lat, spot.pos.lng);
+      if(d < bestDist){ bestDist = d; bestIdx = idx; }
+    });
+    sorted.push(remaining[bestIdx]);
+    cur = remaining[bestIdx].pos;
+    remaining.splice(bestIdx, 1);
+  }
+  return sorted;
+}
+
+/* PSEUDO: Haversine 公式，回傳兩點間距離（公尺） */
+function haversineMeters(lat1, lng1, lat2, lng2){
+  var R = 6371000;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+          Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+          Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* ===================================================
+   [v1.26.0] Routes API 虛線路徑
+   PSEUDO:
+   1. 建 waypoints：起點 → 各靈感地點（TSP 順序）
+   2. POST computeRoutes（travelMode: WALK）
+   3. 成功 → 解碼 encoded polyline → 畫虛線 Polyline
+   4. 失敗（任何原因）→ fallback：直接連各點直線（不提示用戶）
+   5. 顯示「預計步行約 X km」提示列
+   防呆：API 失敗靜默 fallback，主流程不受影響
+   =================================================== */
+async function drawInspireRoutePath(startPos, orderedSpots){
+  if(_inspirePath){ _inspirePath.setMap(null); _inspirePath = null; }
+  if(!orderedSpots || orderedSpots.length === 0) return;
+
+  var ROUTES_KEY = 'AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
+  var allPoints = [startPos].concat(orderedSpots.map(function(s){ return s.pos; }));
+  var origin = allPoints[0];
+  var destination = allPoints[allPoints.length - 1];
+  var intermediates = allPoints.slice(1, -1).map(function(p){
+    return { location: { latLng: { latitude: p.lat, longitude: p.lng } } };
+  });
+
+  var requestBody = {
+    origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
+    destination: { location: { latLng: { latitude: destination.lat, longitude: destination.lng } } },
+    travelMode: 'WALK',
+    computeAlternativeRoutes: false
+  };
+  if(intermediates.length > 0) requestBody.intermediates = intermediates;
+
+  var pathPoints = null;
+  var distanceKm = null;
+
+  try{
+    var res = await fetch(
+      'https://routes.googleapis.com/directions/v2:computeRoutes?key=' + ROUTES_KEY,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-FieldMask': 'routes.polyline.encodedPolyline,routes.distanceMeters'
+        },
+        body: JSON.stringify(requestBody)
+      }
+    );
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    var data = await res.json();
+    if(!data.routes || !data.routes[0]) throw new Error('no routes');
+    var route = data.routes[0];
+    if(!route.polyline || !route.polyline.encodedPolyline) throw new Error('no polyline');
+    pathPoints = decodePolyline(route.polyline.encodedPolyline);
+    if(!pathPoints || pathPoints.length === 0) throw new Error('decode failed');
+    if(route.distanceMeters) distanceKm = (route.distanceMeters / 1000).toFixed(2);
+  }catch(err){
+    /* 防呆 fallback：靜默失敗，直線連各點 */
+    console.warn('[Routes API] fallback:', err.message);
+    pathPoints = allPoints;
+  }
+
+  /* 畫虛線 Polyline（strokeOpacity:0 + icons DASHED） */
+  var lineSymbol = { path: 'M 0,-1 0,1', strokeOpacity: 1, scale: 4 };
+  _inspirePath = new google.maps.Polyline({
+    map: map,
+    path: pathPoints,
+    strokeColor: '#8FB9A8',
+    strokeOpacity: 0,
+    strokeWeight: 4,
+    icons: [{ icon: lineSymbol, offset: '0', repeat: '16px' }]
+  });
+
+  /* 顯示距離提示列 */
+  var hint = document.getElementById('inspireRouteHint');
+  if(hint){
+    hint.innerText = distanceKm ? '🚶 預計步行約 ' + distanceKm + ' km' : '🚶 建議路線已標示';
+    hint.style.display = 'block';
+  }
+}
+
+/* ===================================================
+   [v1.26.0] decodePolyline()
+   Google Encoded Polyline Algorithm 解碼
+   輸入：encoded string
+   輸出：[{lat, lng}, ...] 陣列
+   =================================================== */
+function decodePolyline(encoded){
+  var points = [];
+  var index = 0, lat = 0, lng = 0;
+  while(index < encoded.length){
+    var b, shift = 0, result = 0;
+    do{ b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; }while(b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do{ b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; }while(b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+  return points;
+}
+
+/* ===================================================
+   [v1.26.0] searchInspireSpots() 完整版
+   新增：rawSpots 收集 → TSP 排序 → 帶 badge marker
+   → Routes API 虛線 → 「以此靈感開始漫遊」按鈕
+   =================================================== */
 async function searchInspireSpots(){
   var total = Object.values(moodCounts).reduce(function(s,v){ return s+v; }, 0);
-  if(total === 0){
-    alert('請先選擇至少一種心情 ✦');
-    return;
-  }
-
+  if(total === 0){ alert('請先選擇至少一種心情 ✦'); return; }
   var currentPos = getUserPosition();
-  if(!currentPos){
-    alert('無法取得目前位置，請先允許定位');
-    return;
-  }
+  if(!currentPos){ alert('無法取得目前位置，請先允許定位'); return; }
 
-  /* PSEUDO: 按鈕 loading 狀態 */
   var searchBtn = document.querySelector('#inspirePanel .btn-event');
   if(searchBtn){ searchBtn.disabled = true; searchBtn.innerText = '搜尋中...'; }
-
   var radius = INSPIRE_RADIUS_MAP[inspireDistance] || 550;
 
   try{
     var {Place} = await google.maps.importLibrary('places');
     clearInspireMarkers();
+    var rawSpots = [];
 
-    var bounds = new google.maps.LatLngBounds();
-    bounds.extend(new google.maps.LatLng(currentPos.lat, currentPos.lng));
-
-    /* PSEUDO: 逐一對每個 type 呼叫 Places API
-       count 決定最多取幾個結果（slice(0, count)） */
     var searchTasks = MOOD_TAGS
       .filter(function(tag){ return (moodCounts[tag.type]||0) > 0; })
       .map(async function(tag){
@@ -2026,33 +2167,49 @@ async function searchInspireSpots(){
             locationRestriction: { center: currentPos, radius: radius },
             includedTypes: [tag.type]
           });
-          var places = result.places || [];
-          places.slice(0, count).forEach(function(place){
+          (result.places || []).slice(0, count).forEach(function(place){
             if(!place.location) return;
-            var pos = { lat: place.location.lat(), lng: place.location.lng() };
-            var overlay = createInspireMarker(pos, tag.emoji, place.displayName || tag.label);
-            inspireMarkers.push(overlay);
-            bounds.extend(new google.maps.LatLng(pos.lat, pos.lng));
+            rawSpots.push({
+              pos: { lat: place.location.lat(), lng: place.location.lng() },
+              emoji: tag.emoji,
+              name: place.displayName || tag.label,
+              placeId: place.id || ''
+            });
           });
-        }catch(err){
-          console.warn('[Inspire] Places API 失敗 type='+tag.type, err);
-        }
+        }catch(err){ console.warn('[Inspire] Places type='+tag.type, err); }
       });
 
     await Promise.all(searchTasks);
-
     closeInspireSheet();
 
-    if(inspireMarkers.length === 0){
+    if(rawSpots.length === 0){
       setStatusBar('附近沒有找到符合的地點', 'var(--status-paused)');
       setTimeout(function(){ setStatusBar('City Walker','var(--status-idle)'); }, 3000);
       return;
     }
 
-    /* PSEUDO: fitBounds 讓所有結果可見，padding 避免被 functionPanel 遮住 */
+    /* ① TSP 排序 */
+    var orderedSpots = tspNearestNeighbor(currentPos, rawSpots);
+    _inspireRouteData = orderedSpots;
+
+    /* ③ 帶順序 badge 的 marker */
+    var bounds = new google.maps.LatLngBounds();
+    bounds.extend(new google.maps.LatLng(currentPos.lat, currentPos.lng));
+    orderedSpots.forEach(function(spot, idx){
+      var overlay = createInspireMarker(spot.pos, spot.emoji, spot.name, idx + 1);
+      inspireMarkers.push(overlay);
+      bounds.extend(new google.maps.LatLng(spot.pos.lat, spot.pos.lng));
+    });
+
     map.fitBounds(bounds, { top:80, right:30, bottom:160, left:30 });
-    setStatusBar('✦ 找到 '+inspireMarkers.length+' 個好去處', 'var(--status-walking)');
-    setTimeout(function(){ setStatusBar('City Walker','var(--status-idle)'); }, 4000);
+    setStatusBar('✦ 找到 '+inspireMarkers.length+' 個好去處，已規劃路線', 'var(--status-walking)');
+    setTimeout(function(){ setStatusBar('City Walker','var(--status-idle)'); }, 5000);
+
+    /* ② Routes API 虛線（不阻塞） */
+    drawInspireRoutePath(currentPos, orderedSpots);
+
+    /* ④ 顯示「以此靈感開始漫遊」 */
+    document.getElementById('btnStartFromInspire').style.display = 'block';
 
   }catch(err){
     console.error('[Inspire] 搜尋失敗:', err);
@@ -2062,13 +2219,35 @@ async function searchInspireSpots(){
   }
 }
 
-/* PSEUDO: 建立靈感 OverlayView
-   點擊顯示地點名稱 tooltip（3 秒後自動消失）
-   不開啟 memoryBox（v1.26.0 加入路線規劃後再整合） */
-function createInspireMarker(pos, emoji, name){
-  function InspireOverlay(position, emoji, name){
+/* ===================================================
+   [v1.26.0] startWalkFromInspire()
+   PSEUDO:
+   1. 隱藏按鈕與提示列
+   2. 清 markers（保留虛線路徑）
+   3. 呼叫 startWalk()
+   =================================================== */
+function startWalkFromInspire(){
+  document.getElementById('btnStartFromInspire').style.display = 'none';
+  document.getElementById('inspireRouteHint').style.display = 'none';
+  /* 手動清 markers，不清 _inspirePath */
+  inspireMarkers.forEach(function(m){ m.setMap(null); });
+  inspireMarkers = [];
+  _inspireRouteData = [];
+  startWalk();
+}
+
+/* ===================================================
+   [v1.26.0] createInspireMarker() — 新增 order badge
+   PSEUDO:
+   - order > 0 → 右上角加 Unicode 圈數字 badge
+   - order <= 0 → 不加 badge
+   =================================================== */
+function createInspireMarker(pos, emoji, name, order){
+  var CIRCLE_NUMS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩',
+                     '⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
+  function InspireOverlay(position, emoji, name, order){
     this.position_ = new google.maps.LatLng(position.lat, position.lng);
-    this.emoji_ = emoji; this.name_ = name;
+    this.emoji_ = emoji; this.name_ = name; this.order_ = order || 0;
     this.div_ = null; this.tipTimer_ = null;
     this.setMap(map);
   }
@@ -2076,16 +2255,24 @@ function createInspireMarker(pos, emoji, name){
   InspireOverlay.prototype.onAdd = function(){
     var div = document.createElement('div');
     div.className = 'inspire-marker-div';
+    div.style.position = 'relative';
+    div.innerText = this.emoji_;
+    /* [v1.26.0] 順序 badge */
+    if(this.order_ > 0){
+      var badge = document.createElement('div');
+      badge.className = 'inspire-order-badge';
+      badge.innerText = this.order_ <= 20 ? CIRCLE_NUMS[this.order_-1] : String(this.order_);
+      div.appendChild(badge);
+    }
+    /* tooltip */
     var tip = document.createElement('div');
     tip.className = 'inspire-tooltip';
     tip.innerText = this.name_;
-    div.innerText = this.emoji_;
     div.appendChild(tip);
     var self = this;
     function showTip(e){
       if(e.preventDefault) e.preventDefault();
       e.stopPropagation();
-      /* PSEUDO: toggle tooltip，3 秒後自動隱藏 */
       div.classList.add('show-tip');
       if(self.tipTimer_) clearTimeout(self.tipTimer_);
       self.tipTimer_ = setTimeout(function(){ div.classList.remove('show-tip'); }, 3000);
@@ -2103,15 +2290,17 @@ function createInspireMarker(pos, emoji, name){
     if(this.tipTimer_) clearTimeout(this.tipTimer_);
     if(this.div_){ this.div_.parentNode.removeChild(this.div_); this.div_ = null; }
   };
-  return new InspireOverlay(pos, emoji, name);
+  return new InspireOverlay(pos, emoji, name, order);
 }
 
-/* [v1.25.0] 暴露全域 */
+/* [v1.26.0] 暴露全域 */
 window.openInspireSheet=openInspireSheet;
 window.closeInspireSheet=closeInspireSheet;
 window.selectInspireDistance=selectInspireDistance;
 window.searchInspireSpots=searchInspireSpots;
 window.clearInspireMarkers=clearInspireMarkers;
+window.startWalkFromInspire=startWalkFromInspire;
+
 /* [新增 v1.21.0] */
 window.onPlaceSearchInput=onPlaceSearchInput;window.clearPlaceSearch=clearPlaceSearch;
 /* [新增 v1.22.0] */
