@@ -520,7 +520,8 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
   transition:transform 0.15s;
 }
 .inspire-marker-div:active { transform:translate(-50%,-50%) scale(0.88); }
-/* [v1.26.0] 順序 badge：右上角小圓數字 */
+/* [v1.26.0] 順序 badge：右上角小圓數字
+   position:absolute 相對於 .inspire-marker-div（position:absolute 的元素） */
 .inspire-order-badge {
   position:absolute; top:-8px; right:-10px;
   width:20px; height:20px; border-radius:50%;
@@ -1457,7 +1458,8 @@ async function executeCloudSave(){
   try{var docRef=await window.api.addDoc(window.api.collection(window.db,'walk_records'),{
     name:document.getElementById('routeName').value||'未命名漫遊',
     city:cityName,distance:totalDistance,duration:durationStr,
-    events:eventsData,trackColor:selectedTrackColor,
+    /* [v1.26.0 bugfix] 移除 _overlay（JS OverlayView 物件）不能存 Firestore */
+    events:eventsData.map(function(ev){var c=Object.assign({},ev);delete c._overlay;return c;}),trackColor:selectedTrackColor,
     isPinned:false,
     /* [v1.19.0] 公開設定 + 作者預留欄位 */
     isPublic:isPublic,
@@ -2223,16 +2225,18 @@ async function searchInspireSpots(){
    [v1.26.0] startWalkFromInspire()
    PSEUDO:
    1. 隱藏按鈕與提示列
-   2. 清 markers（保留虛線路徑）
-   3. 呼叫 startWalk()
+   2. 保留 inspireMarkers 在地圖上（讓使用者邊走邊對照）
+   3. 保留 _inspirePath 虛線
+   4. 呼叫 startWalk()
+   注意：startWalk() 本身不清靈感標記；
+   若使用者之後按「開始 City Walk！」正常流程也不清，
+   只有 clearInspireMarkers() 才會清（目前無自動呼叫點）
    =================================================== */
 function startWalkFromInspire(){
   document.getElementById('btnStartFromInspire').style.display = 'none';
   document.getElementById('inspireRouteHint').style.display = 'none';
-  /* 手動清 markers，不清 _inspirePath */
-  inspireMarkers.forEach(function(m){ m.setMap(null); });
-  inspireMarkers = [];
-  _inspireRouteData = [];
+  /* [v1.26.0 bugfix] 保留 markers + 虛線，讓使用者邊走邊對照
+     _inspireRouteData 也保留，未來可做到站打卡功能 */
   startWalk();
 }
 
@@ -2255,7 +2259,9 @@ function createInspireMarker(pos, emoji, name, order){
   InspireOverlay.prototype.onAdd = function(){
     var div = document.createElement('div');
     div.className = 'inspire-marker-div';
-    div.style.position = 'relative';
+    /* [v1.26.0 bugfix] 不設 position:relative，讓 OverlayView 的 draw() 正常定位
+       badge 改用 CSS .inspire-order-badge 的 position:absolute（相對 .inspire-marker-div）
+       .inspire-marker-div 本身由 OverlayView 管理 left/top，position:absolute 已在 CSS 設定 */
     div.innerText = this.emoji_;
     /* [v1.26.0] 順序 badge */
     if(this.order_ > 0){
