@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.28.0</title>
+<title>City Walker - v1.28.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -83,28 +83,39 @@ body {
 .event-marker-div { position:absolute; font-size:28px; cursor:pointer; transform:translate(-50%,-50%); user-select:none; -webkit-user-select:none; pointer-events:auto; z-index:999; }
 
 /* ===================================================
-   [新增 v1.28.0] 脈衝光環 — 載入路線的事件 marker 專用
-   PSEUDO:
-   - .pulse-ring：絕對定位，圓形，初始透明，動畫擴散後消失
-   - 顏色由 JS 動態寫入 border-color（用路線 trackColor）
-   - 兩個 ring 交錯 delay，讓脈衝連續不斷
+   [改版 v1.28.1] 路線事件 marker 底座圓點
+   - .route-dot：emoji 正下方小實心圓，顏色 = trackColor
+   - 取代 v1.28.0 的脈衝光環（更簡潔）
    =================================================== */
-@keyframes pulseRing {
-  0%   { transform: translate(-50%,-50%) scale(0.6); opacity: 0.7; }
-  100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
-}
-.event-marker-div .pulse-ring {
+.event-marker-div .route-dot {
   position: absolute;
-  top: 50%; left: 50%;
-  width: 32px; height: 32px;
+  bottom: -6px; left: 50%;
+  transform: translateX(-50%);
+  width: 8px; height: 8px;
   border-radius: 50%;
-  border: 2.5px solid currentColor;
-  animation: pulseRing 1.8s ease-out infinite;
+  background: currentColor;
   pointer-events: none;
-  z-index: -1;
+  opacity: 0.85;
 }
-.event-marker-div .pulse-ring:nth-child(2) {
-  animation-delay: 0.9s;
+
+/* ===================================================
+   [新增 v1.28.1] 解鎖地標 marker
+   PSEUDO:
+   - .unlock-marker-div：小實心圓點（10px），半透明
+   - 顏色由 JS 動態寫入（trackColor 或 accent-positive）
+   - 點擊觸發回憶視窗（同 createEventMarker）
+   =================================================== */
+.unlock-marker-div {
+  position: absolute;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  z-index: 998;
+  opacity: 0.55;
+  transition: opacity 0.2s, transform 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
 }
 #colorPicker { position:fixed; top:62px; left:16px; z-index:1300; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
 #colorToggleBtn { width:38px; height:38px; border-radius:50%; border:3px solid var(--white); box-shadow:0 2px 8px rgba(0,0,0,0.18); cursor:pointer; transition:transform 0.2s; }
@@ -1231,8 +1242,11 @@ async function initMap(){
   buildIconPicker();
   setStatusBar('📡 取得位置中...','var(--status-locating)');
   navigator.geolocation.getCurrentPosition(function(pos){var p={lat:pos.coords.latitude,lng:pos.coords.longitude};map.setCenter(p);userMarker.setPosition(p);setStatusBar('City Walker','var(--status-idle)');},function(){setStatusBar('City Walker','var(--status-idle)');},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
-  window._authReadyCallback=function(){};
-  if(window.currentUid)window._authReadyCallback();
+  window._authReadyCallback=function(){
+    /* [v1.28.1] Auth 就緒後載入解鎖地標 */
+    loadUnlockedLandmarks();
+  };
+  if(window.currentUid) window._authReadyCallback();
 }
 
 function getUserPosition(){var pos=userMarker&&userMarker.getPosition();if(!pos)return null;if(typeof pos.lat==='function')return{lat:pos.lat(),lng:pos.lng()};return{lat:pos.lat,lng:pos.lng};}
@@ -1569,17 +1583,14 @@ function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,ev
     var div=document.createElement('div');
     div.className='event-marker-div'; div.innerText=this.icon_;
 
-    /* [v1.28.0] 脈衝光環：只有載入路線的事件才加（trackColor 有值）
-       PSEUDO: 加兩個 .pulse-ring，CSS nth-child 讓第二個 delay 0.9s
+    /* [v1.28.1] 底座圓點：只有載入路線的事件才加（trackColor 有值）
+       取代 v1.28.0 的脈衝光環，改為靜態小實心圓
        顏色用 CSS currentColor，div 設 color = trackColor */
     if(trackColor){
       div.style.color = trackColor;
-      var ring1 = document.createElement('div');
-      ring1.className = 'pulse-ring';
-      var ring2 = document.createElement('div');
-      ring2.className = 'pulse-ring';
-      div.appendChild(ring1);
-      div.appendChild(ring2);
+      var dot = document.createElement('div');
+      dot.className = 'route-dot';
+      div.appendChild(dot);
     }
 
     var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_,cat=this.createdAt_;
@@ -1824,7 +1835,149 @@ function generateShareCard(data,photoIndex){
   ctx.fillStyle=DARK;ctx.globalAlpha=0.5;ctx.font='26px "Arial", sans-serif';ctx.textAlign='center';ctx.fillText(data.name||'',W/2,H-36);ctx.textAlign='left';ctx.globalAlpha=1;
 }
 
-function switchPage(p){
+/* ===================================================
+   [新增 v1.28.1] 解鎖地標系統
+
+   loadUnlockedLandmarks()
+   PSEUDO:
+   1. 撈目前使用者所有路線（userId == currentUid）
+   2. 展開所有 events，只保留有 placeId + pos 的
+   3. 依 placeId 去重（同一地點只顯示一個圓點）
+   4. 每個解鎖地點建立 UnlockOverlay（小圓點 marker）
+   5. 點擊圓點 → 開回憶視窗，顯示該地標所有事件（翻頁）
+
+   createUnlockMarker(placeId, pos, events)
+   PSEUDO:
+   - events：該 placeId 的所有事件陣列（可能跨多條路線）
+   - 顏色：取第一筆事件的 trackColor，fallback 用 accent-positive
+   - 點擊：若只有 1 筆 → 直接開回憶視窗
+           若多筆 → 顯示翻頁列（← N/N →）
+   =================================================== */
+var _unlockMarkers = []; /* 全局解鎖地標 overlay 陣列 */
+
+async function loadUnlockedLandmarks(){
+  /* 清除舊的解鎖地標 */
+  _unlockMarkers.forEach(function(m){ m.setMap(null); });
+  _unlockMarkers = [];
+
+  var uid = window.currentUid || 'anonymous';
+  try{
+    var q = window.api.query(
+      window.api.collection(window.db, 'walk_records'),
+      window.api.where('userId', '==', uid)
+    );
+    var snap = await window.api.getDocs(q);
+
+    /* PSEUDO: 建 placeId → events[] 的聚合 map
+       同一個 placeId 可能出現在多條路線，全部收集起來 */
+    var placeMap = {}; /* { placeId: { pos, events: [{icon,text,placeName,photoUrl,createdAt,trackColor}] } } */
+
+    snap.forEach(function(d){
+      var data = d.data();
+      var trackColor = data.trackColor || '#8FB9A8';
+      if(!data.events || !Array.isArray(data.events)) return;
+      data.events.forEach(function(ev){
+        if(!ev.placeId || !ev.pos) return;
+        if(!placeMap[ev.placeId]){
+          placeMap[ev.placeId] = { pos: ev.pos, events: [] };
+        }
+        placeMap[ev.placeId].events.push({
+          icon: ev.icon || '📍',
+          text: ev.text || '',
+          placeName: ev.placeName || '',
+          photoUrl: ev.photoUrl || '',
+          createdAt: ev.createdAt || '',
+          trackColor: trackColor
+        });
+      });
+    });
+
+    /* PSEUDO: 每個 placeId 建一個圓點 marker */
+    Object.keys(placeMap).forEach(function(placeId){
+      var entry = placeMap[placeId];
+      var color = entry.events[0].trackColor || '#8FB9A8';
+      var m = createUnlockMarker(placeId, entry.pos, entry.events, color);
+      _unlockMarkers.push(m);
+    });
+
+  }catch(err){
+    console.warn('[loadUnlockedLandmarks] 失敗，靜默忽略:', err);
+  }
+}
+
+function createUnlockMarker(placeId, pos, events, color){
+  function UnlockOverlay(position){
+    this.position_ = new google.maps.LatLng(position.lat, position.lng);
+    this.div_ = null;
+    this.setMap(map);
+  }
+  UnlockOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
+  UnlockOverlay.prototype.onAdd = function(){
+    var div = document.createElement('div');
+    div.className = 'unlock-marker-div';
+    div.style.background = color;
+
+    div.addEventListener('click', function(e){
+      e.stopPropagation();
+      showUnlockMemory(events);
+    });
+    div.addEventListener('touchstart', function(e){
+      e.stopPropagation();
+      if(e.preventDefault) e.preventDefault();
+      showUnlockMemory(events);
+    }, {passive: false});
+
+    this.div_ = div;
+    this.getPanes().overlayMouseTarget.appendChild(div);
+  };
+  UnlockOverlay.prototype.draw = function(){
+    var pt = this.getProjection().fromLatLngToDivPixel(this.position_);
+    if(this.div_ && pt){
+      this.div_.style.left = pt.x + 'px';
+      this.div_.style.top  = pt.y + 'px';
+    }
+  };
+  UnlockOverlay.prototype.onRemove = function(){
+    if(this.div_){ this.div_.parentNode.removeChild(this.div_); this.div_ = null; }
+  };
+  return new UnlockOverlay(pos);
+}
+
+/* ===================================================
+   [新增 v1.28.1] showUnlockMemory(events)
+   PSEUDO:
+   - events：該地點所有事件陣列
+   - 單筆 → 直接填入回憶視窗，不顯示翻頁
+   - 多筆 → 顯示翻頁列，從第 0 筆開始
+   =================================================== */
+function showUnlockMemory(events){
+  if(!events || events.length === 0) return;
+  var first = events[0];
+
+  /* 填入第一筆事件 */
+  fillMemoryBox(first.icon, first.text, first.placeName, first.photoUrl, first.createdAt, '', -1);
+
+  /* 翻頁列 */
+  var pagerEl = document.getElementById('memoryPager');
+  if(events.length > 1){
+    /* 包裝成 navigateMemory 可用的格式 */
+    window._memoryPagerEvents = events.map(function(ev, i){ return { ev: ev, idx: i }; });
+    var box = document.getElementById('memoryBox');
+    box.dataset.pagerCurrent = 0;
+    box.dataset.routeId = '';
+    box.dataset.eventIndex = -1;
+    pagerEl.style.display = 'flex';
+    document.getElementById('memoryPagerLabel').innerText = '1 / ' + events.length;
+  } else {
+    window._memoryPagerEvents = [];
+    pagerEl.style.display = 'none';
+  }
+
+  exitMemoryEditMode();
+  document.getElementById('memoryBox').style.display = 'flex';
+}
+
+
   document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   var tp=document.getElementById('page-'+p),tn=document.getElementById('nav-'+p);if(tp)tp.classList.remove('hidden');if(tn)tn.classList.add('active');
   var mc=document.querySelector('.map-controls'),cp=document.getElementById('colorPicker');var isInit=!document.getElementById('state-init').classList.contains('hidden');
@@ -2656,6 +2809,9 @@ window.loadExploreRoute=loadExploreRoute;
 /* [v1.28.0] */
 window.navigateMemory=navigateMemory;
 window.fillMemoryBox=fillMemoryBox;
+/* [v1.28.1] */
+window.loadUnlockedLandmarks=loadUnlockedLandmarks;
+window.showUnlockMemory=showUnlockMemory;
 
 /* ===================================================
    [v1.18.0] Bottom Sheet 帳號設定功能
