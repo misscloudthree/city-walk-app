@@ -1977,7 +1977,7 @@ function showUnlockMemory(events){
   document.getElementById('memoryBox').style.display = 'flex';
 }
 
-
+function switchPage(p){
   document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   var tp=document.getElementById('page-'+p),tn=document.getElementById('nav-'+p);if(tp)tp.classList.remove('hidden');if(tn)tn.classList.add('active');
   var mc=document.querySelector('.map-controls'),cp=document.getElementById('colorPicker');var isInit=!document.getElementById('state-init').classList.contains('hidden');
