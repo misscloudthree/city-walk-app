@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.27.1</title>
+<title>City Walker - v1.27.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -2312,8 +2312,11 @@ async function searchInspireSpots(){
 
     /* ===================================================
        Layer 2（原有）：Places API 補缺口
-       PSEUDO: 同原本邏輯，但去重時額外排除 layer1SeenIds
+       PSEUDO: 同原本邏輯，但同時收集「全部搜尋結果」到 allPlacesPool
+       供 Layer 3 探索槽使用
        =================================================== */
+    var allPlacesPool = []; /* [v1.27.2] 收集所有 Places API 結果（含未被選入的） */
+
     var searchTasks = MOOD_TAGS
       .filter(function(tag){ return (moodCounts[tag.type]||0) > 0; })
       .map(async function(tag){
@@ -2324,9 +2327,21 @@ async function searchInspireSpots(){
             locationRestriction: { center: currentPos, radius: radius },
             includedTypes: [tag.type]
           });
-          (result.places || []).slice(0, count).forEach(function(place){
+          var places = result.places || [];
+          /* 前 count 個加入 rawSpots（原本邏輯） */
+          places.slice(0, count).forEach(function(place){
             if(!place.location) return;
             rawSpots.push({
+              pos: { lat: place.location.lat(), lng: place.location.lng() },
+              emoji: tag.emoji,
+              name: place.displayName || tag.label,
+              placeId: place.id || ''
+            });
+          });
+          /* [v1.27.2] count 之後的結果推入備選池，供 Layer 3 用 */
+          places.slice(count).forEach(function(place){
+            if(!place.location) return;
+            allPlacesPool.push({
               pos: { lat: place.location.lat(), lng: place.location.lng() },
               emoji: tag.emoji,
               name: place.displayName || tag.label,
@@ -2349,13 +2364,31 @@ async function searchInspireSpots(){
       if(_seenPlaceIds[spot.placeId] && !layer1SeenIds[spot.placeId]) return false;
       /* PSEUDO: Layer 1 地點本身保留（layer1SeenIds 裡的），Places API 重複的才丟 */
       if(_seenPlaceIds[spot.placeId] && layer1SeenIds[spot.placeId]){
-        /* 已加入過（Layer 1 那次），第二次碰到同樣 id（Places API）丟棄 */
-        layer1SeenIds[spot.placeId] = false; /* 標記：下次再碰到才丟 */
-        return true; /* 第一次（Layer 1 插入時）已保留，這裡是 Places API 重複，丟 */
+        layer1SeenIds[spot.placeId] = false;
+        return true;
       }
       _seenPlaceIds[spot.placeId] = true;
       return true;
     });
+
+    /* ===================================================
+       [v1.27.2] Layer 3：探索保留槽
+       PSEUDO:
+       1. 從 allPlacesPool 過濾掉已在 rawSpots 的 placeId
+          （即 _seenPlaceIds 裡有的）
+       2. 若有候選 → 隨機挑 1 個加入 rawSpots 尾端
+       3. 無候選 → 靜默略過，不影響主流程
+       =================================================== */
+    var layer3Candidates = allPlacesPool.filter(function(spot){
+      if(!spot.placeId) return false;          /* 無 id → 跳過 */
+      return !_seenPlaceIds[spot.placeId];     /* 不在已選清單裡 */
+    });
+
+    if(layer3Candidates.length > 0){
+      var randIdx = Math.floor(Math.random() * layer3Candidates.length);
+      var layer3Pick = layer3Candidates[randIdx];
+      rawSpots.push(layer3Pick);
+    }
 
     if(rawSpots.length === 0){
       setStatusBar('附近沒有找到符合的地點', 'var(--status-paused)');
