@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.27.0</title>
+<title>City Walker - v1.27.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1024,27 +1024,28 @@ var selectedPhotoBlob=null, selectedPhotoDataUrl=null;
    =================================================== */
 var EMOJI_TO_PLACE_TYPE = {
   /* 美食類 */
-  '☕':'cafe', '🍔':'restaurant', '🍜':'restaurant', '🍣':'restaurant',
-  '🧁':'bakery', '🍺':'bar', '🧃':'cafe', '🍦':'ice_cream_shop',
-  '🥐':'bakery', '🍱':'restaurant',
+  '☕':'cafe','🍔':'restaurant','🍜':'restaurant','🍣':'restaurant',
+  '🧁':'bakery','🍺':'bar','🧃':'cafe','🍦':'ice_cream_shop',
+  '🥐':'bakery','🍱':'restaurant',
   /* 自然類 */
-  '🌸':'park', '🌳':'park', '🌊':'natural_feature', '🌙':'',
-  '☀️':'', '🌧️':'', '🍂':'park', '🌈':'', '🏔️':'natural_feature', '🌺':'park',
+  '🌸':'park','🌳':'park','🌊':'natural_feature','🌙':'',
+  '☀️':'','🌧️':'','🍂':'park','🌈':'','🏔️':'natural_feature','🌺':'park',
   /* 地點類 */
-  '🏛️':'museum', '🏪':'store', '🚉':'transit_station', '🌉':'tourist_attraction',
-  '🏠':'lodging', '🎭':'theater', '🏟️':'stadium', '⛩️':'tourist_attraction',
-  '🗼':'tourist_attraction', '🛣️':'',
+  '🏛️':'museum','🏪':'store','🚉':'transit_station','🌉':'tourist_attraction',
+  '🏠':'lodging','🎭':'theater','🏟️':'stadium','⛩️':'tourist_attraction',
+  '🗼':'tourist_attraction','🛣️':'',
   /* 心情類（無對應 type，留空） */
-  '✨':'', '❤️':'', '😊':'', '🥹':'', '😮':'', '💡':'',
-  '🤔':'', '😴':'', '🥰':'', '🎉':'',
+  '✨':'','❤️':'','😊':'','🥹':'','😮':'','💡':'',
+  '🤔':'','😴':'','🥰':'','🎉':'',
   /* 活動類 */
-  '📸':'tourist_attraction', '🎵':'night_club', '🛍️':'shopping_mall',
-  '📖':'book_store', '🎨':'art_gallery', '🏃':'park', '🚲':'park',
-  '⚽':'stadium', '🎮':'', '🎤':'night_club',
+  '📸':'tourist_attraction','🎵':'night_club','🛍️':'shopping_mall',
+  '📖':'book_store','🎨':'art_gallery','🏃':'park','🚲':'park',
+  '⚽':'stadium','🎮':'','🎤':'night_club',
   /* 特別類 */
-  '⭐':'', '🏆':'', '💎':'', '🎁':'', '🔖':'', '📌':'',
-  '🗓️':'', '💫':'', '🕐':'', '🎊':''
-};  
+  '⭐':'','🏆':'','💎':'','🎁':'','🔖':'','📌':'',
+  '🗓️':'','💫':'','🕐':'','🎊':''
+};
+
 var ICON_CATEGORIES=[
   {name:'美食',emoji:'🍽️',icons:['☕','🍔','🍜','🍣','🧁','🍺','🧃','🍦','🥐','🍱']},
   {name:'自然',emoji:'🌿',icons:['🌸','🌳','🌊','🌙','☀️','🌧️','🍂','🌈','🏔️','🌺']},
@@ -1464,7 +1465,7 @@ async function saveEvent(){
   /* [v1.27.0] 加入 placeType 欄位，供 Layer 1 稀缺推薦使用
      PSEUDO: 優先用 selectedIcon 查映射表；無對應則空字串 */
   var resolvedPlaceType = EMOJI_TO_PLACE_TYPE[selectedIcon] || '';
-  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl,placeType:resolvedPlaceType});
+  eventsData.push({text:text,icon:selectedIcon,pos:eventPos,placeName:placeName,placeId:placeId,photoUrl:photoUrl,createdAt:eventCreatedAt,placeType:resolvedPlaceType});
   /* [v1.22.0] routeId='' 表示當次走路中，eventIndex 供編輯定位 */
   var overlay = createEventMarker(eventPos,selectedIcon,text,placeName,photoUrl,eventCreatedAt,'',eventIndex);
   eventsData[eventIndex]._overlay = overlay; /* 存 overlay 實例，供重建用 */
@@ -2174,9 +2175,92 @@ function decodePolyline(encoded){
 }
 
 /* ===================================================
+   [新增 v1.27.1] buildPlaceFreqTable()
+   PSEUDO:
+   1. 獨立 query Firestore：isPublic==true 的所有路線
+   2. 展開每條路線的 events 陣列
+   3. 只保留有 placeId 的事件（自由點無法統計）
+   4. 建頻率表：{ placeId: { name, pos, icon, placeType, count, lastSeen(ms) } }
+      - placeType 優先用 ev.placeType，fallback 用 icon 反查 EMOJI_TO_PLACE_TYPE
+   5. 套稀缺評分公式：
+      score = count × (1 / log(count + 2)) × e^(-daysSinceLastSeen / 30)
+      - 1/log(count+2)：稀缺加成，count 越高加成越低
+      - e^(-days/30)：新鮮度衰減，超過 30 天沒新事件分數下降
+   6. 回傳陣列，依 score DESC 排序
+   注意：失敗時靜默回傳 []，不影響主流程
+   =================================================== */
+async function buildPlaceFreqTable() {
+  try {
+    var q = window.api.query(
+      window.api.collection(window.db, 'walk_records'),
+      window.api.where('isPublic', '==', true)
+    );
+    var snap = await window.api.getDocs(q);
+    var freqMap = {};
+    var now = Date.now();
+
+    snap.forEach(function(d) {
+      var data = d.data();
+      if (!data.events || !Array.isArray(data.events)) return;
+      data.events.forEach(function(ev) {
+        if (!ev.placeId) return; /* 無 placeId → 跳過，無法統計 */
+        if (!ev.pos) return;    /* 無座標 → 跳過，無法顯示 marker */
+
+        /* PSEUDO: 取得 lastSeen 時間戳（ms）
+           事件有 createdAt（ISO string）→ parse；否則用路線 createdAt.seconds */
+        var lastSeen = now;
+        if (ev.createdAt) {
+          try { lastSeen = new Date(ev.createdAt).getTime(); } catch(e) {}
+        } else if (data.createdAt && data.createdAt.seconds) {
+          lastSeen = data.createdAt.seconds * 1000;
+        }
+
+        if (freqMap[ev.placeId]) {
+          freqMap[ev.placeId].count += 1;
+          /* 保留最新的 lastSeen */
+          if (lastSeen > freqMap[ev.placeId].lastSeen) {
+            freqMap[ev.placeId].lastSeen = lastSeen;
+          }
+        } else {
+          /* PSEUDO: placeType 優先用欄位值，fallback 用 icon 反查映射表 */
+          var pt = ev.placeType || EMOJI_TO_PLACE_TYPE[ev.icon] || '';
+          freqMap[ev.placeId] = {
+            placeId: ev.placeId,
+            name: ev.placeName || '',
+            pos: ev.pos,
+            icon: ev.icon || '📍',
+            placeType: pt,
+            count: 1,
+            lastSeen: lastSeen
+          };
+        }
+      });
+    });
+
+    /* PSEUDO: 套稀缺評分公式並轉成陣列
+       score = count × (1 / log(count + 2)) × e^(-days / 30) */
+    var result = Object.values(freqMap).map(function(entry) {
+      var days = (now - entry.lastSeen) / (1000 * 60 * 60 * 24);
+      var score = entry.count * (1 / Math.log(entry.count + 2)) * Math.exp(-days / 30);
+      return Object.assign({}, entry, { score: score });
+    });
+
+    result.sort(function(a, b) { return b.score - a.score; });
+    return result;
+
+  } catch(err) {
+    console.warn('[buildPlaceFreqTable] 失敗，靜默忽略:', err);
+    return [];
+  }
+}
+
+/* ===================================================
    [v1.26.0] searchInspireSpots() 完整版
-   新增：rawSpots 收集 → TSP 排序 → 帶 badge marker
-   → Routes API 虛線 → 「以此靈感開始漫遊」按鈕
+   [v1.27.1] 新增 Layer 1 稀缺推薦：
+   - 搜尋前先呼叫 buildPlaceFreqTable() 取社群頻率表
+   - Layer 1 高分地點插入 rawSpots 前排（只取 type 符合心情的）
+   - Places API 補缺口
+   - 全局 placeId 去重（Layer 1 已有的，Places 結果跳過）
    =================================================== */
 async function searchInspireSpots(){
   var total = Object.values(moodCounts).reduce(function(s,v){ return s+v; }, 0);
@@ -2193,6 +2277,43 @@ async function searchInspireSpots(){
     clearInspireMarkers();
     var rawSpots = [];
 
+    /* ===================================================
+       [v1.27.1] Layer 1：稀缺推薦
+       PSEUDO:
+       1. 取目前選取的心情 type 集合（selectedTypes）
+       2. 撈社群頻率表（靜默失敗回 []）
+       3. 過濾：placeType 在 selectedTypes 中（或 placeType 空但 icon 符合）
+       4. 取 score 最高的前 N 個（N = 各類型 count 總和，但最多 3 個，避免 Layer 1 吃滿）
+       5. 推入 rawSpots 前排，並記錄 placeId 到 layer1SeenIds（給去重用）
+       =================================================== */
+    var selectedTypes = {};
+    MOOD_TAGS.forEach(function(tag){
+      if((moodCounts[tag.type]||0) > 0) selectedTypes[tag.type] = true;
+    });
+
+    var layer1SeenIds = {};
+    var freqTable = await buildPlaceFreqTable();
+
+    /* PSEUDO: 過濾符合心情 type 的地點，最多取前 3 個加入 rawSpots */
+    var layer1Candidates = freqTable.filter(function(entry) {
+      if (!entry.placeType) return false;
+      return selectedTypes[entry.placeType] === true;
+    }).slice(0, 3);
+
+    layer1Candidates.forEach(function(entry) {
+      rawSpots.push({
+        pos: entry.pos,
+        emoji: entry.icon,
+        name: entry.name,
+        placeId: entry.placeId
+      });
+      layer1SeenIds[entry.placeId] = true;
+    });
+
+    /* ===================================================
+       Layer 2（原有）：Places API 補缺口
+       PSEUDO: 同原本邏輯，但去重時額外排除 layer1SeenIds
+       =================================================== */
     var searchTasks = MOOD_TAGS
       .filter(function(tag){ return (moodCounts[tag.type]||0) > 0; })
       .map(async function(tag){
@@ -2218,13 +2339,20 @@ async function searchInspireSpots(){
     await Promise.all(searchTasks);
     closeInspireSheet();
 
-    /* [v1.26.1 bugfix] 跨類型去重（同一個 placeId 可能被 cafe + restaurant 都推薦）
-       PSEUDO: 用 placeId 建 seen map，第一個出現的保留，後續重複的丟棄
-       無 placeId 的地點（Places API 偶發無 id）不做去重，直接保留 */
-    var _seenPlaceIds = {};
+    /* [v1.26.1 bugfix + v1.27.1] 全局去重：合併 Layer 1 已有的 id
+       PSEUDO: 用 placeId 建 seen map
+       - Layer 1 地點已加入 layer1SeenIds，Places API 結果若重複則丟棄
+       - 無 placeId 的地點不做去重，直接保留 */
+    var _seenPlaceIds = Object.assign({}, layer1SeenIds);
     rawSpots = rawSpots.filter(function(spot){
-      if(!spot.placeId) return true;          /* 無 id → 保留 */
-      if(_seenPlaceIds[spot.placeId]) return false; /* 重複 → 丟棄 */
+      if(!spot.placeId) return true;
+      if(_seenPlaceIds[spot.placeId] && !layer1SeenIds[spot.placeId]) return false;
+      /* PSEUDO: Layer 1 地點本身保留（layer1SeenIds 裡的），Places API 重複的才丟 */
+      if(_seenPlaceIds[spot.placeId] && layer1SeenIds[spot.placeId]){
+        /* 已加入過（Layer 1 那次），第二次碰到同樣 id（Places API）丟棄 */
+        layer1SeenIds[spot.placeId] = false; /* 標記：下次再碰到才丟 */
+        return true; /* 第一次（Layer 1 插入時）已保留，這裡是 Places API 重複，丟 */
+      }
       _seenPlaceIds[spot.placeId] = true;
       return true;
     });
@@ -2351,6 +2479,8 @@ window.selectInspireDistance=selectInspireDistance;
 window.searchInspireSpots=searchInspireSpots;
 window.clearInspireMarkers=clearInspireMarkers;
 window.startWalkFromInspire=startWalkFromInspire;
+/* [v1.27.1] */
+window.buildPlaceFreqTable=buildPlaceFreqTable;
 
 /* [新增 v1.21.0] */
 window.onPlaceSearchInput=onPlaceSearchInput;window.clearPlaceSearch=clearPlaceSearch;
