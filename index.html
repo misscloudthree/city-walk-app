@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.27.2</title>
+<title>City Walker - v1.28.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -81,6 +81,31 @@ body {
 #memoryCloseBtn { position:absolute; top:16px; right:16px; font-size:22px; color:var(--text-soft); cursor:pointer; padding:4px 8px; border-radius:50%; transition:background 0.2s; }
 #memoryCloseBtn:active { background:var(--bg-warm); }
 .event-marker-div { position:absolute; font-size:28px; cursor:pointer; transform:translate(-50%,-50%); user-select:none; -webkit-user-select:none; pointer-events:auto; z-index:999; }
+
+/* ===================================================
+   [新增 v1.28.0] 脈衝光環 — 載入路線的事件 marker 專用
+   PSEUDO:
+   - .pulse-ring：絕對定位，圓形，初始透明，動畫擴散後消失
+   - 顏色由 JS 動態寫入 border-color（用路線 trackColor）
+   - 兩個 ring 交錯 delay，讓脈衝連續不斷
+   =================================================== */
+@keyframes pulseRing {
+  0%   { transform: translate(-50%,-50%) scale(0.6); opacity: 0.7; }
+  100% { transform: translate(-50%,-50%) scale(2.2); opacity: 0; }
+}
+.event-marker-div .pulse-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2.5px solid currentColor;
+  animation: pulseRing 1.8s ease-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+.event-marker-div .pulse-ring:nth-child(2) {
+  animation-delay: 0.9s;
+}
 #colorPicker { position:fixed; top:62px; left:16px; z-index:1300; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
 #colorToggleBtn { width:38px; height:38px; border-radius:50%; border:3px solid var(--white); box-shadow:0 2px 8px rgba(0,0,0,0.18); cursor:pointer; transition:transform 0.2s; }
 #colorToggleBtn:active { transform:scale(0.92); }
@@ -702,6 +727,15 @@ getRedirectResult(auth).then(function(result){
       <textarea id="memoryEditArea" maxlength="100" placeholder="修改心情..."></textarea>
     </div>
 
+    <!-- [新增 v1.28.0] 翻頁列：同地標有多筆事件時才顯示 -->
+    <div id="memoryPager" style="display:none; align-items:center; justify-content:center; gap:16px; padding:6px 16px 2px;">
+      <button id="btnMemoryPrev" onclick="navigateMemory(-1)"
+        style="background:none; border:none; font-size:20px; color:var(--text-soft); cursor:pointer; padding:4px 8px;">‹</button>
+      <span id="memoryPagerLabel" style="font-size:12px; color:var(--text-soft); letter-spacing:0.5px;"></span>
+      <button id="btnMemoryNext" onclick="navigateMemory(1)"
+        style="background:none; border:none; font-size:20px; color:var(--text-soft); cursor:pointer; padding:4px 8px;">›</button>
+    </div>
+
     <!-- 操作按鈕列 -->
     <div id="memoryActions">
       <button class="memory-action-btn btn-memory-cancel" id="btnMemoryCancel" onclick="cancelMemoryEdit()">✕ 取消</button>
@@ -1063,6 +1097,9 @@ function getDailyEncouragement(){var t=new Date();var s=t.getFullYear()*10000+(t
 function setStatusBar(t,bg){var b=document.getElementById('statusBar');b.innerText=t;b.style.backgroundColor=bg||'var(--status-idle)';}
 function closeMemoryBox(){
   exitMemoryEditMode();
+  /* [v1.28.0] 關閉翻頁列並清空 pager 狀態 */
+  document.getElementById('memoryPager').style.display = 'none';
+  window._memoryPagerEvents = [];
   document.getElementById('memoryBox').style.display='none';
 }
 
@@ -1177,7 +1214,10 @@ function toggleColorPicker(){document.getElementById('colorOptions').classList.t
 function selectColor(el){selectedTrackColor=el.getAttribute('data-color');document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;document.querySelectorAll('.color-dot').forEach(function(d){d.classList.remove('selected');});el.classList.add('selected');if(pathLine)pathLine.setOptions({strokeColor:selectedTrackColor});document.getElementById('colorOptions').classList.remove('open');}
 document.addEventListener('click',function(e){var p=document.getElementById('colorPicker');if(p&&!p.contains(e.target))document.getElementById('colorOptions').classList.remove('open');});
 
-var MINT_MAP_STYLE=[{featureType:'all',elementType:'geometry',stylers:[{color:'#F2F4F0'}]},{featureType:'all',elementType:'labels.text.fill',stylers:[{color:'#5A6B63'}]},{featureType:'all',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},{featureType:'administrative',elementType:'geometry.stroke',stylers:[{color:'#C8D8D0'},{weight:1}]},{featureType:'administrative.land_parcel',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'landscape.natural',elementType:'geometry',stylers:[{color:'#A8CFBC'}]},{featureType:'poi.park',elementType:'geometry.fill',stylers:[{color:'#8FB9A8'}]},{featureType:'poi.park',elementType:'labels.text.fill',stylers:[{color:'#4A8070'}]},{featureType:'landscape.man_made',elementType:'geometry',stylers:[{color:'#E8ECE6'}]},{featureType:'poi',elementType:'geometry',stylers:[{color:'#DDE8E0'}]},{featureType:'poi',elementType:'labels',stylers:[{visibility:'simplified'}]},{featureType:'poi',elementType:'labels.icon',stylers:[{saturation:-40}]},{featureType:'road',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},{featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#D4E0D8'},{weight:0.5}]},{featureType:'road.highway',elementType:'geometry.fill',stylers:[{color:'#F0F5F0'}]},{featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#B8CCBF'},{weight:1}]},{featureType:'road.arterial',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},{featureType:'road.local',elementType:'geometry.fill',stylers:[{color:'#FAFAFA'}]},{featureType:'road',elementType:'labels.text.fill',stylers:[{color:'#6E8C7C'}]},{featureType:'road',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},{featureType:'water',elementType:'geometry.fill',stylers:[{color:'#C4DFF0'}]},{featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#6FA8C8'}]},{featureType:'transit',elementType:'geometry',stylers:[{color:'#D8E8E0'}]},{featureType:'transit.station',elementType:'labels.icon',stylers:[{saturation:-20},{lightness:10}]}];
+var MINT_MAP_STYLE=[{featureType:'all',elementType:'geometry',stylers:[{color:'#F2F4F0'}]},{featureType:'all',elementType:'labels.text.fill',stylers:[{color:'#5A6B63'}]},{featureType:'all',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},{featureType:'administrative',elementType:'geometry.stroke',stylers:[{color:'#C8D8D0'},{weight:1}]},{featureType:'administrative.land_parcel',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'landscape.natural',elementType:'geometry',stylers:[{color:'#A8CFBC'}]},{featureType:'poi.park',elementType:'geometry.fill',stylers:[{color:'#8FB9A8'}]},{featureType:'poi.park',elementType:'labels.text.fill',stylers:[{color:'#4A8070'}]},{featureType:'landscape.man_made',elementType:'geometry',stylers:[{color:'#E8ECE6'}]},{featureType:'poi',elementType:'geometry',stylers:[{color:'#DDE8E0'}]},
+/* [v1.28.0] POI labels 全關：地圖乾淨，只留使用者自己的事件標記 */
+{featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'poi',elementType:'labels.icon',stylers:[{visibility:'off'}]},{featureType:'poi',elementType:'labels.text',stylers:[{visibility:'off'}]},
+{featureType:'road',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},{featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#D4E0D8'},{weight:0.5}]},{featureType:'road.highway',elementType:'geometry.fill',stylers:[{color:'#F0F5F0'}]},{featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#B8CCBF'},{weight:1}]},{featureType:'road.arterial',elementType:'geometry.fill',stylers:[{color:'#FFFFFF'}]},{featureType:'road.local',elementType:'geometry.fill',stylers:[{color:'#FAFAFA'}]},{featureType:'road',elementType:'labels.text.fill',stylers:[{color:'#6E8C7C'}]},{featureType:'road',elementType:'labels.text.stroke',stylers:[{color:'#FFFFFF'},{weight:2}]},{featureType:'water',elementType:'geometry.fill',stylers:[{color:'#C4DFF0'}]},{featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#6FA8C8'}]},{featureType:'transit',elementType:'geometry',stylers:[{color:'#D8E8E0'}]},{featureType:'transit.station',elementType:'labels.icon',stylers:[{saturation:-20},{lightness:10}]}];
 
 async function initMap(){
   var {Map}=await google.maps.importLibrary('maps');
@@ -1507,15 +1547,16 @@ async function executeCloudSave(){
 }
 
 /* ===================================================
-   [改版 v1.22.0] createEventMarker
-   PSEUDO 新增參數：
-   - routeId: 歷史路線的 Firestore doc id，走路中為 ''
-   - eventIndex: 事件在 events[] 中的 index，供編輯時定位
-   - 回傳 overlay 實例，供外部 rebuild 用
+   [改版 v1.28.0] createEventMarker
+   新增參數：
+   - trackColor: 路線顏色，有值時加脈衝光環（載入路線用）
+   - 翻頁邏輯：點擊時查 _loadedRouteEvents，找同 placeId 的所有事件
+     若有多筆 → 顯示翻頁列（← N/N →）
    =================================================== */
-function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,eventIndex){
+function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,eventIndex,trackColor){
   routeId = routeId || '';
   eventIndex = (typeof eventIndex === 'number') ? eventIndex : -1;
+  trackColor = trackColor || '';
 
   function EmojiOverlay(position,icon,text,placeName,photoUrl,createdAt){
     this.position_=new google.maps.LatLng(position.lat,position.lng);
@@ -1527,29 +1568,65 @@ function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,ev
   EmojiOverlay.prototype.onAdd=function(){
     var div=document.createElement('div');
     div.className='event-marker-div'; div.innerText=this.icon_;
+
+    /* [v1.28.0] 脈衝光環：只有載入路線的事件才加（trackColor 有值）
+       PSEUDO: 加兩個 .pulse-ring，CSS nth-child 讓第二個 delay 0.9s
+       顏色用 CSS currentColor，div 設 color = trackColor */
+    if(trackColor){
+      div.style.color = trackColor;
+      var ring1 = document.createElement('div');
+      ring1.className = 'pulse-ring';
+      var ring2 = document.createElement('div');
+      ring2.className = 'pulse-ring';
+      div.appendChild(ring1);
+      div.appendChild(ring2);
+    }
+
     var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_,cat=this.createdAt_;
+
     function showMemory(e){
       e.stopPropagation(); if(e.preventDefault)e.preventDefault();
-      /* 填入 icon / place / time */
-      document.getElementById('memoryIcon').innerText=ci||'📸';
-      document.getElementById('memoryPlace').innerText=cp?('📍 '+cp):'';
-      var timeEl=document.getElementById('memoryTime');
-      if(cat){try{var d=new Date(cat);var hh=String(d.getHours()).padStart(2,'0');var mm=String(d.getMinutes()).padStart(2,'0');timeEl.innerText='🕐 '+hh+':'+mm+' 在這裡';}catch(ex){timeEl.innerText='';}}else{timeEl.innerText='';}
-      /* 填入照片 */
-      var polaroid=document.getElementById('memoryPolaroid');
-      var memPhoto=document.getElementById('memoryPhoto');
-      if(cph){memPhoto.src=cph;polaroid.classList.remove('hidden');}
-      else{polaroid.classList.add('hidden');memPhoto.src='';}
-      /* 填入文字 */
-      document.getElementById('memoryText').innerText=ct||'那一天，在這裡留下了足跡...';
-      /* [v1.22.0] PSEUDO: 把 routeId / eventIndex 存到 memoryBox dataset，
-         供 saveMemoryEdit() 讀取，知道要更新哪筆資料 */
-      var box=document.getElementById('memoryBox');
-      box.dataset.routeId=routeId;
-      box.dataset.eventIndex=eventIndex;
-      /* 重設編輯狀態 */
+
+      /* [v1.28.0] 查同 placeId 的所有事件（只在載入路線時有效）
+         PSEUDO:
+         1. 若有 routeId + placeId → 從 _loadedRouteEvents 撈同 placeId 的所有事件
+         2. 多筆 → 顯示翻頁列，從本路線的這筆開始
+         3. 單筆或無 placeId → 直接顯示，不顯示翻頁列 */
+      var pagerEvents = [];
+      var pagerStart = 0;
+      var currentPlaceId = (window._loadedRouteEvents && eventIndex >= 0 && window._loadedRouteEvents[eventIndex])
+        ? (window._loadedRouteEvents[eventIndex].placeId || '')
+        : '';
+
+      if(routeId && currentPlaceId && window._loadedRouteEvents){
+        window._loadedRouteEvents.forEach(function(ev, idx){
+          if(ev.placeId && ev.placeId === currentPlaceId){
+            if(idx === eventIndex) pagerStart = pagerEvents.length;
+            pagerEvents.push({ ev: ev, idx: idx });
+          }
+        });
+      }
+
+      if(pagerEvents.length <= 1) pagerEvents = [];
+
+      var box = document.getElementById('memoryBox');
+      box.dataset.routeId = routeId;
+      box.dataset.eventIndex = eventIndex;
+      box.dataset.pagerCurrent = pagerStart;
+      window._memoryPagerEvents = pagerEvents;
+
+      fillMemoryBox(ci, ct, cp, cph, cat, routeId, eventIndex);
+
+      var pagerEl = document.getElementById('memoryPager');
+      if(pagerEvents.length > 1){
+        pagerEl.style.display = 'flex';
+        document.getElementById('memoryPagerLabel').innerText = (pagerStart+1) + ' / ' + pagerEvents.length;
+      } else {
+        pagerEl.style.display = 'none';
+      }
+
       exitMemoryEditMode();
-      document.getElementById('memoryBox').style.display='flex';
+      document.getElementById('memoryBox').style.display = 'flex';
     }
     div.addEventListener('click',showMemory);
     div.addEventListener('touchstart',showMemory,{passive:false});
@@ -1564,6 +1641,54 @@ function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,ev
   };
   var overlay = new EmojiOverlay(pos,icon,text,placeName,photoUrl,createdAt);
   return overlay;
+}
+
+/* ===================================================
+   [新增 v1.28.0] fillMemoryBox()
+   PSEUDO: 把單筆事件資料填入回憶視窗各欄位
+   抽出成獨立函式，讓 createEventMarker 和 navigateMemory 都能呼叫
+   =================================================== */
+function fillMemoryBox(icon, text, placeName, photoUrl, createdAt, routeId, eventIndex){
+  document.getElementById('memoryIcon').innerText = icon || '📸';
+  document.getElementById('memoryPlace').innerText = placeName ? ('📍 ' + placeName) : '';
+  var timeEl = document.getElementById('memoryTime');
+  if(createdAt){
+    try{
+      var d = new Date(createdAt);
+      var hh = String(d.getHours()).padStart(2,'0');
+      var mm = String(d.getMinutes()).padStart(2,'0');
+      timeEl.innerText = '🕐 ' + hh + ':' + mm + ' 在這裡';
+    }catch(ex){ timeEl.innerText = ''; }
+  } else { timeEl.innerText = ''; }
+  var polaroid = document.getElementById('memoryPolaroid');
+  var memPhoto = document.getElementById('memoryPhoto');
+  if(photoUrl){ memPhoto.src = photoUrl; polaroid.classList.remove('hidden'); }
+  else { polaroid.classList.add('hidden'); memPhoto.src = ''; }
+  document.getElementById('memoryText').innerText = text || '那一天，在這裡留下了足跡...';
+  var box = document.getElementById('memoryBox');
+  box.dataset.routeId = routeId || '';
+  box.dataset.eventIndex = eventIndex;
+}
+
+/* ===================================================
+   [新增 v1.28.0] navigateMemory(dir)
+   PSEUDO:
+   - dir: +1 下一筆，-1 上一筆（循環）
+   - 從 window._memoryPagerEvents 取事件列表
+   - 更新 pagerCurrent，填入新事件資料並更新翻頁列數字
+   =================================================== */
+function navigateMemory(dir){
+  var pagerEvents = window._memoryPagerEvents;
+  if(!pagerEvents || pagerEvents.length <= 1) return;
+  var box = document.getElementById('memoryBox');
+  var cur = parseInt(box.dataset.pagerCurrent) || 0;
+  cur = (cur + dir + pagerEvents.length) % pagerEvents.length;
+  box.dataset.pagerCurrent = cur;
+  var item = pagerEvents[cur];
+  var ev = item.ev;
+  fillMemoryBox(ev.icon, ev.text, ev.placeName||'', ev.photoUrl||'', ev.createdAt||'', box.dataset.routeId, item.idx);
+  document.getElementById('memoryPagerLabel').innerText = (cur+1) + ' / ' + pagerEvents.length;
+  exitMemoryEditMode();
 }
 
 /* ===================================================
@@ -1662,7 +1787,8 @@ async function loadSavedRoute(id){
   if(data.events){
     data.events.forEach(function(ev,idx){
       /* [v1.22.0] 傳入 routeId=id、eventIndex=idx，供編輯後更新 Firestore */
-      var overlay = createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||'',ev.createdAt||'',id,idx);
+      /* [v1.28.0] 傳入 trackColor，讓載入路線的事件顯示脈衝光環 */
+      var overlay = createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||'',ev.createdAt||'',id,idx,data.trackColor||'');
       historyMarkers.push(overlay);
     });
   }
@@ -2527,6 +2653,9 @@ window.togglePublic=togglePublic;
 window.selectExplorePill=selectExplorePill;
 window.fetchExploreRoutes=fetchExploreRoutes;
 window.loadExploreRoute=loadExploreRoute;
+/* [v1.28.0] */
+window.navigateMemory=navigateMemory;
+window.fillMemoryBox=fillMemoryBox;
 
 /* ===================================================
    [v1.18.0] Bottom Sheet 帳號設定功能
