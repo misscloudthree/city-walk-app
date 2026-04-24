@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.28.2</title>
+<title>City Walker - v1.29.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -575,13 +575,15 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
 .inspire-tooltip {
   position:absolute; bottom:110%; left:50%; transform:translateX(-50%);
   background:var(--text-main); color:var(--white);
-  font-size:11px; padding:4px 8px; border-radius:8px;
+  font-size:11px; padding:8px 10px; border-radius:10px;
   white-space:nowrap; pointer-events:none;
   font-family:'Poly','Microsoft JhengHei',sans-serif;
   box-shadow:0 2px 8px rgba(0,0,0,0.2);
   opacity:0; transition:opacity 0.2s;
+  display:flex; flex-direction:column; align-items:center;
+  min-width:80px; text-align:center;
 }
-.inspire-marker-div.show-tip .inspire-tooltip { opacity:1; }
+.inspire-marker-div.show-tip .inspire-tooltip { opacity:1; pointer-events:auto; }
 /* [v1.26.0] 虛線路徑提示列 */
 #inspireRouteHint {
   position:fixed; bottom:160px; left:50%; transform:translateX(-50%);
@@ -598,6 +600,33 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
   background:var(--accent-positive); color:var(--white);
   font-family:'Poly','Microsoft JhengHei',sans-serif;
   letter-spacing:1px;
+}
+/* [v1.29.0] 換一組按鈕 */
+#btnRerollInspire {
+  display:none; margin-top:10px; width:100%;
+  padding:13px 24px; font-size:14px; font-weight:bold;
+  border:none; border-radius:14px; cursor:pointer; outline:none;
+  background:var(--bg-warm); color:var(--text-soft);
+  border:1.5px solid var(--border-light);
+  font-family:'Poly','Microsoft JhengHei',sans-serif;
+  letter-spacing:0.5px; transition: opacity 0.2s;
+}
+#btnRerollInspire:active { opacity:0.7; }
+#btnRerollInspire:disabled { opacity:0.4; cursor:not-allowed; }
+/* [v1.29.0] inspire marker 固定後 badge 金色 */
+.inspire-marker-div.is-pinned .inspire-order-badge {
+  background: #FFD700; color: #5A4000;
+}
+/* [v1.29.0] inspire tooltip 固定按鈕 */
+.inspire-pin-btn {
+  display:inline-block; margin-top:6px;
+  padding:4px 10px; border-radius:12px; border:none;
+  font-size:11px; cursor:pointer; font-weight:bold;
+  background:var(--bg-warm); color:var(--text-soft);
+  transition: all 0.15s;
+}
+.inspire-pin-btn.pinned {
+  background:#FFF9E0; color:#B8860B;
 }
 
 /* [v1.19.1] 無 GPS 提示條 */
@@ -823,6 +852,8 @@ getRedirectResult(auth).then(function(result){
       <button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button>
       <!-- [v1.26.0] 靈感搜尋完成後顯示「以此靈感開始漫遊」按鈕 -->
       <button id="btnStartFromInspire" onclick="startWalkFromInspire()">✦ 以此靈感開始漫遊</button>
+      <!-- [v1.29.0] 換一組按鈕，與 btnStartFromInspire 同生命週期 -->
+      <button id="btnRerollInspire" onclick="rerollInspireSpots()">🔄 換一組</button>
       <!-- [新增 v1.25.0] 走前規劃靈感入口 -->
       <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);margin-top:10px;border:1.5px solid var(--border-light);" onclick="openInspireSheet()">✦ 規劃靈感</button>
     </div>
@@ -1252,6 +1283,8 @@ async function initMap(){
     loadUnlockedLandmarks();
   };
   if(window.currentUid) window._authReadyCallback();
+  /* [v1.29.0] attach 點地圖關閉 tooltip */
+  _attachTooltipDismiss();
 }
 
 function getUserPosition(){var pos=userMarker&&userMarker.getPosition();if(!pos)return null;if(typeof pos.lat==='function')return{lat:pos.lat(),lng:pos.lng()};return{lat:pos.lat,lng:pos.lng};}
@@ -2260,6 +2293,12 @@ var moodCounts = {};
 var inspireMarkers = [];
 var _inspirePath = null;       /* [v1.26.0] Routes API 虛線 Polyline */
 var _inspireRouteData = [];    /* [v1.26.0] TSP 排序後的地點資料 */
+/* [v1.29.0] 固定地點 Set（placeId），重新生成時保留 */
+var _pinnedInspireIds = new Set();
+/* [v1.29.0] 跨次累積排除 Set，clearInspireMarkers 不清除 */
+var _usedInspirePlaceIds = new Set();
+/* [v1.29.0] 目前顯示的靈感地點資料（含固定狀態），供 reroll 用 */
+var _currentInspireSpots = [];
 
 function openInspireSheet(){
   moodCounts = {};
@@ -2317,8 +2356,14 @@ function clearInspireMarkers(){
   inspireMarkers = [];
   if(_inspirePath){ _inspirePath.setMap(null); _inspirePath = null; }
   _inspireRouteData = [];
+  _currentInspireSpots = [];
+  /* [v1.29.0] 清固定 Set（結束靈感規劃時清）；_usedInspirePlaceIds 不清（累積排除） */
+  _pinnedInspireIds = new Set();
   document.getElementById('inspireRouteHint').style.display = 'none';
   document.getElementById('btnStartFromInspire').style.display = 'none';
+  /* [v1.29.0] 同步隱藏換一組按鈕 */
+  document.getElementById('btnRerollInspire').style.display = 'none';
+  closeInspireTooltip();
 }
 
 /* ===================================================
@@ -2579,10 +2624,14 @@ async function searchInspireSpots(){
     var layer1SeenIds = {};
     var freqTable = await buildPlaceFreqTable();
 
-    /* PSEUDO: 過濾符合心情 type 的地點，最多取前 3 個加入 rawSpots */
+    /* PSEUDO: 過濾符合心情 type 的地點，最多取前 3 個加入 rawSpots
+       [v1.29.0] 同時排除 _usedInspirePlaceIds（跨次累積） */
     var layer1Candidates = freqTable.filter(function(entry) {
       if (!entry.placeType) return false;
-      return selectedTypes[entry.placeType] === true;
+      if (!selectedTypes[entry.placeType]) return false;
+      /* [v1.29.0] 排除已顯示過的地點（除非是固定的） */
+      if (_usedInspirePlaceIds.has(entry.placeId) && !_pinnedInspireIds.has(entry.placeId)) return false;
+      return true;
     }).slice(0, 3);
 
     layer1Candidates.forEach(function(entry) {
@@ -2613,9 +2662,12 @@ async function searchInspireSpots(){
             includedTypes: [tag.type]
           });
           var places = result.places || [];
-          /* 前 count 個加入 rawSpots（原本邏輯） */
+          /* 前 count 個加入 rawSpots（原本邏輯）
+             [v1.29.0] 排除已用過的 placeId（跨次累積）*/
           places.slice(0, count).forEach(function(place){
             if(!place.location) return;
+            /* [v1.29.0] 跳過已用過的地點（除非固定） */
+            if(place.id && _usedInspirePlaceIds.has(place.id) && !_pinnedInspireIds.has(place.id)) return;
             rawSpots.push({
               pos: { lat: place.location.lat(), lng: place.location.lng() },
               emoji: tag.emoji,
@@ -2684,12 +2736,18 @@ async function searchInspireSpots(){
     /* ① TSP 排序 */
     var orderedSpots = tspNearestNeighbor(currentPos, rawSpots);
     _inspireRouteData = orderedSpots;
+    /* [v1.29.0] 儲存目前顯示的地點，供 reroll 用；記錄到累積排除 Set */
+    _currentInspireSpots = orderedSpots.slice();
+    orderedSpots.forEach(function(spot){
+      if(spot.placeId) _usedInspirePlaceIds.add(spot.placeId);
+    });
 
     /* ③ 帶順序 badge 的 marker */
     var bounds = new google.maps.LatLngBounds();
     bounds.extend(new google.maps.LatLng(currentPos.lat, currentPos.lng));
     orderedSpots.forEach(function(spot, idx){
-      var overlay = createInspireMarker(spot.pos, spot.emoji, spot.name, idx + 1);
+      /* [v1.29.0] 傳入 placeId 給 marker，供固定功能用 */
+      var overlay = createInspireMarker(spot.pos, spot.emoji, spot.name, idx + 1, spot.placeId);
       inspireMarkers.push(overlay);
       bounds.extend(new google.maps.LatLng(spot.pos.lat, spot.pos.lng));
     });
@@ -2701,8 +2759,9 @@ async function searchInspireSpots(){
     /* ② Routes API 虛線（不阻塞） */
     drawInspireRoutePath(currentPos, orderedSpots);
 
-    /* ④ 顯示「以此靈感開始漫遊」 */
+    /* ④ 顯示「以此靈感開始漫遊」+ 「🔄 換一組」*/
     document.getElementById('btnStartFromInspire').style.display = 'block';
+    document.getElementById('btnRerollInspire').style.display = 'block';
 
   }catch(err){
     console.error('[Inspire] 搜尋失敗:', err);
@@ -2726,33 +2785,277 @@ async function searchInspireSpots(){
 function startWalkFromInspire(){
   document.getElementById('btnStartFromInspire').style.display = 'none';
   document.getElementById('inspireRouteHint').style.display = 'none';
+  document.getElementById('btnRerollInspire').style.display = 'none';
+  closeInspireTooltip();
+  /* [v1.29.0] 開始漫遊時清掉固定 Set */
+  _pinnedInspireIds = new Set();
   /* [v1.26.0 bugfix] 保留 markers + 虛線，讓使用者邊走邊對照
      _inspireRouteData 也保留，未來可做到站打卡功能 */
   startWalk();
 }
 
 /* ===================================================
+   [v1.29.0] tooltip 系統
+   PSEUDO:
+   - showInspireTooltip(markerDiv, placeId, name)
+     → 在 markerDiv 上插入 tooltip（絕對定位）
+     → 顯示地點名稱 + 「📌 固定 / 📌 已固定」按鈕
+   - closeInspireTooltip()
+     → 移除目前顯示中的 tooltip div
+   - 點擊地圖其他地方 → 自動呼叫 closeInspireTooltip()
+   =================================================== */
+var _currentTooltipEl = null; /* 目前顯示的 tooltip DOM element */
+
+function showInspireTooltip(markerDiv, placeId, name){
+  closeInspireTooltip(); /* 先關掉上一個 */
+  var isPinned = placeId && _pinnedInspireIds.has(placeId);
+  var tip = document.createElement('div');
+  tip.className = 'inspire-tooltip';
+  tip.style.cssText = 'opacity:1;pointer-events:auto;white-space:nowrap;';
+  tip.innerHTML =
+    '<div style="font-size:12px;margin-bottom:4px;">' + (name || '') + '</div>' +
+    '<button class="inspire-pin-btn' + (isPinned ? ' pinned' : '') + '" ' +
+    'onclick="event.stopPropagation();pinInspireSpot(\'' + (placeId||'') + '\')">' +
+    (isPinned ? '📌 已固定' : '📌 固定') + '</button>';
+  /* 插入 marker div 作為子元素（讓它跟著 marker 走） */
+  markerDiv.appendChild(tip);
+  markerDiv.classList.add('show-tip');
+  _currentTooltipEl = { tip: tip, markerDiv: markerDiv };
+}
+
+function closeInspireTooltip(){
+  if(_currentTooltipEl){
+    var old = _currentTooltipEl;
+    if(old.tip && old.tip.parentNode) old.tip.parentNode.removeChild(old.tip);
+    if(old.markerDiv) old.markerDiv.classList.remove('show-tip');
+    _currentTooltipEl = null;
+  }
+}
+
+/* 點地圖空白處關閉 tooltip — 在 initMap() 完成後由 _attachTooltipDismiss() 呼叫 */
+function _attachTooltipDismiss(){
+  if(window.map){
+    window.map.addListener('click', function(){ closeInspireTooltip(); });
+  }
+}
+
+/* ===================================================
+   [v1.29.0] pinInspireSpot(placeId)
+   PSEUDO:
+   1. 若 placeId 在 _pinnedInspireIds → 取消固定（delete）
+   2. 否則 → 加入 _pinnedInspireIds
+   3. 更新 inspireMarkers 中對應 marker div 的 class（is-pinned）
+   4. 更新 tooltip 內的按鈕文字
+   =================================================== */
+function pinInspireSpot(placeId){
+  if(!placeId) return;
+  var wasPinned = _pinnedInspireIds.has(placeId);
+  if(wasPinned){
+    _pinnedInspireIds.delete(placeId);
+  } else {
+    _pinnedInspireIds.add(placeId);
+  }
+  /* 更新 marker div 的 is-pinned class */
+  inspireMarkers.forEach(function(m){
+    if(m.placeId_ === placeId && m.div_){
+      m.div_.classList.toggle('is-pinned', !wasPinned);
+    }
+  });
+  /* 更新 tooltip 按鈕 */
+  if(_currentTooltipEl && _currentTooltipEl.tip){
+    var btn = _currentTooltipEl.tip.querySelector('.inspire-pin-btn');
+    if(btn){
+      btn.innerText = wasPinned ? '📌 固定' : '📌 已固定';
+      btn.classList.toggle('pinned', !wasPinned);
+    }
+  }
+}
+
+/* ===================================================
+   [v1.29.0] rerollInspireSpots()
+   PSEUDO:
+   1. 取得固定地點資料（從 _currentInspireSpots 過濾）
+   2. 清除所有非固定的 inspire markers（OverlayView.setMap(null)）
+   3. 清除虛線路徑
+   4. 隨機偏移搜尋中心 ±150m（策略 B）
+   5. 重新呼叫 searchInspireSpots() 邏輯
+      → 固定地點直接放入 rawSpots（不受 _usedInspirePlaceIds 排除）
+      → 其餘用 Places API 補缺口（排除 _usedInspirePlaceIds）
+   6. 重新 TSP + 畫虛線，序號重新排列
+   =================================================== */
+async function rerollInspireSpots(){
+  var currentPos = getUserPosition();
+  if(!currentPos){ alert('無法取得目前位置'); return; }
+
+  var btn = document.getElementById('btnRerollInspire');
+  var startBtn = document.getElementById('btnStartFromInspire');
+  if(btn){ btn.disabled = true; btn.innerText = '搜尋中...'; }
+  if(startBtn) startBtn.style.display = 'none';
+  closeInspireTooltip();
+
+  /* ① 取出固定地點資料 */
+  var pinnedSpots = _currentInspireSpots.filter(function(spot){
+    return spot.placeId && _pinnedInspireIds.has(spot.placeId);
+  });
+  var pinnedCount = pinnedSpots.length;
+  /* 需要補的地點數 = 原本地點總數 - 固定數量 */
+  var targetTotal = _currentInspireSpots.length || Object.values(moodCounts).reduce(function(s,v){return s+v;},0);
+  var needCount = Math.max(1, targetTotal - pinnedCount);
+
+  /* ② 清除非固定的 markers */
+  var keptMarkers = [];
+  inspireMarkers.forEach(function(m){
+    if(m.placeId_ && _pinnedInspireIds.has(m.placeId_)){
+      keptMarkers.push(m);
+    } else {
+      m.setMap(null);
+    }
+  });
+  inspireMarkers = keptMarkers;
+
+  /* ③ 清虛線 */
+  if(_inspirePath){ _inspirePath.setMap(null); _inspirePath = null; }
+  _inspireRouteData = [];
+
+  try{
+    var {Place} = await google.maps.importLibrary('places');
+
+    /* ④ 隨機偏移搜尋中心 ±150m（策略 B）
+       PSEUDO: 在 lat/lng 各加 ±(0~150m 轉換成度數) 的隨機偏移
+       150m ≈ 0.00135 度 */
+    var OFFSET_DEG = 0.00135;
+    var offsetLat = (Math.random() * 2 - 1) * OFFSET_DEG;
+    var offsetLng = (Math.random() * 2 - 1) * OFFSET_DEG;
+    var searchCenter = { lat: currentPos.lat + offsetLat, lng: currentPos.lng + offsetLng };
+    var radius = INSPIRE_RADIUS_MAP[inspireDistance] || 550;
+
+    /* ⑤ 收集新地點（扣掉固定地點的配額）
+       PSEUDO: 依各心情 count 按比例補缺口，但總量不超過 needCount */
+    var rawSpots = pinnedSpots.slice(); /* 固定地點先放入 */
+    var allPlacesPool = [];
+    var _seenIds = {};
+    pinnedSpots.forEach(function(s){ if(s.placeId) _seenIds[s.placeId] = true; });
+
+    var activeTags = MOOD_TAGS.filter(function(tag){ return (moodCounts[tag.type]||0) > 0; });
+    var totalMoodCount = activeTags.reduce(function(s,t){ return s + (moodCounts[t.type]||0); }, 0);
+
+    var searchTasks = activeTags.map(async function(tag){
+      /* 按比例分配：該類型佔總數的比例 × needCount，至少 1 個 */
+      var quota = Math.max(1, Math.round((moodCounts[tag.type] / totalMoodCount) * needCount));
+      try{
+        var result = await Place.searchNearby({
+          fields: ['displayName','location','id'],
+          locationRestriction: { center: searchCenter, radius: radius },
+          includedTypes: [tag.type]
+        });
+        var places = result.places || [];
+        places.forEach(function(place){
+          if(!place.location || !place.id) return;
+          /* 排除已固定地點 + 已用過地點（策略 A） */
+          if(_seenIds[place.id]) return;
+          if(_usedInspirePlaceIds.has(place.id)) return;
+          allPlacesPool.push({
+            pos: { lat: place.location.lat(), lng: place.location.lng() },
+            emoji: tag.emoji,
+            name: place.displayName || tag.label,
+            placeId: place.id,
+            quota: quota,
+            type: tag.type
+          });
+        });
+      }catch(err){ console.warn('[Reroll] Places type='+tag.type, err); }
+    });
+    await Promise.all(searchTasks);
+
+    /* 按 type 配額從 allPlacesPool 挑地點 */
+    var typeQuota = {};
+    activeTags.forEach(function(tag){
+      typeQuota[tag.type] = Math.max(1, Math.round((moodCounts[tag.type]/totalMoodCount)*needCount));
+    });
+    var typeFilled = {};
+    allPlacesPool.forEach(function(spot){
+      var qt = typeQuota[spot.type] || 1;
+      var filled = typeFilled[spot.type] || 0;
+      if(filled < qt && rawSpots.length < targetTotal){
+        rawSpots.push(spot);
+        _seenIds[spot.placeId] = true;
+        typeFilled[spot.type] = filled + 1;
+      }
+    });
+
+    if(rawSpots.length === pinnedCount){
+      /* 沒有新地點 */
+      setStatusBar('沒有更多新地點了，試試調整心情', 'var(--status-paused)');
+      setTimeout(function(){ setStatusBar('City Walker','var(--status-idle)'); }, 3000);
+      if(btn){ btn.disabled = false; btn.innerText = '🔄 換一組'; }
+      if(startBtn) startBtn.style.display = 'block';
+      return;
+    }
+
+    /* ⑥ 記錄到累積排除 Set */
+    rawSpots.forEach(function(spot){
+      if(spot.placeId) _usedInspirePlaceIds.add(spot.placeId);
+    });
+    _currentInspireSpots = rawSpots.slice();
+
+    /* ⑦ TSP + 重建 markers（序號重新排列） */
+    var orderedSpots = tspNearestNeighbor(currentPos, rawSpots);
+    _inspireRouteData = orderedSpots;
+
+    /* 清掉原本保留的固定 markers（重新建，序號要更新） */
+    keptMarkers.forEach(function(m){ m.setMap(null); });
+    inspireMarkers = [];
+
+    var bounds = new google.maps.LatLngBounds();
+    bounds.extend(new google.maps.LatLng(currentPos.lat, currentPos.lng));
+    orderedSpots.forEach(function(spot, idx){
+      var overlay = createInspireMarker(spot.pos, spot.emoji, spot.name, idx + 1, spot.placeId);
+      inspireMarkers.push(overlay);
+      bounds.extend(new google.maps.LatLng(spot.pos.lat, spot.pos.lng));
+    });
+
+    map.fitBounds(bounds, { top:80, right:30, bottom:160, left:30 });
+    setStatusBar('✦ 換好了！共 '+inspireMarkers.length+' 個去處', 'var(--status-walking)');
+    setTimeout(function(){ setStatusBar('City Walker','var(--status-idle)'); }, 4000);
+
+    drawInspireRoutePath(currentPos, orderedSpots);
+
+  }catch(err){
+    console.error('[Reroll] 失敗:', err);
+    setStatusBar('換一組失敗，請稍後再試', 'var(--status-paused)');
+    setTimeout(function(){ setStatusBar('City Walker','var(--status-idle)'); }, 3000);
+  }finally{
+    if(btn){ btn.disabled = false; btn.innerText = '🔄 換一組'; }
+    if(startBtn) startBtn.style.display = 'block';
+  }
+}
+
+/* ===================================================
    [v1.26.0] createInspireMarker() — 新增 order badge
+   [v1.29.0] 新增 placeId 參數；點擊顯示含「📌 固定」按鈕的 tooltip
    PSEUDO:
    - order > 0 → 右上角加 Unicode 圈數字 badge
-   - order <= 0 → 不加 badge
+   - 點擊 marker → showInspireTooltip()（包含固定按鈕）
+   - 固定後 badge 變金色（is-pinned class）
    =================================================== */
-function createInspireMarker(pos, emoji, name, order){
+function createInspireMarker(pos, emoji, name, order, placeId){
   var CIRCLE_NUMS = ['①','②','③','④','⑤','⑥','⑦','⑧','⑨','⑩',
                      '⑪','⑫','⑬','⑭','⑮','⑯','⑰','⑱','⑲','⑳'];
-  function InspireOverlay(position, emoji, name, order){
+  function InspireOverlay(position, emoji, name, order, placeId){
     this.position_ = new google.maps.LatLng(position.lat, position.lng);
     this.emoji_ = emoji; this.name_ = name; this.order_ = order || 0;
-    this.div_ = null; this.tipTimer_ = null;
+    this.placeId_ = placeId || '';
+    this.div_ = null;
     this.setMap(map);
   }
   InspireOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
   InspireOverlay.prototype.onAdd = function(){
     var div = document.createElement('div');
     div.className = 'inspire-marker-div';
-    /* [v1.26.0 bugfix] 不設 position:relative，讓 OverlayView 的 draw() 正常定位
-       badge 改用 CSS .inspire-order-badge 的 position:absolute（相對 .inspire-marker-div）
-       .inspire-marker-div 本身由 OverlayView 管理 left/top，position:absolute 已在 CSS 設定 */
+    /* [v1.29.0] 初始固定狀態 */
+    if(this.placeId_ && _pinnedInspireIds.has(this.placeId_)){
+      div.classList.add('is-pinned');
+    }
     div.innerText = this.emoji_;
     /* [v1.26.0] 順序 badge */
     if(this.order_ > 0){
@@ -2761,21 +3064,15 @@ function createInspireMarker(pos, emoji, name, order){
       badge.innerText = this.order_ <= 20 ? CIRCLE_NUMS[this.order_-1] : String(this.order_);
       div.appendChild(badge);
     }
-    /* tooltip */
-    var tip = document.createElement('div');
-    tip.className = 'inspire-tooltip';
-    tip.innerText = this.name_;
-    div.appendChild(tip);
     var self = this;
-    function showTip(e){
+    /* [v1.29.0] 點擊顯示含固定按鈕的 tooltip（取代舊的純文字 tooltip） */
+    function onTap(e){
       if(e.preventDefault) e.preventDefault();
       e.stopPropagation();
-      div.classList.add('show-tip');
-      if(self.tipTimer_) clearTimeout(self.tipTimer_);
-      self.tipTimer_ = setTimeout(function(){ div.classList.remove('show-tip'); }, 3000);
+      showInspireTooltip(div, self.placeId_, self.name_);
     }
-    div.addEventListener('click', showTip);
-    div.addEventListener('touchstart', showTip, {passive:false});
+    div.addEventListener('click', onTap);
+    div.addEventListener('touchstart', onTap, {passive:false});
     this.div_ = div;
     this.getPanes().overlayMouseTarget.appendChild(div);
   };
@@ -2784,10 +3081,9 @@ function createInspireMarker(pos, emoji, name, order){
     if(this.div_ && pt){ this.div_.style.left = pt.x+'px'; this.div_.style.top = pt.y+'px'; }
   };
   InspireOverlay.prototype.onRemove = function(){
-    if(this.tipTimer_) clearTimeout(this.tipTimer_);
     if(this.div_){ this.div_.parentNode.removeChild(this.div_); this.div_ = null; }
   };
-  return new InspireOverlay(pos, emoji, name, order);
+  return new InspireOverlay(pos, emoji, name, order, placeId);
 }
 
 /* [v1.26.0] 暴露全域 */
@@ -2799,6 +3095,11 @@ window.clearInspireMarkers=clearInspireMarkers;
 window.startWalkFromInspire=startWalkFromInspire;
 /* [v1.27.1] */
 window.buildPlaceFreqTable=buildPlaceFreqTable;
+/* [v1.29.0] */
+window.rerollInspireSpots=rerollInspireSpots;
+window.pinInspireSpot=pinInspireSpot;
+window.showInspireTooltip=showInspireTooltip;
+window.closeInspireTooltip=closeInspireTooltip;
 
 /* [新增 v1.21.0] */
 window.onPlaceSearchInput=onPlaceSearchInput;window.clearPlaceSearch=clearPlaceSearch;
