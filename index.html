@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.28.1</title>
+<title>City Walker - v1.28.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -80,7 +80,7 @@ body {
 .modal-content { background:var(--white); width:92%; max-width:400px; border-radius:28px; padding:20px 16px; box-sizing:border-box; max-height:90vh; overflow-y:auto; }
 #memoryCloseBtn { position:absolute; top:16px; right:16px; font-size:22px; color:var(--text-soft); cursor:pointer; padding:4px 8px; border-radius:50%; transition:background 0.2s; }
 #memoryCloseBtn:active { background:var(--bg-warm); }
-.event-marker-div { position:absolute; font-size:28px; cursor:pointer; transform:translate(-50%,-50%); user-select:none; -webkit-user-select:none; pointer-events:auto; z-index:999; }
+.event-marker-div { position:absolute; font-size:20px; cursor:pointer; transform:translate(-50%,-50%); user-select:none; -webkit-user-select:none; pointer-events:auto; z-index:999; }
 
 /* ===================================================
    [改版 v1.28.1] 路線事件 marker 底座圓點
@@ -99,23 +99,28 @@ body {
 }
 
 /* ===================================================
-   [新增 v1.28.1] 解鎖地標 marker
+   [改版 v1.28.2] 解鎖地標 marker — 小房子 emoji
    PSEUDO:
-   - .unlock-marker-div：小實心圓點（10px），半透明
-   - 顏色由 JS 動態寫入（trackColor 或 accent-positive）
-   - 點擊觸發回憶視窗（同 createEventMarker）
+   - 用 emoji 🏠 取代圓點，更有「地標解鎖」的視覺感
+   - 字體小（14px），半透明，不搶走事件 icon 視線
+   - 點擊觸發回憶視窗
    =================================================== */
 .unlock-marker-div {
   position: absolute;
-  width: 10px; height: 10px;
-  border-radius: 50%;
+  font-size: 14px;
   cursor: pointer;
   transform: translate(-50%, -50%);
   pointer-events: auto;
   z-index: 998;
-  opacity: 0.55;
-  transition: opacity 0.2s, transform 0.15s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+  opacity: 0.6;
+  user-select: none;
+  -webkit-user-select: none;
+  filter: grayscale(20%);
+  transition: opacity 0.15s, transform 0.15s;
+}
+.unlock-marker-div:active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.2);
 }
 #colorPicker { position:fixed; top:62px; left:16px; z-index:1300; display:flex; flex-direction:column; align-items:flex-start; gap:8px; }
 #colorToggleBtn { width:38px; height:38px; border-radius:50%; border:3px solid var(--white); box-shadow:0 2px 8px rgba(0,0,0,0.18); cursor:pointer; transition:transform 0.2s; }
@@ -1915,7 +1920,8 @@ function createUnlockMarker(placeId, pos, events, color){
   UnlockOverlay.prototype.onAdd = function(){
     var div = document.createElement('div');
     div.className = 'unlock-marker-div';
-    div.style.background = color;
+    /* [v1.28.2] 改用小房子 emoji 取代圓點，更有「地標解鎖」感 */
+    div.innerText = '🏠';
 
     div.addEventListener('click', function(e){
       e.stopPropagation();
