@@ -2299,6 +2299,8 @@ var _pinnedInspireIds = new Set();
 var _usedInspirePlaceIds = new Set();
 /* [v1.29.0] 目前顯示的靈感地點資料（含固定狀態），供 reroll 用 */
 var _currentInspireSpots = [];
+/* [v1.29.0] 開始漫遊後鎖定 tooltip，走路中點 marker 不彈出固定視窗 */
+var _inspireWalkStarted = false;
 
 function openInspireSheet(){
   moodCounts = {};
@@ -2359,6 +2361,7 @@ function clearInspireMarkers(){
   _currentInspireSpots = [];
   /* [v1.29.0] 清固定 Set（結束靈感規劃時清）；_usedInspirePlaceIds 不清（累積排除） */
   _pinnedInspireIds = new Set();
+  _inspireWalkStarted = false;
   document.getElementById('inspireRouteHint').style.display = 'none';
   document.getElementById('btnStartFromInspire').style.display = 'none';
   /* [v1.29.0] 同步隱藏換一組按鈕 */
@@ -2787,8 +2790,9 @@ function startWalkFromInspire(){
   document.getElementById('inspireRouteHint').style.display = 'none';
   document.getElementById('btnRerollInspire').style.display = 'none';
   closeInspireTooltip();
-  /* [v1.29.0] 開始漫遊時清掉固定 Set */
+  /* [v1.29.0] 開始漫遊時清掉固定 Set，並鎖定 tooltip（走路中不再彈出） */
   _pinnedInspireIds = new Set();
+  _inspireWalkStarted = true;
   /* [v1.26.0 bugfix] 保留 markers + 虛線，讓使用者邊走邊對照
      _inspireRouteData 也保留，未來可做到站打卡功能 */
   startWalk();
@@ -2808,15 +2812,25 @@ var _currentTooltipEl = null; /* 目前顯示的 tooltip DOM element */
 
 function showInspireTooltip(markerDiv, placeId, name){
   closeInspireTooltip(); /* 先關掉上一個 */
-  var isPinned = placeId && _pinnedInspireIds.has(placeId);
   var tip = document.createElement('div');
   tip.className = 'inspire-tooltip';
-  tip.style.cssText = 'opacity:1;pointer-events:auto;white-space:nowrap;';
-  tip.innerHTML =
-    '<div style="font-size:12px;margin-bottom:4px;">' + (name || '') + '</div>' +
-    '<button class="inspire-pin-btn' + (isPinned ? ' pinned' : '') + '" ' +
-    'onclick="event.stopPropagation();pinInspireSpot(\'' + (placeId||'') + '\')">' +
-    (isPinned ? '📌 已固定' : '📌 固定') + '</button>';
+  tip.style.cssText = 'opacity:1;white-space:nowrap;';
+
+  if(_inspireWalkStarted){
+    /* [v1.29.1] 走路中：只顯示地點名稱，不顯示固定按鈕 */
+    tip.innerHTML = '<div style="font-size:12px;">' + (name || '') + '</div>';
+    tip.style.pointerEvents = 'none';
+  } else {
+    /* 規劃中：顯示名稱 + 固定按鈕 */
+    var isPinned = placeId && _pinnedInspireIds.has(placeId);
+    tip.style.pointerEvents = 'auto';
+    tip.innerHTML =
+      '<div style="font-size:12px;margin-bottom:4px;">' + (name || '') + '</div>' +
+      '<button class="inspire-pin-btn' + (isPinned ? ' pinned' : '') + '" ' +
+      'onclick="event.stopPropagation();pinInspireSpot(\'' + (placeId||'') + '\')">' +
+      (isPinned ? '📌 已固定' : '📌 固定') + '</button>';
+  }
+
   /* 插入 marker div 作為子元素（讓它跟著 marker 走） */
   markerDiv.appendChild(tip);
   markerDiv.classList.add('show-tip');
