@@ -1856,22 +1856,342 @@ function clearLoadedRoute(){
 async function deleteRecord(e,id){e.stopPropagation();if(!confirm('確定要刪除嗎？'))return;var data=window.currentDocs&&window.currentDocs.find(function(d){return d.id===id;});if(data&&data.events&&window.storage&&window.storageApi){var storageDeletes=[];data.events.forEach(function(ev){if(ev.photoUrl&&ev.photoUrl.startsWith('https://')){try{var fileRef=window.storageApi.ref(window.storage,ev.photoUrl);storageDeletes.push(window.storageApi.deleteObject(fileRef).catch(function(err){console.warn('[Storage] 照片刪除失敗:',err);}));}catch(err){console.warn('[Storage] ref 建立失敗:',err);}}});if(storageDeletes.length>0)await Promise.all(storageDeletes);}try{var pathColRef=window.api.collection(window.db,'walk_records',id,'path_points');var pathSnap=await window.api.getDocs(pathColRef);var chunkDeletes=[];pathSnap.forEach(function(chunkDoc){chunkDeletes.push(window.api.deleteDoc(chunkDoc.ref));});if(chunkDeletes.length>0)await Promise.all(chunkDeletes);}catch(err){console.warn('[deleteRecord] 清理 path_points 失敗:',err);}await window.api.deleteDoc(window.api.doc(window.db,'walk_records',id));fetchRecords();}
 async function togglePin(e,id,status){e.stopPropagation();await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPinned:!status});fetchRecords();}
 
-async function openShareCard(e,id){e.stopPropagation();var data=window.currentDocs.find(function(d){return d.id===id;});if(!data)return;window._shareCardData=data;window._shareCardPhotoIndex=0;var photoUrls=[];if(data.events){data.events.forEach(function(ev){if(ev.photoUrl)photoUrls.push(ev.photoUrl);});}document.getElementById('shareCardModal').style.display='flex';var canvas=document.getElementById('shareCardCanvas');canvas.width=1080;canvas.height=1350;var ctx=canvas.getContext('2d');ctx.fillStyle='#F5F0E8';ctx.fillRect(0,0,1080,1350);ctx.fillStyle='#8FB9A8';ctx.font='bold 52px Arial';ctx.textAlign='center';ctx.fillText('生成卡片中...',540,675);ctx.textAlign='left';if(photoUrls.length>0){var loadedImgs=await Promise.all(photoUrls.map(function(url){return new Promise(function(resolve){var img=new Image();img.crossOrigin='anonymous';img.onload=function(){resolve(img);};img.onerror=function(){resolve(null);};img.src=url;});}));window._shareCardPhotos=loadedImgs.filter(function(img){return img!==null;});}else{window._shareCardPhotos=[];}var hint=document.getElementById('sharePhotoHint');if(window._shareCardPhotos.length>1){hint.style.display='block';document.getElementById('sharePhotoIndex').innerText='1 / '+window._shareCardPhotos.length;}else{hint.style.display='none';}generateShareCard(data,0);}
-function cycleSharePhoto(){var photos=window._shareCardPhotos;if(!photos||photos.length<=1)return;var data=window._shareCardData;if(!data)return;window._shareCardPhotoIndex=(window._shareCardPhotoIndex+1)%photos.length;var idx=window._shareCardPhotoIndex;document.getElementById('sharePhotoIndex').innerText=(idx+1)+' / '+photos.length;generateShareCard(data,idx);}
-function closeShareCard(){document.getElementById('shareCardModal').style.display='none';}
-function downloadShareCard(){var canvas=document.getElementById('shareCardCanvas');var link=document.createElement('a');link.download='citywalk-'+(window._shareCardData&&window._shareCardData.city||'route')+'.png';link.href=canvas.toDataURL('image/png');link.click();}
-function generateShareCard(data,photoIndex){
-  window._shareCardData=data;var canvas=document.getElementById('shareCardCanvas');var W=1080,H=1350;canvas.width=W;canvas.height=H;var ctx=canvas.getContext('2d');var BG='#F5F0E8',DARK='#2C2C2C',GREEN='#8FB9A8',SOFT='#7D7D7D',WHITE='#FFFFFF';
-  ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);ctx.fillStyle=DARK;ctx.fillRect(0,0,W,120);ctx.fillStyle=WHITE;ctx.font='bold 44px "Arial", sans-serif';ctx.letterSpacing='6px';ctx.fillText('CITY WALKER',60,78);ctx.font='28px "Arial", sans-serif';ctx.fillStyle=GREEN;ctx.textAlign='right';ctx.fillText('✦ city walk',W-60,78);ctx.textAlign='left';
-  var pts=data.path;if(pts&&pts.length>1){var minLat=pts[0].lat,maxLat=pts[0].lat,minLng=pts[0].lng,maxLng=pts[0].lng;pts.forEach(function(p){if(p.lat<minLat)minLat=p.lat;if(p.lat>maxLat)maxLat=p.lat;if(p.lng<minLng)minLng=p.lng;if(p.lng>maxLng)maxLng=p.lng;});var PAD=80,TX=PAD,TY=160,TW=W-PAD*2,TH=620;var latRange=maxLat-minLat||0.001,lngRange=maxLng-minLng||0.001;var scale=Math.min(TW/lngRange,TH/latRange)*0.85;var offX=TX+(TW-lngRange*scale)/2,offY=TY+(TH-latRange*scale)/2;function toX(lng){return offX+(lng-minLng)*scale;}function toY(lat){return offY+(maxLat-lat)*scale;}ctx.beginPath();ctx.moveTo(toX(pts[0].lng),toY(pts[0].lat));pts.forEach(function(p){ctx.lineTo(toX(p.lng),toY(p.lat));});ctx.strokeStyle=data.trackColor||GREEN;ctx.lineWidth=8;ctx.lineCap='round';ctx.lineJoin='round';ctx.globalAlpha=0.9;ctx.stroke();ctx.globalAlpha=1;ctx.beginPath();ctx.arc(toX(pts[0].lng),toY(pts[0].lat),14,0,Math.PI*2);ctx.fillStyle=WHITE;ctx.fill();ctx.strokeStyle=data.trackColor||GREEN;ctx.lineWidth=5;ctx.stroke();var last=pts[pts.length-1];ctx.beginPath();ctx.arc(toX(last.lng),toY(last.lat),14,0,Math.PI*2);ctx.fillStyle=data.trackColor||GREEN;ctx.fill();if(data.events){data.events.forEach(function(ev){if(!ev.pos)return;var ex=toX(ev.pos.lng),ey=toY(ev.pos.lat);ctx.font='32px serif';ctx.textAlign='center';ctx.fillText(ev.icon||'📍',ex,ey-8);ctx.textAlign='left';});}}
-  ctx.strokeStyle=DARK;ctx.globalAlpha=0.12;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(60,820);ctx.lineTo(W-60,820);ctx.stroke();ctx.globalAlpha=1;
-  var dateStr=data.createdAt&&data.createdAt.seconds?new Date(data.createdAt.seconds*1000).toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'}):new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit'});
-  ctx.fillStyle=DARK;ctx.font='bold 52px "Arial", sans-serif';ctx.fillText(data.city||'未知城市',60,900);ctx.fillStyle=SOFT;ctx.font='32px "Arial", sans-serif';ctx.fillText(dateStr,60,950);ctx.fillStyle=DARK;ctx.font='bold 40px "Arial", sans-serif';ctx.fillText('👣  '+(data.distance||0).toFixed(2)+' km',60,1030);ctx.fillText('⏱  '+(data.duration||'—'),420,1030);
-  var seenPlaces={},placeNames=[];if(data.events){data.events.forEach(function(ev){if(ev.placeName&&!seenPlaces[ev.placeName]&&placeNames.length<3){seenPlaces[ev.placeName]=true;var short=ev.placeName.length>12?ev.placeName.slice(0,12)+'...':ev.placeName;placeNames.push(short);}});}if(placeNames.length>0){ctx.fillStyle=SOFT;ctx.font='30px "Arial", sans-serif';placeNames.forEach(function(name,i){ctx.fillText('📍  '+name,60,1075+i*52);});}
-  var photos=window._shareCardPhotos||[];var idx=(typeof photoIndex==='number'&&photoIndex>=0)?photoIndex:0;var selectedImg=photos[idx]||null;
-  if(selectedImg){var photoW=260,photoH=260,photoPad=16;var px=W-60-photoW-photoPad*2,py=H-90-photoH-photoPad*3;var rot=-2.5*Math.PI/180;ctx.save();ctx.translate(px+(photoW+photoPad*2)/2,py+(photoH+photoPad*3)/2);ctx.rotate(rot);ctx.shadowColor='rgba(0,0,0,0.22)';ctx.shadowBlur=18;ctx.fillStyle=WHITE;ctx.fillRect(-(photoW/2+photoPad),-(photoH/2+photoPad),photoW+photoPad*2,photoH+photoPad*3);ctx.shadowBlur=0;ctx.drawImage(selectedImg,-photoW/2,-(photoH/2+photoPad)+photoPad,photoW,photoH);ctx.restore();}
-  ctx.fillStyle=DARK;ctx.globalAlpha=0.5;ctx.font='26px "Arial", sans-serif';ctx.textAlign='center';ctx.fillText(data.name||'',W/2,H-36);ctx.textAlign='left';ctx.globalAlpha=1;
+/* ===================================================
+   [v1.30.0] 分享卡片系統 — 重新設計
+   版面：
+   - Header (180px)：城市 · km · 時長（深色橫幅）
+   - Middle (900px)：Static Maps 灰階底圖 + 路線 overlay + 事件 icon
+   - Bottom (270px)：路線名稱 + City Walker 品牌
+   技術：
+   - Static Maps scale=2 (540x450 → 實際 1080x900)，灰階，隱藏 label
+   - Canvas Mercator 座標轉換，在底圖上繪製路線
+   - CORS 失敗 → fallback 抽象格線路線
+   =================================================== */
+
+/* PSEUDO: Mercator 投影輔助，lat/lng → Static Maps 圖片座標 */
+function _mercX(lng){ return (lng + 180) / 360; }
+function _mercY(lat){
+  var s = Math.sin(lat * Math.PI / 180);
+  return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI);
 }
+function _latLngToImgPx(lat, lng, cLat, cLng, zoom, imgW, imgH){
+  var scale = 256 * Math.pow(2, zoom);
+  var cx = _mercX(cLng)*scale, cy = _mercY(cLat)*scale;
+  var px = _mercX(lng)*scale,  py = _mercY(lat)*scale;
+  return { x: imgW/2 + (px - cx), y: imgH/2 + (py - cy) };
+}
+/* PSEUDO: 找最大 zoom 讓所有點都在圖內（含 padding） */
+function _calcBestZoom(pts, imgW, imgH, pad){
+  for(var z = 17; z >= 1; z--){
+    var scale = 256 * Math.pow(2, z);
+    var xs = pts.map(function(p){ return _mercX(p.lng)*scale; });
+    var ys = pts.map(function(p){ return _mercY(p.lat)*scale; });
+    var w = Math.max.apply(null,xs) - Math.min.apply(null,xs);
+    var h = Math.max.apply(null,ys) - Math.min.apply(null,ys);
+    if(w <= imgW-pad*2 && h <= imgH-pad*2) return z;
+  }
+  return 12;
+}
+
+async function openShareCard(e, id){
+  e.stopPropagation();
+  var data = window.currentDocs.find(function(d){ return d.id === id; });
+  if(!data) return;
+
+  /* ① 顯示 Modal + loading */
+  document.getElementById('shareCardModal').style.display = 'flex';
+  var canvas = document.getElementById('shareCardCanvas');
+  canvas.width = 1080; canvas.height = 1350;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#EBEBEB'; ctx.fillRect(0, 0, 1080, 1350);
+  ctx.fillStyle = '#8FB9A8'; ctx.font = 'bold 44px Arial';
+  ctx.textAlign = 'center'; ctx.fillText('生成卡片中...', 540, 675);
+  ctx.textAlign = 'left';
+
+  window._shareCardData = data;
+  window._shareCardPhotoIndex = 0;
+
+  /* ② 撈路徑 subcollection（v1.27+ 路徑存 subcollection，data.path 為空） */
+  var pts = [];
+  if(data.path && data.path.length > 0){
+    pts = data.path;
+  } else {
+    try{
+      var pathColRef = window.api.collection(window.db, 'walk_records', id, 'path_points');
+      var pathSnap   = await window.api.getDocs(pathColRef);
+      var chunks = [];
+      pathSnap.forEach(function(d){ chunks.push(d.data()); });
+      chunks.sort(function(a,b){ return a.index - b.index; });
+      chunks.forEach(function(c){ if(c.points) pts = pts.concat(c.points); });
+    }catch(err){ console.warn('[shareCard] 路徑撈取失敗:', err); }
+  }
+  window._shareCardPts = pts;
+
+  /* ③ 預載事件照片 */
+  var photoUrls = [];
+  if(data.events) data.events.forEach(function(ev){ if(ev.photoUrl) photoUrls.push(ev.photoUrl); });
+  if(photoUrls.length > 0){
+    var imgs = await Promise.all(photoUrls.map(function(url){
+      return new Promise(function(resolve){
+        var img = new Image(); img.crossOrigin = 'anonymous';
+        img.onload = function(){ resolve(img); };
+        img.onerror = function(){ resolve(null); };
+        img.src = url;
+      });
+    }));
+    window._shareCardPhotos = imgs.filter(Boolean);
+  } else {
+    window._shareCardPhotos = [];
+  }
+
+  var hint = document.getElementById('sharePhotoHint');
+  if(window._shareCardPhotos.length > 1){
+    hint.style.display = 'block';
+    document.getElementById('sharePhotoIndex').innerText = '1 / ' + window._shareCardPhotos.length;
+  } else {
+    hint.style.display = 'none';
+  }
+
+  generateShareCard(data, 0);
+}
+
+function cycleSharePhoto(){
+  var photos = window._shareCardPhotos;
+  if(!photos || photos.length <= 1) return;
+  var data = window._shareCardData; if(!data) return;
+  window._shareCardPhotoIndex = (window._shareCardPhotoIndex + 1) % photos.length;
+  var idx = window._shareCardPhotoIndex;
+  document.getElementById('sharePhotoIndex').innerText = (idx+1) + ' / ' + photos.length;
+  generateShareCard(data, idx);
+}
+function closeShareCard(){ document.getElementById('shareCardModal').style.display = 'none'; }
+function downloadShareCard(){
+  var canvas = document.getElementById('shareCardCanvas');
+  var link = document.createElement('a');
+  link.download = 'citywalk-' + (window._shareCardData && window._shareCardData.city || 'route') + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+async function generateShareCard(data, photoIndex){
+  window._shareCardData = data;
+  var canvas = document.getElementById('shareCardCanvas');
+  var W = 1080, H = 1350;
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+
+  var DARK  = '#1C1C1C', WHITE = '#FFFFFF';
+  var CREAM = '#F5F2EC', SOFT  = '#888888';
+  var GREEN = data.trackColor || '#8FB9A8';
+
+  /* 版面分區 */
+  var HEADER_H = 180;
+  var MAP_Y    = HEADER_H;
+  var MAP_H    = 900;
+  var BOTTOM_Y = MAP_Y + MAP_H;   /* = 1080 */
+  var BOTTOM_H = H - BOTTOM_Y;   /* = 270 */
+
+  /* ═══ 1. Header ═══ */
+  ctx.fillStyle = DARK;
+  ctx.fillRect(0, 0, W, HEADER_H);
+
+  ctx.fillStyle = WHITE;
+  ctx.font = 'bold 56px "Arial", sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(data.city || '未知城市', 56, 82);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.62)';
+  ctx.font = '33px "Arial", sans-serif';
+  ctx.fillText('👣 ' + (data.distance||0).toFixed(2) + ' km   ⏱ ' + (data.duration||'—'), 56, 140);
+
+  var dateStr = data.createdAt && data.createdAt.seconds
+    ? new Date(data.createdAt.seconds*1000).toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'})
+    : '';
+  ctx.fillStyle = 'rgba(255,255,255,0.38)';
+  ctx.font = '28px "Arial", sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText(dateStr, W - 56, 82);
+  ctx.textAlign = 'left';
+
+  /* ═══ 2. Middle — 地圖 + 路線 ═══ */
+  var pts = window._shareCardPts || [];
+
+  /* Fallback 灰底（Static Maps 載入前 / CORS 失敗時） */
+  ctx.fillStyle = '#E8E8E8';
+  ctx.fillRect(0, MAP_Y, W, MAP_H);
+
+  if(pts.length > 1){
+    var lats = pts.map(function(p){ return p.lat; });
+    var lngs = pts.map(function(p){ return p.lng; });
+    var cLat = (Math.max.apply(null,lats) + Math.min.apply(null,lats)) / 2;
+    var cLng = (Math.max.apply(null,lngs) + Math.min.apply(null,lngs)) / 2;
+    var zoom = _calcBestZoom(pts, W, MAP_H, 80);
+
+    var MAPS_KEY = 'AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
+    /* 灰階無標籤樣式 */
+    var styleParams = [
+      'style=feature:all|element:geometry|saturation:-100|lightness:8',
+      'style=feature:all|element:labels|visibility:off',
+      'style=feature:road|element:geometry|lightness:55',
+      'style=feature:water|element:geometry|lightness:-15',
+      'style=feature:poi|visibility:off',
+      'style=feature:transit|visibility:off'
+    ].join('&');
+
+    var staticUrl =
+      'https://maps.googleapis.com/maps/api/staticmap?' +
+      'center=' + cLat + ',' + cLng +
+      '&zoom=' + zoom +
+      '&size=540x450&scale=2' +
+      '&maptype=roadmap' +
+      '&' + styleParams +
+      '&key=' + MAPS_KEY;
+
+    try{
+      var mapImg = await new Promise(function(resolve, reject){
+        var img = new Image(); img.crossOrigin = 'anonymous';
+        img.onload  = function(){ resolve(img); };
+        img.onerror = function(err){ reject(err); };
+        img.src = staticUrl;
+      });
+      ctx.drawImage(mapImg, 0, MAP_Y, W, MAP_H);
+
+      /* 路線主體 */
+      ctx.beginPath();
+      pts.forEach(function(p, i){
+        var px = _latLngToImgPx(p.lat, p.lng, cLat, cLng, zoom, W, MAP_H);
+        px.y += MAP_Y;
+        i === 0 ? ctx.moveTo(px.x, px.y) : ctx.lineTo(px.x, px.y);
+      });
+      ctx.strokeStyle = GREEN; ctx.lineWidth = 10;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.globalAlpha = 0.92; ctx.stroke(); ctx.globalAlpha = 1;
+
+      /* 起點白圈 */
+      var sp = _latLngToImgPx(pts[0].lat, pts[0].lng, cLat, cLng, zoom, W, MAP_H);
+      sp.y += MAP_Y;
+      ctx.beginPath(); ctx.arc(sp.x, sp.y, 16, 0, Math.PI*2);
+      ctx.fillStyle = WHITE; ctx.fill();
+      ctx.strokeStyle = GREEN; ctx.lineWidth = 5; ctx.stroke();
+
+      /* 終點實心圈 */
+      var ep = _latLngToImgPx(pts[pts.length-1].lat, pts[pts.length-1].lng, cLat, cLng, zoom, W, MAP_H);
+      ep.y += MAP_Y;
+      ctx.beginPath(); ctx.arc(ep.x, ep.y, 16, 0, Math.PI*2);
+      ctx.fillStyle = GREEN; ctx.fill();
+
+      /* 事件 icon */
+      if(data.events){
+        ctx.font = '34px serif'; ctx.textAlign = 'center';
+        data.events.forEach(function(ev){
+          if(!ev.pos) return;
+          var ip = _latLngToImgPx(ev.pos.lat, ev.pos.lng, cLat, cLng, zoom, W, MAP_H);
+          ip.y += MAP_Y;
+          ctx.fillText(ev.icon || '📍', ip.x, ip.y - 10);
+        });
+        ctx.textAlign = 'left';
+      }
+
+    }catch(corsErr){
+      console.warn('[shareCard] Static Maps 失敗，用抽象路線:', corsErr);
+      _drawAbstractRoute(ctx, pts, GREEN, MAP_Y, W, MAP_H, data.events);
+    }
+  } else {
+    _drawAbstractRoute(ctx, pts, GREEN, MAP_Y, W, MAP_H, data.events);
+  }
+
+  /* 地圖底部漸層遮罩 */
+  var grad = ctx.createLinearGradient(0, BOTTOM_Y - 80, 0, BOTTOM_Y);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.15)');
+  ctx.fillStyle = grad; ctx.fillRect(0, BOTTOM_Y - 80, W, 80);
+
+  /* ═══ 3. Bottom ═══ */
+  ctx.fillStyle = CREAM;
+  ctx.fillRect(0, BOTTOM_Y, W, BOTTOM_H);
+  ctx.strokeStyle = 'rgba(0,0,0,0.07)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(0, BOTTOM_Y); ctx.lineTo(W, BOTTOM_Y); ctx.stroke();
+
+  /* 路線名稱 */
+  ctx.fillStyle = DARK;
+  ctx.font = 'bold 52px "Arial", sans-serif';
+  ctx.textAlign = 'center';
+  var rn = data.name || '未命名路線';
+  while(ctx.measureText(rn).width > W - 100 && rn.length > 0) rn = rn.slice(0,-1);
+  if(rn !== (data.name||'未命名路線')) rn += '...';
+  ctx.fillText(rn, W/2, BOTTOM_Y + 84);
+
+  /* City Walker 品牌 */
+  ctx.fillStyle = SOFT;
+  ctx.font = '28px "Arial", sans-serif';
+  ctx.fillText('✦  CITY WALKER', W/2, BOTTOM_Y + 144);
+
+  /* 事件數量 chip（roundRect polyfill for older browsers） */
+  if(data.events && data.events.length > 0){
+    var chipTxt = '📸 ' + data.events.length + ' 個記憶';
+    ctx.font = '26px "Arial", sans-serif';
+    var chipW = ctx.measureText(chipTxt).width + 44;
+    var chipX = W/2 - chipW/2, chipY2 = BOTTOM_Y + 170, chipR = 23;
+    ctx.fillStyle = 'rgba(143,185,168,0.2)';
+    ctx.beginPath();
+    if(ctx.roundRect){
+      ctx.roundRect(chipX, chipY2, chipW, 46, chipR);
+    } else {
+      /* polyfill：手動畫圓角矩形 */
+      ctx.moveTo(chipX+chipR, chipY2);
+      ctx.lineTo(chipX+chipW-chipR, chipY2);
+      ctx.arcTo(chipX+chipW, chipY2, chipX+chipW, chipY2+chipR, chipR);
+      ctx.lineTo(chipX+chipW, chipY2+46-chipR);
+      ctx.arcTo(chipX+chipW, chipY2+46, chipX+chipW-chipR, chipY2+46, chipR);
+      ctx.lineTo(chipX+chipR, chipY2+46);
+      ctx.arcTo(chipX, chipY2+46, chipX, chipY2+46-chipR, chipR);
+      ctx.lineTo(chipX, chipY2+chipR);
+      ctx.arcTo(chipX, chipY2, chipX+chipR, chipY2, chipR);
+      ctx.closePath();
+    }
+    ctx.fill();
+    ctx.fillStyle = '#5A8A7A';
+    ctx.fillText(chipTxt, W/2, BOTTOM_Y + 202);
+  }
+
+  ctx.textAlign = 'left';
+}
+
+/* PSEUDO: CORS fallback — 抽象格線背景 + 路線繪製 */
+function _drawAbstractRoute(ctx, pts, color, mapY, W, mapH, events){
+  ctx.fillStyle = '#EBEBEB'; ctx.fillRect(0, mapY, W, mapH);
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1;
+  for(var gx=0; gx<W; gx+=80){
+    ctx.beginPath(); ctx.moveTo(gx,mapY); ctx.lineTo(gx,mapY+mapH); ctx.stroke();
+  }
+  for(var gy=mapY; gy<mapY+mapH; gy+=80){
+    ctx.beginPath(); ctx.moveTo(0,gy); ctx.lineTo(W,gy); ctx.stroke();
+  }
+  if(!pts || pts.length < 2) return;
+  var lats=pts.map(function(p){return p.lat;}), lngs=pts.map(function(p){return p.lng;});
+  var minLat=Math.min.apply(null,lats),maxLat=Math.max.apply(null,lats);
+  var minLng=Math.min.apply(null,lngs),maxLng=Math.max.apply(null,lngs);
+  var PAD=80,latR=maxLat-minLat||0.001,lngR=maxLng-minLng||0.001;
+  var sc=Math.min((W-PAD*2)/lngR,(mapH-PAD*2)/latR)*0.85;
+  var offX=PAD+(W-PAD*2-lngR*sc)/2, offY=mapY+PAD+(mapH-PAD*2-latR*sc)/2;
+  function tx(lng){return offX+(lng-minLng)*sc;}
+  function ty(lat){return offY+(maxLat-lat)*sc;}
+  ctx.beginPath();
+  pts.forEach(function(p,i){i===0?ctx.moveTo(tx(p.lng),ty(p.lat)):ctx.lineTo(tx(p.lng),ty(p.lat));});
+  ctx.strokeStyle=color; ctx.lineWidth=10; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.globalAlpha=0.88; ctx.stroke(); ctx.globalAlpha=1;
+  ctx.beginPath(); ctx.arc(tx(pts[0].lng),ty(pts[0].lat),16,0,Math.PI*2);
+  ctx.fillStyle='#FFF'; ctx.fill(); ctx.strokeStyle=color; ctx.lineWidth=5; ctx.stroke();
+  var ep=pts[pts.length-1];
+  ctx.beginPath(); ctx.arc(tx(ep.lng),ty(ep.lat),16,0,Math.PI*2);
+  ctx.fillStyle=color; ctx.fill();
+  if(events){
+    ctx.font='34px serif'; ctx.textAlign='center';
+    events.forEach(function(ev){if(!ev.pos)return;ctx.fillText(ev.icon||'📍',tx(ev.pos.lng),ty(ev.pos.lat)-10);});
+    ctx.textAlign='left';
+  }
+}
+
 
 /* ===================================================
    [新增 v1.28.1] 解鎖地標系統
