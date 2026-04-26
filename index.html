@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.29.0</title>
+<title>City Walker - v1.31.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -411,6 +411,27 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
   overflow:hidden; cursor:pointer; background:#222;
   display:none;
 }
+
+/* [v1.31.1] 換頁動畫用的兩個卡片 slot */
+.explore-card-slot {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  will-change:transform;
+}
+.explore-card-slot.slide-out-up {
+  animation: exploreSlideOutUp 0.28s ease-out forwards;
+}
+.explore-card-slot.slide-in-up {
+  animation: exploreSlideInUp 0.28s ease-out forwards;
+}
+@keyframes exploreSlideOutUp {
+  from { transform: translateY(0); opacity:1; }
+  to   { transform: translateY(-100%); opacity:0.4; }
+}
+@keyframes exploreSlideInUp {
+  from { transform: translateY(100%); opacity:0.5; }
+  to   { transform: translateY(0); opacity:1; }
+}
+
 /* 地圖 canvas */
 #exploreMapCanvas {
   position:absolute; top:0; left:0;
@@ -423,7 +444,34 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
 }
 #explorePhotoWrap.hidden { display:none; }
 #explorePhotoImg { width:100%; height:100%; object-fit:cover; }
-/* 事件文字覆蓋層 */
+
+/* [v1.31.1] 照片+文字共存：文字套印在照片中下區塊 */
+#explorePhotoTextOverlay {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:32px 18px 20px;
+  background:linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0) 100%);
+  display:none;
+}
+#explorePhotoTextOverlay.show { display:block; }
+#explorePhotoTextStr {
+  font-family:'Caveat','Microsoft JhengHei',sans-serif;
+  font-size:20px; color:rgba(255,255,255,0.88);
+  line-height:1.5; text-shadow:0 1px 4px rgba(0,0,0,0.5);
+}
+
+/* [v1.31.1] 事件照片右上角地標名稱 badge */
+#explorePhotoBadge {
+  position:absolute; top:14px; right:14px;
+  background:rgba(0,0,0,0.48); color:rgba(255,255,255,0.9);
+  font-size:11px; letter-spacing:0.5px;
+  padding:4px 10px; border-radius:20px;
+  backdrop-filter:blur(4px);
+  display:none; max-width:55%; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis;
+}
+#explorePhotoBadge.show { display:block; }
+
+/* 事件文字覆蓋層（只有文字，無照片） */
 #exploreTextWrap {
   position:absolute; top:0; left:0; right:0; bottom:0;
   display:flex; flex-direction:column;
@@ -1112,7 +1160,15 @@ getRedirectResult(auth).then(function(result){
   <div id="exploreNoGpsHint" style="display:none;"></div>
   <div id="exploreCardWrap" onclick="cycleExploreView()">
     <canvas id="exploreMapCanvas"></canvas>
-    <div id="explorePhotoWrap" class="hidden"><img id="explorePhotoImg" src="" alt=""></div>
+    <div id="explorePhotoWrap" class="hidden">
+      <img id="explorePhotoImg" src="" alt="">
+      <!-- [v1.31.1] 照片+文字共存：套印在中下 -->
+      <div id="explorePhotoTextOverlay">
+        <div id="explorePhotoTextStr"></div>
+      </div>
+      <!-- [v1.31.1] 右上角地標名稱 badge -->
+      <div id="explorePhotoBadge"></div>
+    </div>
     <div id="exploreTextWrap" class="hidden">
       <div id="exploreTextIcon">📝</div>
       <div id="exploreTextContent"></div>
@@ -2571,11 +2627,35 @@ async function showExploreCard(index){
   document.getElementById('exploreCardMeta').innerText =
     '👣 '+(data.distance||0).toFixed(2)+' km'+(data.duration ? '   ⏱ '+data.duration : '');
 
-  /* build view sequence */
-  _exploreViews = ['map'];
+  /* [v1.31.1] 建立視圖序列（事件級別物件）
+     PSEUDO:
+     - 每個事件依其內容決定視圖類型：
+       有 photoUrl             → type:'photo'，顯示照片
+       有 photoUrl + text      → type:'photo'，照片上套印文字
+       只有 text（無 photoUrl）→ type:'text'，深藍背景文字視圖
+     - 地圖視圖永遠是第一個 */
+  _exploreViews = [{ type:'map' }];
   if(data.events){
-    data.events.forEach(function(ev){ if(ev.photoUrl) _exploreViews.push('photo:'+ev.photoUrl); });
-    data.events.forEach(function(ev){ if(ev.text) _exploreViews.push('text:'+(ev.icon||'📝')+':'+ev.text); });
+    data.events.forEach(function(ev){
+      if(ev.photoUrl){
+        /* 有照片（含或不含文字） */
+        _exploreViews.push({
+          type: 'photo',
+          photoUrl:  ev.photoUrl,
+          text:      ev.text || '',
+          icon:      ev.icon || '📝',
+          placeName: ev.placeName || ''
+        });
+      } else if(ev.text){
+        /* 只有文字，無照片 */
+        _exploreViews.push({
+          type:      'text',
+          text:      ev.text,
+          icon:      ev.icon || '📝',
+          placeName: ev.placeName || ''
+        });
+      }
+    });
   }
 
   /* fetch path */
@@ -2666,26 +2746,55 @@ function _drawExploreAbstract(ctx,W,H,color){
 function _showExploreMap(){
   document.getElementById('explorePhotoWrap').classList.add('hidden');
   document.getElementById('exploreTextWrap').classList.add('hidden');
+  /* 清掉照片 overlay */
+  document.getElementById('explorePhotoTextOverlay').classList.remove('show');
+  document.getElementById('explorePhotoBadge').classList.remove('show');
 }
 
 function cycleExploreView(){
   if(_exploreViews.length <= 1) return;
   _exploreViewIdx = (_exploreViewIdx + 1) % _exploreViews.length;
   var view = _exploreViews[_exploreViewIdx];
-  if(view === 'map'){
-    _showExploreMap(); _showExploreViewHint('🗺 路線地圖');
-  } else if(view.startsWith('photo:')){
-    var url = view.slice(6);
-    document.getElementById('explorePhotoImg').src = url;
+
+  if(view.type === 'map'){
+    /* 地圖視圖 */
+    _showExploreMap();
+    _showExploreViewHint('🗺 路線地圖');
+
+  } else if(view.type === 'photo'){
+    /* 照片視圖 */
+    document.getElementById('explorePhotoImg').src = view.photoUrl;
     document.getElementById('explorePhotoWrap').classList.remove('hidden');
     document.getElementById('exploreTextWrap').classList.add('hidden');
-    var total=_exploreViews.filter(function(v){return v.startsWith('photo:');}).length;
-    var cur=_exploreViews.slice(0,_exploreViewIdx+1).filter(function(v){return v.startsWith('photo:');}).length;
-    _showExploreViewHint('📸 '+cur+' / '+total);
-  } else if(view.startsWith('text:')){
-    var parts=view.split(':'); var icon=parts[1]||'📝'; var content=parts.slice(2).join(':');
-    document.getElementById('exploreTextIcon').innerText=icon;
-    document.getElementById('exploreTextContent').innerText=content;
+
+    /* [v1.31.1] 照片 + 文字：套印在中下區塊 */
+    var textOverlay = document.getElementById('explorePhotoTextOverlay');
+    var textStr     = document.getElementById('explorePhotoTextStr');
+    if(view.text){
+      textStr.innerText = view.text;
+      textOverlay.classList.add('show');
+    } else {
+      textOverlay.classList.remove('show');
+    }
+
+    /* [v1.31.1] 右上角地標 badge */
+    var badge = document.getElementById('explorePhotoBadge');
+    if(view.placeName){
+      badge.innerText = '📍 ' + view.placeName;
+      badge.classList.add('show');
+    } else {
+      badge.classList.remove('show');
+    }
+
+    /* 照片計數提示 */
+    var photoViews = _exploreViews.filter(function(v){ return v.type === 'photo'; });
+    var cur = _exploreViews.slice(0, _exploreViewIdx + 1).filter(function(v){ return v.type === 'photo'; }).length;
+    _showExploreViewHint('📸 ' + cur + ' / ' + photoViews.length);
+
+  } else if(view.type === 'text'){
+    /* 純文字視圖（無照片） */
+    document.getElementById('exploreTextIcon').innerText    = view.icon || '📝';
+    document.getElementById('exploreTextContent').innerText = view.text;
     document.getElementById('exploreTextWrap').classList.remove('hidden');
     document.getElementById('explorePhotoWrap').classList.add('hidden');
     _showExploreViewHint('💬 事件記錄');
@@ -2699,7 +2808,64 @@ function _showExploreViewHint(text){
   _exploreHintTimer=setTimeout(function(){el.classList.remove('show');},1500);
 }
 
-function nextExploreCard(){ showExploreCard(_exploreIndex+1); }
+/* [v1.31.1] 換頁動畫
+   PSEUDO:
+   1. 複製目前卡片內容到 slot A（舊卡），套 slide-out-up 動畫
+   2. 呼叫 showExploreCard(index+1) 在 slot B（新卡）渲染，套 slide-in-up 動畫
+   3. 動畫結束（280ms）後移除 slot A
+   實作：用兩個 .explore-card-slot div 疊在 #exploreCardWrap 內
+   但 canvas 無法直接複製，改用 snapshot（toDataURL）貼到 img 作為舊卡背景 */
+var _exploreAnimating = false;
+
+function nextExploreCard(){
+  if(_exploreAnimating) return;
+  if(_exploreFiltered.length <= 1){ showExploreCard(_exploreIndex + 1); return; }
+
+  _exploreAnimating = true;
+  var wrap = document.getElementById('exploreCardWrap');
+
+  /* ① 截取目前 canvas 作為舊卡快照 */
+  var canvas = document.getElementById('exploreMapCanvas');
+  var snapshot = canvas.toDataURL('image/jpeg', 0.7);
+
+  /* ② 建舊卡 div（snapshot 背景），插入最上層 */
+  var oldSlot = document.createElement('div');
+  oldSlot.className = 'explore-card-slot';
+  oldSlot.style.cssText =
+    'background:url(' + snapshot + ') center/cover no-repeat;' +
+    'z-index:20;';
+  wrap.appendChild(oldSlot);
+
+  /* ③ 觸發 slide-out 動畫（下一個 frame 才加 class，確保瀏覽器有時間 paint） */
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      oldSlot.classList.add('slide-out-up');
+    });
+  });
+
+  /* ④ 渲染新卡（在 slot 之下，z-index 低） */
+  showExploreCard(_exploreIndex + 1);
+
+  /* ⑤ 新卡套 slide-in 動畫（wrap 本身） */
+  wrap.style.transform = 'translateY(40px)';
+  wrap.style.opacity   = '0.6';
+  wrap.style.transition = 'transform 0.28s ease-out, opacity 0.28s ease-out';
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){
+      wrap.style.transform = 'translateY(0)';
+      wrap.style.opacity   = '1';
+    });
+  });
+
+  /* ⑥ 280ms 後清理 */
+  setTimeout(function(){
+    if(oldSlot.parentNode) oldSlot.parentNode.removeChild(oldSlot);
+    wrap.style.transition = '';
+    wrap.style.transform  = '';
+    wrap.style.opacity    = '';
+    _exploreAnimating = false;
+  }, 310);
+}
 
 function _prefetchNextExplorePts(){
   if(_exploreFiltered.length===0) return;
@@ -2726,7 +2892,7 @@ function _initExploreSwipe(){
   el.addEventListener('touchend',function(e){
     if(_exploreSwipeStartY===null) return;
     var dy=e.changedTouches[0].clientY-_exploreSwipeStartY; _exploreSwipeStartY=null;
-    if(dy<-50) nextExploreCard();
+    if(dy<-50 && !_exploreAnimating) nextExploreCard();
   },{passive:true});
 }
 
