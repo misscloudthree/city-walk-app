@@ -377,73 +377,122 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
 /* ===================================================
    [v1.19.0] 探索頁 CSS
    =================================================== */
-#page-explore { z-index:25; background:var(--bg-warm); padding-top:60px; }
-
-/* 距離 pill 篩選列 */
+/* ===================================================
+   [v1.31.0] 探索頁 — 全屏卡片樣式
+   =================================================== */
+#page-explore {
+  z-index:25; background:#111;
+  padding:0; overflow:hidden;
+}
+/* pill 篩選列：固定在探索頁頂部 */
 #explorePillBar {
-  width:92%; max-width:450px; margin:0 auto 16px;
+  position:absolute; top:50px; left:0; right:0; z-index:100;
   display:flex; gap:8px; overflow-x:auto;
+  padding:12px 16px 10px;
   scrollbar-width:none; -ms-overflow-style:none;
-  padding-bottom:2px; box-sizing:border-box;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.55),rgba(0,0,0,0));
 }
 #explorePillBar::-webkit-scrollbar { display:none; }
 .explore-pill {
-  flex-shrink:0; padding:8px 18px; border-radius:20px;
+  flex-shrink:0; padding:7px 18px; border-radius:20px;
   font-size:13px; font-family:'Poly','Microsoft JhengHei',sans-serif;
-  background:var(--white); color:var(--text-soft);
-  border:1.5px solid var(--border-light); cursor:pointer;
-  transition:all 0.2s; white-space:nowrap;
+  background:rgba(255,255,255,0.18); color:rgba(255,255,255,0.85);
+  border:1.5px solid rgba(255,255,255,0.35); cursor:pointer;
+  transition:all 0.2s; white-space:nowrap; backdrop-filter:blur(4px);
 }
 .explore-pill.active {
-  background:var(--accent-positive); color:var(--white);
-  border-color:var(--accent-positive); font-weight:bold;
+  background:var(--white); color:var(--text-main);
+  border-color:var(--white); font-weight:bold;
 }
-.explore-pill:active { opacity:0.8; }
-
-/* 探索卡片 */
-.explore-card {
-  width:92%; max-width:450px; margin:8px auto;
-  background:var(--white); border-radius:16px;
-  box-shadow:0 2px 10px rgba(0,0,0,0.05);
-  border-left:5px solid var(--accent-positive);
-  box-sizing:border-box; overflow:hidden;
-  display:flex; align-items:center;
-  padding:14px 14px 14px 16px; gap:12px;
-}
-.explore-card-color {
-  width:10px; height:10px; border-radius:50%; flex-shrink:0;
-}
-.explore-card-info { flex:1; min-width:0; }
-.explore-card-name {
-  font-size:15px; font-weight:bold; color:var(--text-main);
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  margin-bottom:3px;
-}
-.explore-card-meta {
-  font-size:12px; color:var(--text-soft); letter-spacing:0.3px;
-}
-.explore-card-dist {
-  font-size:11px; color:var(--accent-positive);
-  font-weight:bold; margin-top:3px;
-}
-.btn-explore-load {
-  flex-shrink:0; padding:9px 14px; border-radius:12px; border:none;
-  background:#EEF6F3; color:var(--accent-positive); font-size:13px;
-  font-weight:bold; cursor:pointer; white-space:nowrap;
-  font-family:'Poly','Microsoft JhengHei',sans-serif;
-  transition:opacity 0.15s;
-}
-.btn-explore-load:active { opacity:0.7; }
-
-/* 空狀態 */
-#exploreEmpty {
-  text-align:center; padding:40px 20px;
-  color:var(--text-soft); font-size:14px; line-height:1.8;
+.explore-pill:active { opacity:0.7; }
+/* 全屏卡片容器 */
+#exploreCardWrap {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  overflow:hidden; cursor:pointer; background:#222;
   display:none;
 }
-#exploreLoading {
-  text-align:center; padding:30px; color:var(--text-soft);
+/* 地圖 canvas */
+#exploreMapCanvas {
+  position:absolute; top:0; left:0;
+  width:100%; height:100%; display:block;
 }
+/* 事件照片覆蓋層 */
+#explorePhotoWrap {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  display:flex; align-items:center; justify-content:center; background:#000;
+}
+#explorePhotoWrap.hidden { display:none; }
+#explorePhotoImg { width:100%; height:100%; object-fit:cover; }
+/* 事件文字覆蓋層 */
+#exploreTextWrap {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);
+  padding:40px;
+}
+#exploreTextWrap.hidden { display:none; }
+#exploreTextContent {
+  font-family:'Caveat','Microsoft JhengHei',sans-serif;
+  font-size:28px; color:rgba(255,255,255,0.92);
+  line-height:1.6; text-align:center;
+}
+#exploreTextIcon { font-size:52px; margin-bottom:16px; }
+/* 頂部漸層 + 城市/距離 */
+#exploreCardTop {
+  position:absolute; top:0; left:0; right:0;
+  padding:100px 20px 32px;
+  background:linear-gradient(to bottom,rgba(0,0,0,0.6),rgba(0,0,0,0));
+  pointer-events:none;
+}
+#exploreCityLabel {
+  display:block; font-size:12px; letter-spacing:2px;
+  color:rgba(255,255,255,0.7); text-transform:uppercase; margin-bottom:2px;
+}
+#exploreDistLabel { display:block; font-size:13px; color:rgba(255,255,255,0.55); }
+/* 底部漸層 + 路線資訊 */
+#exploreCardBottom {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:48px 22px 22px;
+  background:linear-gradient(to top,rgba(0,0,0,0.82),rgba(0,0,0,0));
+  pointer-events:none;
+}
+#exploreCardLandmarks {
+  font-size:12px; color:rgba(255,255,255,0.6);
+  letter-spacing:0.5px; margin-bottom:6px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#exploreCardName {
+  font-size:26px; font-weight:bold; color:#fff;
+  line-height:1.2; margin-bottom:6px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#exploreCardMeta { font-size:13px; color:rgba(255,255,255,0.65); letter-spacing:0.3px; }
+/* 往上滑提示 */
+#exploreSwipeHint {
+  position:absolute; bottom:28px; left:50%; transform:translateX(-50%);
+  font-size:12px; color:rgba(255,255,255,0.45); letter-spacing:1px;
+  pointer-events:none; white-space:nowrap;
+}
+/* 視圖切換提示 */
+#exploreViewHint {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  background:rgba(0,0,0,0.45); color:#fff; font-size:12px;
+  padding:6px 14px; border-radius:20px; pointer-events:none;
+  opacity:0; transition:opacity 0.3s; white-space:nowrap; backdrop-filter:blur(4px);
+}
+#exploreViewHint.show { opacity:1; }
+/* 空狀態 / 載入中 */
+#exploreEmpty {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  text-align:center; color:rgba(255,255,255,0.6); font-size:14px; line-height:1.8; display:none;
+}
+#exploreLoading {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  color:rgba(255,255,255,0.6); font-size:14px;
+}
+
+
 
 /* saveModal 公開 toggle */
 #publicToggleRow {
@@ -630,20 +679,21 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
 }
 
 /* [v1.19.1] 無 GPS 提示條 */
+/* [v1.19.1 / v1.31.0] 無 GPS 提示條 */
 #exploreNoGpsHint {
-  width:92%; max-width:450px; margin:0 auto 12px;
+  position:absolute; top:100px; left:16px; right:16px; z-index:101;
   padding:10px 14px; border-radius:12px; box-sizing:border-box;
-  background:#FFF9EC; border:1.5px solid #FFE5A0;
-  font-size:12px; color:var(--text-soft); line-height:1.6;
+  background:rgba(255,249,236,0.92); border:1.5px solid #FFE5A0;
+  font-size:12px; color:var(--text-soft); line-height:1.6; backdrop-filter:blur(6px);
 }
-/* pill 禁用狀態 */
 #explorePillBar.no-gps .explore-pill {
   opacity:0.35; cursor:not-allowed; pointer-events:none;
 }
 #explorePillBar.no-gps .explore-pill.active {
-  background:var(--border-light); color:var(--text-soft);
-  border-color:var(--border-light);
+  background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.4);
+  border-color:rgba(255,255,255,0.2);
 }
+
 </style>
 
 <!-- [v1.17.1] Firebase — 新增 linkWithPopup -->
@@ -1053,28 +1103,40 @@ getRedirectResult(auth).then(function(result){
      [v1.19.0] 探索頁
      =================================================== -->
 <div id="page-explore" class="page hidden">
-  <h2 style="text-align:center;letter-spacing:2px;margin:0 0 16px;padding-top:60px;">EXPLORE</h2>
-
-  <!-- 距離 pill 篩選列 -->
   <div id="explorePillBar">
     <div class="explore-pill" data-km="1" onclick="selectExplorePill(this)">1 km</div>
     <div class="explore-pill" data-km="3" onclick="selectExplorePill(this)">3 km</div>
     <div class="explore-pill active" data-km="5" onclick="selectExplorePill(this)">5 km</div>
     <div class="explore-pill" data-km="10" onclick="selectExplorePill(this)">10 km</div>
   </div>
-
-  <!-- [v1.19.1] 無 GPS 提示條 -->
   <div id="exploreNoGpsHint" style="display:none;"></div>
-
-  <!-- 載入中 / 卡片容器 / 空狀態 -->
+  <div id="exploreCardWrap" onclick="cycleExploreView()">
+    <canvas id="exploreMapCanvas"></canvas>
+    <div id="explorePhotoWrap" class="hidden"><img id="explorePhotoImg" src="" alt=""></div>
+    <div id="exploreTextWrap" class="hidden">
+      <div id="exploreTextIcon">📝</div>
+      <div id="exploreTextContent"></div>
+    </div>
+    <div id="exploreCardTop">
+      <span id="exploreCityLabel"></span>
+      <span id="exploreDistLabel"></span>
+    </div>
+    <div id="exploreCardBottom">
+      <div id="exploreCardLandmarks"></div>
+      <div id="exploreCardName"></div>
+      <div id="exploreCardMeta"></div>
+    </div>
+    <div id="exploreSwipeHint">↑ 往上滑看下一條</div>
+    <div id="exploreViewHint"></div>
+  </div>
   <div id="exploreLoading">載入中...</div>
-  <div id="exploreContainer"></div>
   <div id="exploreEmpty">
     <div style="font-size:40px;margin-bottom:12px;">🔭</div>
     附近還沒有公開的路線<br>
     <span style="font-size:12px;">試著拉大範圍，或成為第一個在這裡分享路線的人！</span>
   </div>
 </div>
+
 
 <script>
 var map, userMarker, pathLine, watchId, geocoder;
@@ -1285,6 +1347,8 @@ async function initMap(){
   if(window.currentUid) window._authReadyCallback();
   /* [v1.29.0] attach 點地圖關閉 tooltip */
   _attachTooltipDismiss();
+  /* [v1.31.0] attach 探索頁 swipe 手勢 */
+  _initExploreSwipe();
 }
 
 function getUserPosition(){var pos=userMarker&&userMarker.getPosition();if(!pos)return null;if(typeof pos.lat==='function')return{lat:pos.lat(),lng:pos.lng()};return{lat:pos.lat,lng:pos.lng};}
@@ -2382,72 +2446,61 @@ async function togglePublic(e, id, currentStatus){
    =================================================== */
 
 /* 當前選取的距離（km），預設 5 */
-var exploreDistKm = 5;
-/* 快取撈到的公開路線（前端篩距用） */
-var _exploreAllDocs = [];
-/* 使用者目前位置（探索頁用） */
-var _exploreUserPos = null;
 
-/* PSEUDO: Haversine 公式計算兩點距離（km）
-   入參：{lat, lng} × 2，回傳 km 數字 */
+/* ===================================================
+   [v1.31.0] 探索頁 — 全屏卡片系統
+   =================================================== */
+var exploreDistKm    = 5;
+var _exploreAllDocs  = [];
+var _exploreFiltered = [];
+var _exploreIndex    = 0;
+var _explorePtsCache = {};
+var _exploreViews    = [];
+var _exploreViewIdx  = 0;
+var _exploreUserPos  = null;
+var _exploreSwipeStartY = null;
+var _exploreHintTimer   = null;
+
 function haversineKm(a, b){
-  var R=6371;
-  var dLat=(b.lat-a.lat)*Math.PI/180;
-  var dLng=(b.lng-a.lng)*Math.PI/180;
-  var lat1=a.lat*Math.PI/180;
-  var lat2=b.lat*Math.PI/180;
-  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+
-        Math.cos(lat1)*Math.cos(lat2)*
-        Math.sin(dLng/2)*Math.sin(dLng/2);
+  var R=6371, dLat=(b.lat-a.lat)*Math.PI/180, dLng=(b.lng-a.lng)*Math.PI/180;
+  var lat1=a.lat*Math.PI/180, lat2=b.lat*Math.PI/180;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)*Math.sin(dLng/2);
   return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
 }
 
-/* PSEUDO: 點擊 pill → 更新 exploreDistKm → 重繪 */
 function selectExplorePill(el){
   document.querySelectorAll('.explore-pill').forEach(function(p){p.classList.remove('active');});
   el.classList.add('active');
-  exploreDistKm=parseInt(el.getAttribute('data-km'));
-  renderExploreCards();
+  exploreDistKm = parseInt(el.getAttribute('data-km'));
+  _buildFilteredAndShow();
 }
 
-/* PSEUDO: 探索頁入口
-   1. 取使用者目前位置（GPS / 地圖 marker）
-   2. Firestore query：isPublic==true，createdAt DESC，limit 20
-   3. 前端過濾：userId != currentUid
-   4. 快取到 _exploreAllDocs，呼叫 renderExploreCards
-*/
 async function fetchExploreRoutes(){
-  var loading=document.getElementById('exploreLoading');
-  var container=document.getElementById('exploreContainer');
-  var empty=document.getElementById('exploreEmpty');
-  var hint=document.getElementById('exploreNoGpsHint');
-  var pillBar=document.getElementById('explorePillBar');
-  loading.style.display='block';
-  container.innerHTML='';
-  empty.style.display='none';
-  hint.style.display='none';
+  var loading  = document.getElementById('exploreLoading');
+  var cardWrap = document.getElementById('exploreCardWrap');
+  var empty    = document.getElementById('exploreEmpty');
+  var hint     = document.getElementById('exploreNoGpsHint');
+  var pillBar  = document.getElementById('explorePillBar');
+  loading.style.display = 'block';
+  cardWrap.style.display = 'none';
+  empty.style.display = 'none';
+  hint.style.display = 'none';
   pillBar.classList.remove('no-gps');
 
-  /* 取使用者位置 */
   _exploreUserPos = getUserPosition();
   if(!_exploreUserPos){
     try{
-      _exploreUserPos = await new Promise(function(resolve,reject){
+      _exploreUserPos = await new Promise(function(resolve, reject){
         navigator.geolocation.getCurrentPosition(
-          function(pos){resolve({lat:pos.coords.latitude,lng:pos.coords.longitude});},
-          reject,
-          {enableHighAccuracy:true,timeout:8000,maximumAge:30000}
+          function(pos){ resolve({lat:pos.coords.latitude, lng:pos.coords.longitude}); },
+          reject, {enableHighAccuracy:true, timeout:8000, maximumAge:30000}
         );
       });
-    }catch(e){
-      _exploreUserPos = null;
-    }
+    }catch(e){ _exploreUserPos = null; }
   }
-
-  /* [v1.19.1] 無位置：顯示提示條，pill 禁用 */
   if(!_exploreUserPos){
-    hint.style.display='block';
-    hint.innerHTML='📡 無法取得你的位置，距離篩選暫不可用。<br>以下顯示全部公開路線。';
+    hint.style.display = 'block';
+    hint.innerHTML = '📡 無法取得你的位置，距離篩選暫不可用。<br>以下顯示全部公開路線。';
     pillBar.classList.add('no-gps');
   }
 
@@ -2457,88 +2510,226 @@ async function fetchExploreRoutes(){
       window.api.where('isPublic','==',true),
       window.api.orderBy('createdAt','desc')
     );
-    var snap=await window.api.getDocs(q);
-    var uid=window.currentUid||'anonymous';
-    _exploreAllDocs=[];
+    var snap = await window.api.getDocs(q);
+    var uid  = window.currentUid || 'anonymous';
+    _exploreAllDocs = [];
     snap.forEach(function(d){
-      var data=Object.assign({id:d.id},d.data());
-      if(data.userId!==uid) _exploreAllDocs.push(data);
+      var data = Object.assign({id:d.id}, d.data());
+      if(data.userId !== uid) _exploreAllDocs.push(data);
     });
-    _exploreAllDocs=_exploreAllDocs.slice(0,20);
-  }catch(err){
-    console.error('[explore] Firestore query 失敗:',err);
-    _exploreAllDocs=[];
-  }
+    /* shuffle */
+    for(var i = _exploreAllDocs.length-1; i > 0; i--){
+      var j = Math.floor(Math.random()*(i+1));
+      var t = _exploreAllDocs[i]; _exploreAllDocs[i]=_exploreAllDocs[j]; _exploreAllDocs[j]=t;
+    }
+  }catch(err){ console.error('[explore]', err); _exploreAllDocs=[]; }
 
-  loading.style.display='none';
-  renderExploreCards();
+  loading.style.display = 'none';
+  _buildFilteredAndShow();
 }
 
-/* PSEUDO: 依當前 exploreDistKm 篩選並渲染探索卡片
-   若無使用者位置，顯示全部（不篩距）
-   距離基準：路線 walkPath[0] 起點（儲存在 path_points chunk_0）
-   MVP：起點座標存在 events[0].pos fallback，若兩者都沒有則不顯示距離
-   ★ 注意：path_points 是 subcollection，卡片層不撈 path，
-     改用事件第一個 pos 或 city 做 fallback，不顯示精確起點距離
-     （精確距離留 v1.20.0 優化，改存起點到主文件）
-*/
-function renderExploreCards(){
-  var container=document.getElementById('exploreContainer');
-  var empty=document.getElementById('exploreEmpty');
-  container.innerHTML='';
-
-  var filtered=_exploreAllDocs.filter(function(data){
-    /* 若無使用者位置，不篩距，全顯示 */
+function _buildFilteredAndShow(){
+  _exploreFiltered = _exploreAllDocs.filter(function(data){
     if(!_exploreUserPos) return true;
-    /* 取路線起點：用 events[0].pos 當 fallback */
-    var startPos=null;
-    if(data.events&&data.events.length>0&&data.events[0].pos){
-      startPos=data.events[0].pos;
-    }
-    if(!startPos) return true; /* 無起點資料，一律顯示 */
-    var dist=haversineKm(_exploreUserPos,startPos);
-    return dist<=exploreDistKm;
+    var sp = data.events && data.events.length > 0 ? data.events[0].pos : null;
+    if(!sp) return true;
+    return haversineKm(_exploreUserPos, sp) <= exploreDistKm;
   });
-
-  if(filtered.length===0){
-    empty.style.display='block';
-    return;
-  }
-  empty.style.display='none';
-
-  filtered.forEach(function(data){
-    var cardColor=data.trackColor||'#8FB9A8';
-    var metaParts=['👣 '+(data.distance||0).toFixed(2)+' km'];
-    if(data.duration) metaParts.push('⏱️ '+data.duration);
-    if(data.city) metaParts.push('🏙 '+data.city);
-    var metaStr=metaParts.join('  ');
-
-    /* 計算距離文字 */
-    var distStr='';
-    if(_exploreUserPos&&data.events&&data.events.length>0&&data.events[0].pos){
-      var d=haversineKm(_exploreUserPos,data.events[0].pos);
-      distStr=d<1?'📍 距你約 '+(d*1000).toFixed(0)+' m':'📍 距你約 '+d.toFixed(1)+' km';
-    }
-
-    var card=document.createElement('div');
-    card.className='explore-card';
-    card.style.borderLeftColor=cardColor;
-    card.innerHTML=
-      '<div class="explore-card-color" style="background:'+cardColor+'"></div>'+
-      '<div class="explore-card-info">'+
-        '<div class="explore-card-name">'+escapeHtml(data.name||'未命名路線')+'</div>'+
-        '<div class="explore-card-meta">'+metaStr+'</div>'+
-        (distStr?'<div class="explore-card-dist">'+distStr+'</div>':'')+
-      '</div>'+
-      '<button class="btn-explore-load" onclick="loadExploreRoute(\''+data.id+'\')">🗺 載入</button>';
-    container.appendChild(card);
-  });
+  _exploreIndex = 0;
+  _explorePtsCache = {};
+  showExploreCard(0);
 }
 
-/* PSEUDO: 簡單 HTML escape，防止 XSS（路線名稱來自使用者輸入） */
+async function showExploreCard(index){
+  var empty    = document.getElementById('exploreEmpty');
+  var cardWrap = document.getElementById('exploreCardWrap');
+  if(_exploreFiltered.length === 0){
+    cardWrap.style.display = 'none'; empty.style.display = 'block'; return;
+  }
+  _exploreIndex = ((index % _exploreFiltered.length) + _exploreFiltered.length) % _exploreFiltered.length;
+  var data = _exploreFiltered[_exploreIndex];
+  empty.style.display = 'none'; cardWrap.style.display = 'block';
+  _exploreViewIdx = 0; _showExploreMap();
+
+  /* overlay text */
+  document.getElementById('exploreCityLabel').innerText = data.city || '';
+  if(_exploreUserPos && data.events && data.events.length > 0 && data.events[0].pos){
+    var d = haversineKm(_exploreUserPos, data.events[0].pos);
+    document.getElementById('exploreDistLabel').innerText =
+      d < 1 ? '📍 距你約 '+(d*1000).toFixed(0)+' m' : '📍 距你約 '+d.toFixed(1)+' km';
+  } else { document.getElementById('exploreDistLabel').innerText = ''; }
+
+  var seenPlaces={}, placeNames=[];
+  if(data.events) data.events.forEach(function(ev){
+    if(ev.placeName && !seenPlaces[ev.placeName] && placeNames.length < 3){
+      seenPlaces[ev.placeName]=true; placeNames.push(ev.placeName);
+    }
+  });
+  document.getElementById('exploreCardLandmarks').innerText =
+    placeNames.length > 0 ? '📍 '+placeNames.join('  ·  ') : '';
+  document.getElementById('exploreCardName').innerText = data.name || '未命名路線';
+  document.getElementById('exploreCardMeta').innerText =
+    '👣 '+(data.distance||0).toFixed(2)+' km'+(data.duration ? '   ⏱ '+data.duration : '');
+
+  /* build view sequence */
+  _exploreViews = ['map'];
+  if(data.events){
+    data.events.forEach(function(ev){ if(ev.photoUrl) _exploreViews.push('photo:'+ev.photoUrl); });
+    data.events.forEach(function(ev){ if(ev.text) _exploreViews.push('text:'+(ev.icon||'📝')+':'+ev.text); });
+  }
+
+  /* fetch path */
+  var pts = _explorePtsCache[data.id] || null;
+  if(!pts){
+    try{
+      var snap = await window.api.getDocs(
+        window.api.collection(window.db,'walk_records',data.id,'path_points')
+      );
+      var chunks = [];
+      snap.forEach(function(d){ chunks.push(d.data()); });
+      chunks.sort(function(a,b){ return a.index-b.index; });
+      pts = [];
+      chunks.forEach(function(c){ if(c.points) pts=pts.concat(c.points); });
+      _explorePtsCache[data.id] = pts;
+    }catch(e){ pts=[]; }
+  }
+
+  _drawExploreMap(data, pts);
+  _prefetchNextExplorePts();
+}
+
+async function _drawExploreMap(data, pts){
+  var wrap = document.getElementById('exploreCardWrap');
+  var canvas = document.getElementById('exploreMapCanvas');
+  var W = wrap.offsetWidth || window.innerWidth;
+  var H = wrap.offsetHeight || (window.innerHeight-125);
+  canvas.width=W; canvas.height=H;
+  var ctx = canvas.getContext('2d');
+  var GREEN = data.trackColor || '#8FB9A8';
+  ctx.fillStyle='#2A2A2A'; ctx.fillRect(0,0,W,H);
+  if(!pts || pts.length < 2){ _drawExploreAbstract(ctx,W,H,GREEN); return; }
+
+  var lats=pts.map(function(p){return p.lat;}), lngs=pts.map(function(p){return p.lng;});
+  var cLat=(Math.max.apply(null,lats)+Math.min.apply(null,lats))/2;
+  var cLng=(Math.max.apply(null,lngs)+Math.min.apply(null,lngs))/2;
+  var zoom=_calcBestZoom(pts,W,H,60);
+  var MAPS_KEY='AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
+  var reqW=Math.min(640,Math.round(W/2)), reqH=Math.min(640,Math.round(H/2));
+  var styleParams=[
+    'style=feature:all|element:geometry|saturation:-100|lightness:5',
+    'style=feature:all|element:labels|visibility:off',
+    'style=feature:road|element:geometry|lightness:45',
+    'style=feature:water|element:geometry|lightness:-20',
+    'style=feature:poi|visibility:off',
+    'style=feature:transit|visibility:off'
+  ].join('&');
+  var staticUrl='https://maps.googleapis.com/maps/api/staticmap?center='+cLat+','+cLng+
+    '&zoom='+zoom+'&size='+reqW+'x'+reqH+'&scale=2&maptype=roadmap&'+styleParams+'&key='+MAPS_KEY;
+  try{
+    var mapImg = await new Promise(function(resolve,reject){
+      var img=new Image(); img.crossOrigin='anonymous';
+      img.onload=function(){resolve(img);}; img.onerror=function(e){reject(e);}; img.src=staticUrl;
+    });
+    ctx.drawImage(mapImg,0,0,W,H);
+  }catch(e){ _drawExploreAbstract(ctx,W,H,GREEN); }
+
+  ctx.beginPath();
+  pts.forEach(function(p,i){
+    var px=_latLngToImgPx(p.lat,p.lng,cLat,cLng,zoom,W,H);
+    i===0?ctx.moveTo(px.x,px.y):ctx.lineTo(px.x,px.y);
+  });
+  ctx.strokeStyle=GREEN; ctx.lineWidth=8; ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.globalAlpha=0.92; ctx.stroke(); ctx.globalAlpha=1;
+  var sp=_latLngToImgPx(pts[0].lat,pts[0].lng,cLat,cLng,zoom,W,H);
+  ctx.beginPath(); ctx.arc(sp.x,sp.y,12,0,Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.fill(); ctx.strokeStyle=GREEN; ctx.lineWidth=4; ctx.stroke();
+  var ep=_latLngToImgPx(pts[pts.length-1].lat,pts[pts.length-1].lng,cLat,cLng,zoom,W,H);
+  ctx.beginPath(); ctx.arc(ep.x,ep.y,12,0,Math.PI*2); ctx.fillStyle=GREEN; ctx.fill();
+  if(data.events){
+    ctx.font='24px serif'; ctx.textAlign='center';
+    data.events.forEach(function(ev){
+      if(!ev.pos) return;
+      var ip=_latLngToImgPx(ev.pos.lat,ev.pos.lng,cLat,cLng,zoom,W,H);
+      ctx.fillText(ev.icon||'📍',ip.x,ip.y-8);
+    });
+    ctx.textAlign='left';
+  }
+}
+
+function _drawExploreAbstract(ctx,W,H,color){
+  ctx.fillStyle='#333'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,0.06)'; ctx.lineWidth=1;
+  for(var x=0;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(var y=0;y<H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+}
+
+function _showExploreMap(){
+  document.getElementById('explorePhotoWrap').classList.add('hidden');
+  document.getElementById('exploreTextWrap').classList.add('hidden');
+}
+
+function cycleExploreView(){
+  if(_exploreViews.length <= 1) return;
+  _exploreViewIdx = (_exploreViewIdx + 1) % _exploreViews.length;
+  var view = _exploreViews[_exploreViewIdx];
+  if(view === 'map'){
+    _showExploreMap(); _showExploreViewHint('🗺 路線地圖');
+  } else if(view.startsWith('photo:')){
+    var url = view.slice(6);
+    document.getElementById('explorePhotoImg').src = url;
+    document.getElementById('explorePhotoWrap').classList.remove('hidden');
+    document.getElementById('exploreTextWrap').classList.add('hidden');
+    var total=_exploreViews.filter(function(v){return v.startsWith('photo:');}).length;
+    var cur=_exploreViews.slice(0,_exploreViewIdx+1).filter(function(v){return v.startsWith('photo:');}).length;
+    _showExploreViewHint('📸 '+cur+' / '+total);
+  } else if(view.startsWith('text:')){
+    var parts=view.split(':'); var icon=parts[1]||'📝'; var content=parts.slice(2).join(':');
+    document.getElementById('exploreTextIcon').innerText=icon;
+    document.getElementById('exploreTextContent').innerText=content;
+    document.getElementById('exploreTextWrap').classList.remove('hidden');
+    document.getElementById('explorePhotoWrap').classList.add('hidden');
+    _showExploreViewHint('💬 事件記錄');
+  }
+}
+
+function _showExploreViewHint(text){
+  var el=document.getElementById('exploreViewHint');
+  el.innerText=text; el.classList.add('show');
+  if(_exploreHintTimer) clearTimeout(_exploreHintTimer);
+  _exploreHintTimer=setTimeout(function(){el.classList.remove('show');},1500);
+}
+
+function nextExploreCard(){ showExploreCard(_exploreIndex+1); }
+
+function _prefetchNextExplorePts(){
+  if(_exploreFiltered.length===0) return;
+  var nextIdx=(_exploreIndex+1)%_exploreFiltered.length;
+  var next=_exploreFiltered[nextIdx];
+  if(!next||_explorePtsCache[next.id]) return;
+  window.api.getDocs(window.api.collection(window.db,'walk_records',next.id,'path_points'))
+    .then(function(snap){
+      var chunks=[]; snap.forEach(function(d){chunks.push(d.data());});
+      chunks.sort(function(a,b){return a.index-b.index;});
+      var pts=[]; chunks.forEach(function(c){if(c.points)pts=pts.concat(c.points);});
+      _explorePtsCache[next.id]=pts;
+    }).catch(function(){});
+}
+
 function escapeHtml(str){
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+function _initExploreSwipe(){
+  var el=document.getElementById('exploreCardWrap');
+  if(!el) return;
+  el.addEventListener('touchstart',function(e){_exploreSwipeStartY=e.touches[0].clientY;},{passive:true});
+  el.addEventListener('touchend',function(e){
+    if(_exploreSwipeStartY===null) return;
+    var dy=e.changedTouches[0].clientY-_exploreSwipeStartY; _exploreSwipeStartY=null;
+    if(dy<-50) nextExploreCard();
+  },{passive:true});
+}
+
 
 /* PSEUDO: 從探索頁載入路線到地圖
    與 loadSavedRoute 類似但：
@@ -3447,6 +3638,10 @@ window.togglePublic=togglePublic;
 window.selectExplorePill=selectExplorePill;
 window.fetchExploreRoutes=fetchExploreRoutes;
 window.loadExploreRoute=loadExploreRoute;
+/* [v1.31.0] */
+window.cycleExploreView=cycleExploreView;
+window.nextExploreCard=nextExploreCard;
+window.showExploreCard=showExploreCard;
 /* [v1.28.0] */
 window.navigateMemory=navigateMemory;
 window.fillMemoryBox=fillMemoryBox;
