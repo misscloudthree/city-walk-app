@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.31.1</title>
+<title>City Walker - v1.32.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -726,6 +726,72 @@ body.select-mode .route-row.expanded .route-row-actions { max-height:0; padding:
   background:#FFF9E0; color:#B8860B;
 }
 
+/* ===================================================
+   [新增 v1.32.0] 使用者位置 OverlayView — 走路腳步動畫
+   PSEUDO:
+   - .user-walk-overlay：div 由 OverlayView.draw() 絕對定位
+   - 兩個 🦶 span（.foot-l 鏡像 / .foot-r 正常）
+   - .walking class 開啟左右腳交替抬起動畫（相位差 180°）
+   - .paused class 開啟呼吸縮放動畫（待機用）
+   =================================================== */
+.user-walk-overlay {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  z-index: 999;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 1px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+}
+.user-walk-overlay .foot-l,
+.user-walk-overlay .foot-r {
+  font-size: 18px;
+  display: inline-block;
+}
+/* 左腳鏡像（腳尖朝外）*/
+.user-walk-overlay .foot-l {
+  transform: scaleX(-1);
+}
+/* 走路中動畫：左右腳 180° 相位差交替抬起 */
+.user-walk-overlay.walking .foot-l {
+  animation: walkStepL 0.55s ease-in-out infinite;
+}
+.user-walk-overlay.walking .foot-r {
+  animation: walkStepR 0.55s ease-in-out infinite;
+}
+@keyframes walkStepL {
+  0%   { transform: scaleX(-1) translateY(0px);  }
+  25%  { transform: scaleX(-1) translateY(-6px); }
+  50%  { transform: scaleX(-1) translateY(0px);  }
+  100% { transform: scaleX(-1) translateY(0px);  }
+}
+@keyframes walkStepR {
+  0%   { transform: translateY(0px);  }
+  50%  { transform: translateY(0px);  }
+  75%  { transform: translateY(-6px); }
+  100% { transform: translateY(0px);  }
+}
+/* 暫停中：呼吸縮放脈衝 */
+.user-walk-overlay.paused .foot-l {
+  animation: walkPauseL 1.8s ease-in-out infinite;
+}
+.user-walk-overlay.paused .foot-r {
+  animation: walkPauseR 1.8s ease-in-out infinite;
+}
+@keyframes walkPauseL {
+  0%, 100% { transform: scaleX(-1) scale(1);    opacity: 1;   }
+  50%       { transform: scaleX(-1) scale(0.82); opacity: 0.5; }
+}
+@keyframes walkPauseR {
+  0%, 100% { transform: scale(1);    opacity: 1;   }
+  50%       { transform: scale(0.82); opacity: 0.5; }
+}
+
 /* [v1.19.1] 無 GPS 提示條 */
 /* [v1.19.1 / v1.31.0] 無 GPS 提示條 */
 #exploreNoGpsHint {
@@ -1389,7 +1455,83 @@ async function initMap(){
   var mintStyledMap=new google.maps.StyledMapType(MINT_MAP_STYLE,{name:'CityWalker-C'});
   map=new Map(document.getElementById('map'),{zoom:17,center:{lat:25.0478,lng:121.5170},disableDefaultUI:true,mapTypeControlOptions:{mapTypeIds:['roadmap','styled_map']}});
   map.mapTypes.set('styled_map',mintStyledMap);map.setMapTypeId('styled_map');
-  userMarker=new google.maps.Marker({map:map,zIndex:999,label:{text:'👣',fontSize:'22px'},icon:{path:google.maps.SymbolPath.CIRCLE,scale:0},optimized:false});
+  /* ===================================================
+     [改版 v1.32.0] userMarker → UserWalkOverlay
+     PSEUDO:
+     - 繼承 google.maps.OverlayView，完全取代 google.maps.Marker
+     - 對外介面維持 setPosition() / getPosition()（與原 Marker 相容）
+       → 外部所有 userMarker.setPosition() 呼叫無需修改
+     - 新增 startWalkAnim() / stopWalkAnim(mode) 控制動畫 class
+     - onAdd()：建立含兩個 🦶 span 的 div，加入 overlayMouseTarget pane
+     - draw()：fromLatLngToDivPixel 轉座標後設定 left/top
+     =================================================== */
+  function UserWalkOverlay(mapInstance){
+    this._pos = null;
+    this._div = null;
+    this._map = mapInstance;
+    this.setMap(mapInstance);
+  }
+  UserWalkOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
+  UserWalkOverlay.prototype.onAdd = function(){
+    var div = document.createElement('div');
+    div.className = 'user-walk-overlay';
+    div.innerHTML = '<span class="foot-l">🦶</span><span class="foot-r">🦶</span>';
+    this._div = div;
+    this.getPanes().overlayMouseTarget.appendChild(div);
+  };
+  UserWalkOverlay.prototype.draw = function(){
+    if(!this._div || !this._pos) return;
+    var pt = this.getProjection().fromLatLngToDivPixel(this._pos);
+    if(pt){
+      this._div.style.left = pt.x + 'px';
+      this._div.style.top  = pt.y + 'px';
+    }
+  };
+  UserWalkOverlay.prototype.onRemove = function(){
+    if(this._div && this._div.parentNode){
+      this._div.parentNode.removeChild(this._div);
+    }
+    this._div = null;
+  };
+  /* PSEUDO: setPosition 接受兩種格式
+     1. google.maps.LatLng 物件（typeof pos.lat === 'function'）
+     2. {lat, lng} 純物件（舊 GPS callback 回傳的格式）
+     統一存成 google.maps.LatLng，確保 getPosition() 回傳一致 */
+  UserWalkOverlay.prototype.setPosition = function(latlng){
+    if(!latlng) return;
+    if(typeof latlng.lat === 'function'){
+      this._pos = latlng;
+    } else {
+      this._pos = new google.maps.LatLng(latlng.lat, latlng.lng);
+    }
+    this.draw();
+  };
+  /* PSEUDO: getPosition() 回傳 LatLng
+     getUserPosition() 裡有 typeof pos.lat==='function' 判斷，這裡完全相容 */
+  UserWalkOverlay.prototype.getPosition = function(){
+    return this._pos;
+  };
+  /* PSEUDO: 走路動畫：加 walking class，移除 paused */
+  UserWalkOverlay.prototype.startWalkAnim = function(){
+    if(this._div){
+      this._div.classList.add('walking');
+      this._div.classList.remove('paused');
+    }
+  };
+  /* PSEUDO: 停止動畫
+     mode='paused' → 加 paused class（呼吸脈衝）
+     mode='idle' 或其他 → 兩個 class 都移除（靜止） */
+  UserWalkOverlay.prototype.stopWalkAnim = function(mode){
+    if(this._div){
+      this._div.classList.remove('walking');
+      if(mode === 'paused'){
+        this._div.classList.add('paused');
+      } else {
+        this._div.classList.remove('paused');
+      }
+    }
+  };
+  userMarker = new UserWalkOverlay(map);
   pathLine=new google.maps.Polyline({map,strokeColor:selectedTrackColor,strokeWeight:6,strokeOpacity:0.85});
   geocoder=new google.maps.Geocoder();
   document.getElementById('colorToggleBtn').style.backgroundColor=selectedTrackColor;
@@ -1505,9 +1647,10 @@ function startWalk(){
           new google.maps.LatLng(last2.lat,last2.lng));
       }
       var currentKm=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;
-      if(windowDist>7){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');pauseWindowPoints=[{point:newPoint,time:now}];pauseWindowStart=now;}
-      else if((now-pauseWindowStart)>=15000){setStatusBar('☕ 暫停一下...','var(--status-paused)');}
-      else if(currentKm>0){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');}
+      /* [v1.32.0] 依走路/暫停狀態切換腳步動畫 */
+      if(windowDist>7){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');userMarker.startWalkAnim();pauseWindowPoints=[{point:newPoint,time:now}];pauseWindowStart=now;}
+      else if((now-pauseWindowStart)>=15000){setStatusBar('☕ 暫停一下...','var(--status-paused)');userMarker.stopWalkAnim('paused');}
+      else if(currentKm>0){setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');userMarker.startWalkAnim();}
 
     },function(err){
       /* PSEUDO: ③ GPS error callback
@@ -1691,7 +1834,9 @@ async function endWalk(){
   if(lostTimer){clearTimeout(lostTimer);lostTimer=null;}
   isGpsLost=false;
   document.getElementById('btnResumeWalk').classList.add('hidden');
-  setStatusBar('✅ 漫遊結束','var(--status-ended)');document.getElementById('state-recording').classList.add('hidden');document.getElementById('state-finished').classList.remove('hidden');
+  setStatusBar('✅ 漫遊結束','var(--status-ended)');
+  /* [v1.32.0] 結束時停止動畫，腳印靜止 */
+  userMarker.stopWalkAnim('idle');document.getElementById('state-recording').classList.add('hidden');document.getElementById('state-finished').classList.remove('hidden');
   document.getElementById('encourageBox').innerText='「'+getDailyEncouragement()+'」';await flushRawBuffer();
   totalDistance=walkPath.length>1?google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000:0;durationStr=Math.floor(Math.abs(new Date()-startTime)/60000)+' 分鐘';
   if(walkPath.length>0){geocoder.geocode({location:walkPath[walkPath.length-1]},function(results,status){if(status==='OK'&&results[0]){var cityObj=results[0].address_components.find(function(c){return c.types.includes('administrative_area_level_1')||c.types.includes('locality');});cityName=cityObj?cityObj.long_name:'未知城市';var seenPlaces={},placeNames=[];eventsData.forEach(function(ev){if(ev.placeName&&!seenPlaces[ev.placeName]){seenPlaces[ev.placeName]=true;var shortName=ev.placeName.length>10?ev.placeName.slice(0,10)+'...':ev.placeName;placeNames.push(shortName);}});var placeLine=placeNames.length>0?'<br>📍 停留地標：'+placeNames.join(' / '):'';document.getElementById('summaryBox').innerHTML='<strong>漫遊結算</strong><br>🏙️ 城市：'+cityName+'<br>👣 里程：'+totalDistance.toFixed(2)+' KM<br>⏱️ 時長：'+durationStr+'<br>📸 事件：'+eventsData.length+' 個'+placeLine;}});}
