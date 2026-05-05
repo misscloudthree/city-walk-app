@@ -343,9 +343,11 @@
 </div>
 
 <!-- ===================================================
-     JS 模組載入順序（非常重要！）
-     config.js 在 <head> 已載入（Firebase）
-     其餘依賴順序載入
+     JS 模組載入順序
+     PSEUDO:
+     - Maps SDK 不用 callback，改用 defer
+     - map.js 內部用 window.addEventListener('load') 自己呼叫 initMap
+     - 避免 module async 與 callback 的 race condition
      =================================================== -->
 <script type="module" src="js/auth.js"></script>
 <script type="module" src="js/events.js"></script>
@@ -353,11 +355,6 @@
 <script type="module" src="js/explore.js"></script>
 <script type="module" src="js/inspire.js"></script>
 <script type="module" src="js/map.js"></script>
-
-<!-- Maps SDK callback -->
-<script>
-window.__mapsReady = function(){ if(window.initMap) window.initMap(); };
-</script>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry&callback=__mapsReady" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40&v=weekly&libraries=places,geometry" defer></script>
 </body>
 </html>

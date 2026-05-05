@@ -429,3 +429,24 @@ window.endWalk          = endWalk;
 window.clearLoadedRoute = clearLoadedRoute;
 window.flushRawBuffer   = flushRawBuffer;
 window.getDailyEncouragement = getDailyEncouragement;
+
+/* ===================================================
+   PSEUDO: 自動初始化
+   - type="module" 是 defer，保證 HTML 解析完才執行
+   - Maps SDK 也是 defer，但誰先誰後不確定
+   - 用 polling 每 100ms 檢查 google 是否就緒
+   - 最多等 10 秒，避免無限等待
+   =================================================== */
+(function waitForGoogle(){
+  var attempts = 0;
+  var timer = setInterval(function(){
+    attempts++;
+    if(window.google && window.google.maps && window.google.maps.Map){
+      clearInterval(timer);
+      initMap();
+    } else if(attempts > 100){
+      clearInterval(timer);
+      console.error('[map.js] Google Maps 載入逾時');
+    }
+  }, 100);
+})();
