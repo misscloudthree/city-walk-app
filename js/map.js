@@ -50,55 +50,6 @@ var MINT_MAP_STYLE = [
 ];
 
 /* ===================================================
-   [v1.32.0] UserWalkOverlay — 走路腳步動畫
-   PSEUDO:
-   - 取代 google.maps.Marker，對外介面相容（setPosition/getPosition）
-   - startWalkAnim()：加 walking class，左右腳交替抬起
-   - stopWalkAnim('paused')：加 paused class，呼吸脈衝
-   - stopWalkAnim('idle')：移除所有動畫 class，靜止
-   =================================================== */
-function UserWalkOverlay(mapInstance){
-  this._pos = null;
-  this._div = null;
-  this.setMap(mapInstance);
-}
-UserWalkOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
-UserWalkOverlay.prototype.onAdd = function(){
-  var div = document.createElement('div');
-  div.className = 'user-walk-overlay';
-  div.innerHTML = '<span class="foot-l">🦶</span><span class="foot-r">🦶</span>';
-  this._div = div;
-  this.getPanes().overlayMouseTarget.appendChild(div);
-};
-UserWalkOverlay.prototype.draw = function(){
-  if(!this._div || !this._pos) return;
-  var pt = this.getProjection().fromLatLngToDivPixel(this._pos);
-  if(pt){ this._div.style.left = pt.x+'px'; this._div.style.top = pt.y+'px'; }
-};
-UserWalkOverlay.prototype.onRemove = function(){
-  if(this._div && this._div.parentNode) this._div.parentNode.removeChild(this._div);
-  this._div = null;
-};
-UserWalkOverlay.prototype.setPosition = function(latlng){
-  if(!latlng) return;
-  this._pos = (typeof latlng.lat === 'function')
-    ? latlng
-    : new google.maps.LatLng(latlng.lat, latlng.lng);
-  this.draw();
-};
-UserWalkOverlay.prototype.getPosition = function(){ return this._pos; };
-UserWalkOverlay.prototype.startWalkAnim = function(){
-  if(this._div){ this._div.classList.add('walking'); this._div.classList.remove('paused'); }
-};
-UserWalkOverlay.prototype.stopWalkAnim = function(mode){
-  if(this._div){
-    this._div.classList.remove('walking');
-    if(mode === 'paused') this._div.classList.add('paused');
-    else this._div.classList.remove('paused');
-  }
-};
-
-/* ===================================================
    initMap — Google Maps 初始化
    =================================================== */
 async function initMap(){
@@ -111,6 +62,52 @@ async function initMap(){
   });
   map.mapTypes.set('styled_map', mintStyledMap);
   map.setMapTypeId('styled_map');
+
+  /* ===================================================
+     [v1.32.0] UserWalkOverlay — 走路腳步動畫
+     PSEUDO: 定義在 initMap 內部，確保 google 物件已載入
+     google.maps.OverlayView 在 Maps SDK ready 後才能繼承
+     =================================================== */
+  function UserWalkOverlay(mapInstance){
+    this._pos = null;
+    this._div = null;
+    this.setMap(mapInstance);
+  }
+  UserWalkOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
+  UserWalkOverlay.prototype.onAdd = function(){
+    var div = document.createElement('div');
+    div.className = 'user-walk-overlay';
+    div.innerHTML = '<span class="foot-l">🦶</span><span class="foot-r">🦶</span>';
+    this._div = div;
+    this.getPanes().overlayMouseTarget.appendChild(div);
+  };
+  UserWalkOverlay.prototype.draw = function(){
+    if(!this._div || !this._pos) return;
+    var pt = this.getProjection().fromLatLngToDivPixel(this._pos);
+    if(pt){ this._div.style.left = pt.x+'px'; this._div.style.top = pt.y+'px'; }
+  };
+  UserWalkOverlay.prototype.onRemove = function(){
+    if(this._div && this._div.parentNode) this._div.parentNode.removeChild(this._div);
+    this._div = null;
+  };
+  UserWalkOverlay.prototype.setPosition = function(latlng){
+    if(!latlng) return;
+    this._pos = (typeof latlng.lat === 'function')
+      ? latlng
+      : new google.maps.LatLng(latlng.lat, latlng.lng);
+    this.draw();
+  };
+  UserWalkOverlay.prototype.getPosition = function(){ return this._pos; };
+  UserWalkOverlay.prototype.startWalkAnim = function(){
+    if(this._div){ this._div.classList.add('walking'); this._div.classList.remove('paused'); }
+  };
+  UserWalkOverlay.prototype.stopWalkAnim = function(mode){
+    if(this._div){
+      this._div.classList.remove('walking');
+      if(mode === 'paused') this._div.classList.add('paused');
+      else this._div.classList.remove('paused');
+    }
+  };
 
   /* [v1.32.0] 使用 UserWalkOverlay 取代原本 Marker */
   userMarker = new UserWalkOverlay(map);
