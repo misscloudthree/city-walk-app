@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.32.0</title>
+<title>City Walker - v1.32.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 
@@ -144,13 +144,14 @@
 <!-- 漫遊主頁 -->
 <div id="page-main" class="page">
   <div id="map"></div>
+  <!-- [v1.32.2] 靈感路線距離提示浮層：固定在地圖上方，點任一按鈕後消失 -->
+  <div id="inspireRouteHint"></div>
   <div id="functionPanel">
     <div id="state-init">
       <!-- 一般開始：清除靈感標記後開始 -->
       <button class="btn-base btn-main" onclick="if(window.clearInspireMarkers)clearInspireMarkers();startWalk();">開始 City Walk！</button>
-      <!-- 靈感路線區塊：有靈感時才顯示，hint 移到這裡避免與按鈕重疊 -->
+      <!-- 靈感路線區塊：有靈感時才顯示 -->
       <div id="inspireStartBlock" style="display:none;margin-top:8px;">
-        <div id="inspireRouteHint" style="font-size:13px;color:var(--text-soft);text-align:center;padding:4px 0 6px;letter-spacing:0.3px;"></div>
         <button id="btnStartFromInspire" onclick="startWalkFromInspire()">✦ 以此靈感開始漫遊</button>
         <button id="btnRerollInspire" onclick="rerollInspireSpots()">🔄 換一組</button>
       </div>
