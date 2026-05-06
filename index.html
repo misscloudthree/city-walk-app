@@ -146,9 +146,14 @@
   <div id="map"></div>
   <div id="functionPanel">
     <div id="state-init">
-      <button class="btn-base btn-main" onclick="startWalk()">開始 City Walk！</button>
-      <button id="btnStartFromInspire" onclick="startWalkFromInspire()">✦ 以此靈感開始漫遊</button>
-      <button id="btnRerollInspire" onclick="rerollInspireSpots()">🔄 換一組</button>
+      <!-- 一般開始：清除靈感標記後開始 -->
+      <button class="btn-base btn-main" onclick="if(window.clearInspireMarkers)clearInspireMarkers();startWalk();">開始 City Walk！</button>
+      <!-- 靈感路線區塊：有靈感時才顯示，hint 移到這裡避免與按鈕重疊 -->
+      <div id="inspireStartBlock" style="display:none;margin-top:8px;">
+        <div id="inspireRouteHint" style="font-size:13px;color:var(--text-soft);text-align:center;padding:4px 0 6px;letter-spacing:0.3px;"></div>
+        <button id="btnStartFromInspire" onclick="startWalkFromInspire()">✦ 以此靈感開始漫遊</button>
+        <button id="btnRerollInspire" onclick="rerollInspireSpots()">🔄 換一組</button>
+      </div>
       <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);margin-top:10px;border:1.5px solid var(--border-light);" onclick="openInspireSheet()">✦ 規劃靈感</button>
     </div>
     <div id="state-recording" class="hidden">
@@ -291,9 +296,6 @@
     <button id="batchDeleteBtn" disabled onclick="batchDelete()">刪除選取</button>
   </div>
 </div>
-
-<!-- 靈感路徑距離提示列 -->
-<div id="inspireRouteHint"></div>
 
 <!-- 底部導覽列 -->
 <nav id="navBar">

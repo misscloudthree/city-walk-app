@@ -97,6 +97,7 @@ function clearInspireMarkers(){
   /* [v1.29.0] 清固定 Set（結束靈感規劃時清）；_usedInspirePlaceIds 不清（累積排除） */
   _pinnedInspireIds = new Set();
   _inspireWalkStarted = false;
+  document.getElementById('inspireStartBlock').style.display = 'none';
   document.getElementById('inspireRouteHint').style.display = 'none';
   document.getElementById('btnStartFromInspire').style.display = 'none';
   /* [v1.29.0] 同步隱藏換一組按鈕 */
@@ -498,6 +499,8 @@ async function searchInspireSpots(){
     drawInspireRoutePath(currentPos, orderedSpots);
 
     /* ④ 顯示「以此靈感開始漫遊」+ 「🔄 換一組」*/
+    /* [v1.32.1] 顯示靈感區塊（含 hint、兩顆按鈕） */
+    document.getElementById('inspireStartBlock').style.display = 'block';
     document.getElementById('btnStartFromInspire').style.display = 'block';
     document.getElementById('btnRerollInspire').style.display = 'block';
 
@@ -521,6 +524,8 @@ async function searchInspireSpots(){
    只有 clearInspireMarkers() 才會清（目前無自動呼叫點）
    =================================================== */
 function startWalkFromInspire(){
+  /* [v1.32.1] 隱藏整個靈感區塊 */
+  document.getElementById('inspireStartBlock').style.display = 'none';
   document.getElementById('btnStartFromInspire').style.display = 'none';
   document.getElementById('inspireRouteHint').style.display = 'none';
   document.getElementById('btnRerollInspire').style.display = 'none';
