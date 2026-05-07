@@ -1,9 +1,57 @@
 /* ===================================================
    records.js — 我的路線頁、篩選、統計、分享卡片、雲端存取
-   City Walker v1.32.0
+   City Walker v1.33.0
    =================================================== */
 
+import { t } from './i18n/i18n.js';
+
 var PATH_CHUNK_SIZE = 500;
+
+/* ===================================================
+   語系切換時重新渲染動態內容
+   =================================================== */
+document.addEventListener('langchange', function(){
+  /* 重新填 filter options（select 的 option 是靜態 HTML，applyDataI18n 處理不到） */
+  _rebuildFilterOptions();
+  /* 若列表已渲染，重刷 */
+  if(window.currentDocs) renderCards(window.currentDocs);
+  /* 重刷統計 */
+  if(window.currentDocs) renderStats(window.currentDocs);
+  /* 重刷 manage 按鈕文字 */
+  var btn = document.getElementById('btnManage');
+  if(btn){
+    btn.innerText = document.body.classList.contains('select-mode')
+      ? t('btn.manageDone') : t('btn.manage');
+  }
+});
+
+function _rebuildFilterOptions(){
+  /* filterCity 的第一個 option */
+  var fcFirst = document.querySelector('#filterCity option[value=""]');
+  if(fcFirst) fcFirst.text = t('list.filterAllCities');
+
+  /* filterKm */
+  var kmSel = document.getElementById('filterKm');
+  if(kmSel){
+    var kmMap = {'':'list.filterAllKm','0-1':'list.filterKm01','1-5':'list.filterKm15','5-10':'list.filterKm510','10+':'list.filterKm10p'};
+    Array.from(kmSel.options).forEach(function(o){ if(kmMap[o.value]) o.text=t(kmMap[o.value]); });
+  }
+
+  /* filterDate */
+  var dateSel = document.getElementById('filterDate');
+  if(dateSel){
+    var dateMap = {'':'list.filterAllDates','7':'list.filterDays7','30':'list.filterDays30','90':'list.filterDays90'};
+    Array.from(dateSel.options).forEach(function(o){ if(dateMap[o.value]) o.text=t(dateMap[o.value]); });
+  }
+
+  /* clearFilterBtn */
+  var clr = document.getElementById('clearFilterBtn');
+  if(clr) clr.innerText = t('list.filterClear');
+
+  /* searchInput placeholder */
+  var si = document.getElementById('searchInput');
+  if(si) si.placeholder = t('list.searchPlaceholder');
+}
 
 /* ===================================================
    開啟儲存 Modal
@@ -39,7 +87,11 @@ async function executeCloudSave(){
     }
     await Promise.all(chunkPromises);
     location.reload();
-  }catch(e){console.error('[Save] 儲存失敗:',e);alert('儲存失敗');if(btn)btn.disabled=false;}
+  }catch(e){
+    console.error('[Save] 儲存失敗:',e);
+    alert(t('modal.save.fail'));
+    if(btn)btn.disabled=false;
+  }
 }
 
 /* ===================================================
@@ -48,7 +100,7 @@ async function executeCloudSave(){
 async function fetchRecords(){
   var container=document.getElementById('recordsContainer');
   if(!container)return;
-  container.innerHTML='<p style="text-align:center;padding:20px;">載入中...</p>';
+  container.innerHTML='<p style="text-align:center;padding:20px;">'+t('list.loading')+'</p>';
   try{
     var uid=window.currentUid||'anonymous';
     var q=window.api.query(window.api.collection(window.db,'walk_records'),window.api.where('userId','==',uid));
@@ -61,7 +113,10 @@ async function fetchRecords(){
     renderStats(window.currentDocs);
     buildCityFilter(window.currentDocs);
     renderCards(window.currentDocs);
-  }catch(e){console.error(e);container.innerHTML='<p style="text-align:center;color:red;">載入失敗</p>';}
+  }catch(e){
+    console.error(e);
+    container.innerHTML='<p style="text-align:center;color:red;">'+t('list.loadFail')+'</p>';
+  }
 }
 
 function renderStats(docs){
@@ -78,7 +133,9 @@ function buildCityFilter(docs){
   docs.forEach(function(d){if(d.city&&!seen[d.city]){seen[d.city]=true;cities.push(d.city);}});
   var sel=document.getElementById('filterCity');
   while(sel.options.length>1)sel.remove(1);
-  cities.forEach(function(c){var opt=document.createElement('option');opt.value=c;opt.text='🏙 '+c;sel.appendChild(opt);});
+  cities.forEach(function(c){
+    var opt=document.createElement('option');opt.value=c;opt.text='🏙 '+c;sel.appendChild(opt);
+  });
 }
 
 function applyFilters(){
@@ -107,7 +164,7 @@ function applyFilters(){
     }
     return true;
   });
-  document.getElementById('filterCount').innerText=hasFilter?('共 '+filtered.length+' 條'):'';
+  document.getElementById('filterCount').innerText=hasFilter?t('list.filterCount',{n:filtered.length}):'';
   renderCards(filtered);
 }
 
@@ -128,12 +185,15 @@ function clearFilters(){
 function renderCards(docs){
   var container=document.getElementById('recordsContainer');
   container.innerHTML='';
-  if(!docs||docs.length===0){container.innerHTML='<p style="text-align:center;padding:30px;color:var(--text-soft);">沒有符合的路線</p>';return;}
+  if(!docs||docs.length===0){
+    container.innerHTML='<p style="text-align:center;padding:30px;color:var(--text-soft);">'+t('list.empty')+'</p>';
+    return;
+  }
   var pinned=docs.filter(function(d){return d.isPinned;});
   var unpinned=docs.filter(function(d){return !d.isPinned;});
   var cityGroups={},cityOrder=[];
   unpinned.forEach(function(d){var c=d.city||'未知城市';if(!cityGroups[c]){cityGroups[c]=[];cityOrder.push(c);}cityGroups[c].push(d);});
-  if(pinned.length>0){appendGroupHeader(container,'📌 已釘選');pinned.forEach(function(d){appendCard(container,d);});}
+  if(pinned.length>0){appendGroupHeader(container,t('list.pinnedGroup'));pinned.forEach(function(d){appendCard(container,d);});}
   cityOrder.forEach(function(city){appendGroupHeader(container,city);cityGroups[city].forEach(function(d){appendCard(container,d);});});
 }
 
@@ -145,7 +205,9 @@ function appendCard(container,data){
   var cardColor=data.trackColor||'#8FB9A8';
   var dateStr='';
   if(data.createdAt&&data.createdAt.seconds){
-    dateStr=new Date(data.createdAt.seconds*1000).toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'});
+    dateStr=new Date(data.createdAt.seconds*1000).toLocaleDateString(
+      window._lang==='en'?'en-US':'zh-TW',{month:'2-digit',day:'2-digit'}
+    );
   }
   var metaParts=['👣 '+(data.distance||0).toFixed(2)+' km','⏱️ '+data.duration];
   if(dateStr)metaParts.push('📅 '+dateStr);
@@ -154,8 +216,8 @@ function appendCard(container,data){
   row.className='route-row'+(data.isPinned?' is-pinned':'');
   row.setAttribute('data-id',data.id);
   row.style.borderLeftColor=data.isPinned?'var(--accent-pin)':cardColor;
-  var pinLabel=data.isPinned?'📌 取消釘選':'📌 釘選';
-  var publicLabel=data.isPublic?'🌐 公開':'🔒 私人';
+  var pinLabel=data.isPinned?t('btn.unpinRoute'):t('btn.pinRoute');
+  var publicLabel=data.isPublic?t('btn.publicRoute'):t('btn.privateRoute');
   var publicClass='route-action-btn btn-public'+(data.isPublic?' is-public':'');
   row.innerHTML=
     '<div class="route-row-main" onclick="onRowMainClick(event,\''+data.id+'\')">'+
@@ -165,11 +227,11 @@ function appendCard(container,data){
       '<div class="route-row-arrow">▼</div>'+
     '</div>'+
     '<div class="route-row-actions"><div class="route-action-btns">'+
-      '<button class="route-action-btn btn-load" onclick="loadSavedRoute(\''+data.id+'\')">🗺 載入</button>'+
+      '<button class="route-action-btn btn-load" onclick="loadSavedRoute(\''+data.id+'\')">'+t('btn.loadRoute')+'</button>'+
       '<button class="route-action-btn btn-pin" onclick="togglePin(event,\''+data.id+'\','+data.isPinned+')">'+pinLabel+'</button>'+
       '<button class="'+publicClass+'" onclick="togglePublic(event,\''+data.id+'\','+!!data.isPublic+')">'+publicLabel+'</button>'+
-      '<button class="route-action-btn btn-share" onclick="openShareCard(event,\''+data.id+'\')">✦ 分享</button>'+
-      '<button class="route-action-btn btn-del" onclick="deleteRecord(event,\''+data.id+'\')">🗑️</button>'+
+      '<button class="route-action-btn btn-share" onclick="openShareCard(event,\''+data.id+'\')">'+t('btn.shareRoute')+'</button>'+
+      '<button class="route-action-btn btn-del" onclick="deleteRecord(event,\''+data.id+'\')">'+t('btn.deleteRoute')+'</button>'+
     '</div></div>';
   container.appendChild(row);
 }
@@ -186,13 +248,15 @@ function onRowMainClick(e,id){
 function toggleSelectMode(){if(document.body.classList.contains('select-mode')){exitSelectMode();}else{enterSelectMode();}}
 function enterSelectMode(){
   document.body.classList.add('select-mode');window._selectedIds=new Set();
-  document.getElementById('btnManage').classList.add('active');document.getElementById('btnManage').innerText='完成';
+  document.getElementById('btnManage').classList.add('active');
+  document.getElementById('btnManage').innerText=t('btn.manageDone');
   document.getElementById('batchDeleteBar').classList.add('visible');updateBatchDeleteBar();
   document.querySelectorAll('.route-row.expanded').forEach(function(r){r.classList.remove('expanded');});
 }
 function exitSelectMode(){
   document.body.classList.remove('select-mode');window._selectedIds=new Set();
-  document.getElementById('btnManage').classList.remove('active');document.getElementById('btnManage').innerText='管理';
+  document.getElementById('btnManage').classList.remove('active');
+  document.getElementById('btnManage').innerText=t('btn.manage');
   document.getElementById('batchDeleteBar').classList.remove('visible');
   document.querySelectorAll('.route-checkbox.checked').forEach(function(c){c.classList.remove('checked');});
 }
@@ -205,16 +269,18 @@ function toggleSelectCard(id){
 }
 function updateBatchDeleteBar(){
   var count=window._selectedIds?window._selectedIds.size:0;
-  document.getElementById('batchDeleteLabel').innerText='已選 '+count+' 條';
+  document.getElementById('batchDeleteLabel').innerText=t('list.batchSelected',{n:count});
   document.getElementById('batchDeleteBtn').disabled=count===0;
-  document.getElementById('batchDeleteBtn').innerText=count>0?'刪除選取 ('+count+')':'刪除選取';
+  document.getElementById('batchDeleteBtn').innerText=
+    count>0?t('btn.batchDeleteCount',{n:count}):t('btn.batchDelete');
 }
 
 async function batchDelete(){
   var ids=window._selectedIds?Array.from(window._selectedIds):[];
   if(ids.length===0)return;
-  if(!confirm('確定要刪除選取的 '+ids.length+' 條路線嗎？\n此操作無法復原。'))return;
-  var btn=document.getElementById('batchDeleteBtn');btn.disabled=true;btn.innerText='刪除中...';
+  if(!confirm(t('alert.batchDeleteConfirm',{n:ids.length})))return;
+  var btn=document.getElementById('batchDeleteBtn');
+  btn.disabled=true;btn.innerText=t('btn.batchDeleting');
   for(var i=0;i<ids.length;i++){
     var id=ids[i];var data=window.currentDocs&&window.currentDocs.find(function(d){return d.id===id;});
     if(data&&data.events&&window.storage&&window.storageApi){
@@ -233,7 +299,7 @@ async function loadSavedRoute(id){
   switchPage('main');
   window.pathLine.setPath([]);
   window.historyMarkers.forEach(function(m){m.setMap(null);});window.historyMarkers.length=0;
-  window.setStatusBar('🔄 載入路線中...','var(--status-locating)');
+  window.setStatusBar(t('status.loadingRoute'),'var(--status-locating)');
   var pts=[];
   if(data.path&&data.path.length>0){pts=data.path.map(function(p){return{lat:p.lat,lng:p.lng};});}
   else{
@@ -243,9 +309,12 @@ async function loadSavedRoute(id){
       snap.forEach(function(d){chunks.push(d.data());});
       chunks.sort(function(a,b){return a.index-b.index;});
       chunks.forEach(function(c){if(c.points)pts=pts.concat(c.points);});
-    }catch(err){console.error('[loadSavedRoute]',err);window.setStatusBar('City Walker','var(--status-idle)');return;}
+    }catch(err){
+      console.error('[loadSavedRoute]',err);
+      window.setStatusBar(t('status.appName'),'var(--status-idle)');return;
+    }
   }
-  if(pts.length===0){window.setStatusBar('City Walker','var(--status-idle)');return;}
+  if(pts.length===0){window.setStatusBar(t('status.appName'),'var(--status-idle)');return;}
   window.pathLine.setPath(pts);
   window.pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
   if(data.events){
@@ -258,11 +327,12 @@ async function loadSavedRoute(id){
   window._loadedRouteEvents=data.events?data.events.slice():[];
   window.map.panTo(pts[0]);
   document.getElementById('btnFocusRouteWrap').classList.remove('hidden');
-  window.setStatusBar('City Walker','var(--status-idle)');
+  window.setStatusBar(t('status.appName'),'var(--status-idle)');
 }
 
 async function deleteRecord(e,id){
-  e.stopPropagation();if(!confirm('確定要刪除嗎？'))return;
+  e.stopPropagation();
+  if(!confirm(t('alert.deleteConfirm')))return;
   var data=window.currentDocs&&window.currentDocs.find(function(d){return d.id===id;});
   if(data&&data.events&&window.storage&&window.storageApi){
     var sDeletes=[];
@@ -283,11 +353,11 @@ async function togglePin(e,id,status){
 async function togglePublic(e,id,currentStatus){
   e.stopPropagation();
   try{await window.api.updateDoc(window.api.doc(window.db,'walk_records',id),{isPublic:!currentStatus});fetchRecords();}
-  catch(err){console.error('[togglePublic]',err);alert('切換失敗，請稍後再試。');}
+  catch(err){console.error('[togglePublic]',err);alert(t('alert.togglePublicFail'));}
 }
 
 /* ===================================================
-   分享卡片（v1.30.0 重新設計）
+   分享卡片（略，保留原邏輯不重複，僅換字串）
    =================================================== */
 function _mercX(lng){return(lng+180)/360;}
 function _mercY(lat){var s=Math.sin(lat*Math.PI/180);return 0.5-Math.log((1+s)/(1-s))/(4*Math.PI);}
@@ -315,7 +385,7 @@ async function openShareCard(e,id){
   var ctx=canvas.getContext('2d');
   ctx.fillStyle='#EBEBEB';ctx.fillRect(0,0,1080,1350);
   ctx.fillStyle='#8FB9A8';ctx.font='bold 44px Arial';ctx.textAlign='center';
-  ctx.fillText('生成卡片中...',540,675);ctx.textAlign='left';
+  ctx.fillText(t('list.loading'),540,675);ctx.textAlign='left';
   window._shareCardData=data;window._shareCardPhotoIndex=0;
   var pts=[];
   if(data.path&&data.path.length>0){pts=data.path;}
@@ -328,8 +398,11 @@ async function openShareCard(e,id){
     window._shareCardPhotos=imgs.filter(Boolean);
   }else{window._shareCardPhotos=[];}
   var hint=document.getElementById('sharePhotoHint');
-  if(window._shareCardPhotos.length>1){hint.style.display='block';document.getElementById('sharePhotoIndex').innerText='1 / '+window._shareCardPhotos.length;}
-  else{hint.style.display='none';}
+  if(window._shareCardPhotos.length>1){
+    hint.style.display='block';
+    document.getElementById('sharePhotoIndex').innerText=
+      t('memory.pager',{cur:1,total:window._shareCardPhotos.length});
+  }else{hint.style.display='none';}
   generateShareCard(data,0);
 }
 
@@ -337,7 +410,8 @@ function cycleSharePhoto(){
   var photos=window._shareCardPhotos;if(!photos||photos.length<=1)return;
   var data=window._shareCardData;if(!data)return;
   window._shareCardPhotoIndex=(window._shareCardPhotoIndex+1)%photos.length;
-  document.getElementById('sharePhotoIndex').innerText=(window._shareCardPhotoIndex+1)+' / '+photos.length;
+  document.getElementById('sharePhotoIndex').innerText=
+    t('memory.pager',{cur:window._shareCardPhotoIndex+1,total:photos.length});
   generateShareCard(data,window._shareCardPhotoIndex);
 }
 function closeShareCard(){document.getElementById('shareCardModal').style.display='none';}
@@ -358,10 +432,11 @@ async function generateShareCard(data,photoIndex){
   var HEADER_H=180,MAP_Y=HEADER_H,MAP_H=900,BOTTOM_Y=MAP_Y+MAP_H,BOTTOM_H=H-BOTTOM_Y;
   ctx.fillStyle=DARK;ctx.fillRect(0,0,W,HEADER_H);
   ctx.fillStyle=WHITE;ctx.font='bold 56px "Arial",sans-serif';ctx.textAlign='left';
-  ctx.fillText(data.city||'未知城市',56,82);
+  ctx.fillText(data.city||'—',56,82);
   ctx.fillStyle='rgba(255,255,255,0.62)';ctx.font='33px "Arial",sans-serif';
   ctx.fillText('👣 '+(data.distance||0).toFixed(2)+' km   ⏱ '+(data.duration||'—'),56,140);
-  var dateStr=data.createdAt&&data.createdAt.seconds?new Date(data.createdAt.seconds*1000).toLocaleDateString('zh-TW',{month:'2-digit',day:'2-digit'}):'';
+  var dateStr=data.createdAt&&data.createdAt.seconds?new Date(data.createdAt.seconds*1000).toLocaleDateString(
+    window._lang==='en'?'en-US':'zh-TW',{month:'2-digit',day:'2-digit'}):'';
   ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font='28px "Arial",sans-serif';ctx.textAlign='right';
   ctx.fillText(dateStr,W-56,82);ctx.textAlign='left';
   var pts=window._shareCardPts||[];
@@ -392,11 +467,12 @@ async function generateShareCard(data,photoIndex){
   ctx.fillStyle=CREAM;ctx.fillRect(0,BOTTOM_Y,W,BOTTOM_H);
   ctx.strokeStyle='rgba(0,0,0,0.07)';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(0,BOTTOM_Y);ctx.lineTo(W,BOTTOM_Y);ctx.stroke();
   ctx.fillStyle=DARK;ctx.font='bold 52px "Arial",sans-serif';ctx.textAlign='center';
-  var rn=data.name||'未命名路線';while(ctx.measureText(rn).width>W-100&&rn.length>0)rn=rn.slice(0,-1);
-  if(rn!==(data.name||'未命名路線'))rn+='...';ctx.fillText(rn,W/2,BOTTOM_Y+84);
+  var rn=data.name||'—';while(ctx.measureText(rn).width>W-100&&rn.length>0)rn=rn.slice(0,-1);
+  if(rn!==(data.name||'—'))rn+='...';ctx.fillText(rn,W/2,BOTTOM_Y+84);
   ctx.fillStyle=SOFT;ctx.font='28px "Arial",sans-serif';ctx.fillText('✦  CITY WALKER',W/2,BOTTOM_Y+144);
   if(data.events&&data.events.length>0){
-    var chipTxt='📸 '+data.events.length+' 個記憶';ctx.font='26px "Arial",sans-serif';
+    var chipTxt='📸 '+data.events.length+(window._lang==='en'?' moments':' 個記憶');
+    ctx.font='26px "Arial",sans-serif';
     var chipW=ctx.measureText(chipTxt).width+44;var chipX=W/2-chipW/2,chipY2=BOTTOM_Y+170,chipR=23;
     ctx.fillStyle='rgba(143,185,168,0.2)';ctx.beginPath();
     if(ctx.roundRect){ctx.roundRect(chipX,chipY2,chipW,46,chipR);}
@@ -441,7 +517,7 @@ function _drawAbstractRoute(ctx,pts,color,mapY,W,mapH,events){
 }
 
 /* ===================================================
-   switchPage / openSaveModal
+   switchPage
    =================================================== */
 function switchPage(p){
   document.querySelectorAll('.page').forEach(function(page){page.classList.add('hidden');});

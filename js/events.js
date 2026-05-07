@@ -1,7 +1,9 @@
 /* ===================================================
    events.js — 事件紀錄、回憶視窗、照片上傳、Marker
-   City Walker v1.32.0
+   City Walker v1.33.0
    =================================================== */
+
+import { t } from './i18n/i18n.js';
 
 var nearbyPlaces=[], selectedPlace=null;
 var selectedPhotoBlob=null, selectedPhotoDataUrl=null;
@@ -43,7 +45,7 @@ function buildIconPicker(){
   renderIconGrid(0);
 }
 function switchIconCategory(idx){
-  document.querySelectorAll('.icon-tab').forEach(function(t,i){t.classList.toggle('active',i===idx);});
+  document.querySelectorAll('.icon-tab').forEach(function(t2,i){t2.classList.toggle('active',i===idx);});
   renderIconGrid(idx);
 }
 function renderIconGrid(idx){
@@ -117,7 +119,7 @@ function confirmPhoto(){
   if(selectedPhotoDataUrl){
     var thumb=document.getElementById('photoPreviewThumb');
     thumb.src=selectedPhotoDataUrl; thumb.style.display='block';
-    document.getElementById('cameraBtn').innerText='📷 換照片';
+    document.getElementById('cameraBtn').innerText = t('btn.changePhoto');
   }
 }
 
@@ -140,42 +142,45 @@ function clearPlaceSearch(){
 }
 async function searchPlaceByText(text){
   var tagsContainer=document.getElementById('placeTags');
-  tagsContainer.innerHTML='<span class="place-detecting">搜尋中...</span>';
+  tagsContainer.innerHTML='<span class="place-detecting">'+t('modal.event.searching')+'</span>';
   try{
     var {Place}=await google.maps.importLibrary('places');
     var currentPos=window.getUserPosition();
     var request={
-      textQuery:text,fields:['displayName','location','id'],
+      textQuery:text, fields:['displayName','location','id'],
       locationBias:currentPos?{center:currentPos,radius:2000}:undefined
     };
     var {places}=await Place.searchByText(request);
-    if(!places||places.length===0){tagsContainer.innerHTML='<span class="place-detecting">（無結果）</span>';return;}
+    if(!places||places.length===0){
+      tagsContainer.innerHTML='<span class="place-detecting">'+t('modal.event.searchNoResult')+'</span>';
+      return;
+    }
     renderPlaceTags(places.slice(0,5).map(function(p){
       return{name:p.displayName,placeId:p.id,lat:p.location?p.location.lat():0,lng:p.location?p.location.lng():0};
     }),'search');
   }catch(err){
     console.error('[PlaceSearch]',err);
-    tagsContainer.innerHTML='<span class="place-detecting">（搜尋失敗）</span>';
+    tagsContainer.innerHTML='<span class="place-detecting">'+t('modal.event.searchFail')+'</span>';
   }
 }
 function renderPlaceTags(places,mode){
   var tagsContainer=document.getElementById('placeTags');
   tagsContainer.innerHTML='';
   if(!places||places.length===0){
-    tagsContainer.innerHTML='<span class="place-detecting">（附近無地標）</span>';return;
+    tagsContainer.innerHTML='<span class="place-detecting">'+t('modal.event.noPlace')+'</span>';
+    return;
   }
   places.forEach(function(placeData){
     var name=placeData.name||placeData.displayName||'';
     var shortName=name.length>10?name.slice(0,10)+'...':name;
     var tag=document.createElement('div');
-    tag.className='place-tag';
-    tag.innerText='📍 '+shortName;
+    tag.className='place-tag'; tag.innerText='📍 '+shortName;
     tag.onclick=function(){
       if(selectedPlace&&selectedPlace.placeId===placeData.placeId){
         selectedPlace=null;tag.classList.remove('selected');
       } else {
         selectedPlace=placeData;
-        document.querySelectorAll('.place-tag').forEach(function(t){t.classList.remove('selected');});
+        document.querySelectorAll('.place-tag').forEach(function(t2){t2.classList.remove('selected');});
         tag.classList.add('selected');
       }
     };
@@ -189,7 +194,8 @@ function renderPlaceTags(places,mode){
 async function openEventCanvas(){
   document.getElementById('eventModal').style.display='flex';
   selectedPlace=null; nearbyPlaces=[];
-  document.getElementById('placeTags').innerHTML='<span class="place-detecting">偵測中...</span>';
+  document.getElementById('placeTags').innerHTML=
+    '<span class="place-detecting">'+t('modal.event.detecting')+'</span>';
   document.getElementById('placeSearchInput').value='';
   document.getElementById('placeSearchClear').classList.remove('visible');
   switchIconCategory(0);
@@ -197,10 +203,14 @@ async function openEventCanvas(){
   selectedPhotoBlob=null; selectedPhotoDataUrl=null;
   document.getElementById('photoPreviewThumb').style.display='none';
   document.getElementById('photoPreviewThumb').src='';
-  document.getElementById('cameraBtn').innerText='📷 加入照片';
+  document.getElementById('cameraBtn').innerText=t('btn.addPhoto');
 
   var currentPos=window.getUserPosition();
-  if(!currentPos){document.getElementById('placeTags').innerHTML='<span class="place-detecting">（無法取得位置）</span>';return;}
+  if(!currentPos){
+    document.getElementById('placeTags').innerHTML=
+      '<span class="place-detecting">'+t('modal.event.noPos')+'</span>';
+    return;
+  }
   try{
     var {Place}=await google.maps.importLibrary('places');
     var {places}=await Place.searchNearby({
@@ -208,7 +218,9 @@ async function openEventCanvas(){
       locationRestriction:{center:currentPos,radius:100}
     });
     if(!places||places.length===0){
-      document.getElementById('placeTags').innerHTML='<span class="place-detecting">（附近無地標）</span>';return;
+      document.getElementById('placeTags').innerHTML=
+        '<span class="place-detecting">'+t('modal.event.noPlace')+'</span>';
+      return;
     }
     places.slice(0,3).forEach(function(place){
       if(!place.location)return;
@@ -217,7 +229,8 @@ async function openEventCanvas(){
     renderPlaceTags(nearbyPlaces,'nearby');
   }catch(err){
     console.error('[Places]',err);
-    document.getElementById('placeTags').innerHTML='<span class="place-detecting">（地標偵測失敗）</span>';
+    document.getElementById('placeTags').innerHTML=
+      '<span class="place-detecting">'+t('modal.event.placeFail')+'</span>';
   }
 }
 
@@ -236,7 +249,7 @@ async function saveEvent(){
   if(selectedPhotoBlob&&window.storage&&window.storageApi&&window.currentUid){
     var confirmBtn=document.querySelector('#eventModal .btn-event');
     var originalText=confirmBtn?confirmBtn.innerText:'';
-    if(confirmBtn){confirmBtn.disabled=true;confirmBtn.innerText='上傳中...';}
+    if(confirmBtn){confirmBtn.disabled=true;confirmBtn.innerText=t('btn.uploading');}
     try{
       var timestamp=Date.now();
       var rand=Math.floor(Math.random()*9000+1000);
@@ -271,7 +284,7 @@ function closeMemoryBox(){
 }
 function enterMemoryEdit(){
   var currentText=document.getElementById('memoryText').innerText;
-  if(currentText==='那一天，在這裡留下了足跡...') currentText='';
+  if(currentText===t('memory.defaultText')) currentText='';
   document.getElementById('memoryEditArea').value=currentText;
   document.getElementById('memoryText').style.display='none';
   document.getElementById('memoryEditArea').style.display='block';
@@ -294,7 +307,7 @@ async function saveMemoryEdit(){
   var box=document.getElementById('memoryBox');
   var routeId=box.dataset.routeId||'';
   var eventIndex=parseInt(box.dataset.eventIndex);
-  document.getElementById('memoryText').innerText=newText||'那一天，在這裡留下了足跡...';
+  document.getElementById('memoryText').innerText=newText||t('memory.defaultText');
   exitMemoryEditMode();
   if(!routeId){
     if(isNaN(eventIndex)||eventIndex<0||!window.eventsData[eventIndex]) return;
@@ -336,14 +349,14 @@ function fillMemoryBox(icon,text,placeName,photoUrl,createdAt,routeId,eventIndex
       var d=new Date(createdAt);
       var hh=String(d.getHours()).padStart(2,'0');
       var mm=String(d.getMinutes()).padStart(2,'0');
-      timeEl.innerText='🕐 '+hh+':'+mm+' 在這裡';
+      timeEl.innerText=t('memory.timeFormat',{hh,mm});
     }catch(ex){timeEl.innerText='';}
   }else{timeEl.innerText='';}
   var polaroid=document.getElementById('memoryPolaroid');
   var memPhoto=document.getElementById('memoryPhoto');
   if(photoUrl){memPhoto.src=photoUrl;polaroid.classList.remove('hidden');}
   else{polaroid.classList.add('hidden');memPhoto.src='';}
-  document.getElementById('memoryText').innerText=text||'那一天，在這裡留下了足跡...';
+  document.getElementById('memoryText').innerText=text||t('memory.defaultText');
   var box=document.getElementById('memoryBox');
   box.dataset.routeId=routeId||'';
   box.dataset.eventIndex=eventIndex;
@@ -359,17 +372,15 @@ function navigateMemory(dir){
   var item=pagerEvents[cur];
   var ev=item.ev;
   fillMemoryBox(ev.icon,ev.text,ev.placeName||'',ev.photoUrl||'',ev.createdAt||'',box.dataset.routeId,item.idx);
-  document.getElementById('memoryPagerLabel').innerText=(cur+1)+' / '+pagerEvents.length;
+  document.getElementById('memoryPagerLabel').innerText=t('memory.pager',{cur:cur+1,total:pagerEvents.length});
   exitMemoryEditMode();
 }
 
 /* ===================================================
-   createEventMarker — 事件地圖標記
+   createEventMarker
    =================================================== */
 function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,eventIndex,trackColor){
-  routeId=routeId||'';
-  eventIndex=(typeof eventIndex==='number')?eventIndex:-1;
-  trackColor=trackColor||'';
+  routeId=routeId||''; eventIndex=(typeof eventIndex==='number')?eventIndex:-1; trackColor=trackColor||'';
 
   function EmojiOverlay(position,icon,text,placeName,photoUrl,createdAt){
     this.position_=new google.maps.LatLng(position.lat,position.lng);
@@ -383,8 +394,7 @@ function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,ev
     div.className='event-marker-div'; div.innerText=this.icon_;
     if(trackColor){
       div.style.color=trackColor;
-      var dot=document.createElement('div');
-      dot.className='route-dot'; div.appendChild(dot);
+      var dot=document.createElement('div'); dot.className='route-dot'; div.appendChild(dot);
     }
     var ci=this.icon_,ct=this.text_,cp=this.placeName_,cph=this.photoUrl_,cat=this.createdAt_;
     function showMemory(e){
@@ -409,7 +419,8 @@ function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,ev
       var pagerEl=document.getElementById('memoryPager');
       if(pagerEvents.length>1){
         pagerEl.style.display='flex';
-        document.getElementById('memoryPagerLabel').innerText=(pagerStart+1)+' / '+pagerEvents.length;
+        document.getElementById('memoryPagerLabel').innerText=
+          t('memory.pager',{cur:pagerStart+1,total:pagerEvents.length});
       }else{pagerEl.style.display='none';}
       exitMemoryEditMode();
       document.getElementById('memoryBox').style.display='flex';
@@ -432,7 +443,6 @@ function createEventMarker(pos,icon,text,placeName,photoUrl,createdAt,routeId,ev
    解鎖地標
    =================================================== */
 var _unlockMarkers=[];
-
 async function loadUnlockedLandmarks(){
   _unlockMarkers.forEach(function(m){m.setMap(null);}); _unlockMarkers=[];
   var uid=window.currentUid||'anonymous';
@@ -489,7 +499,8 @@ function showUnlockMemory(events){
     var box=document.getElementById('memoryBox');
     box.dataset.pagerCurrent=0; box.dataset.routeId=''; box.dataset.eventIndex=-1;
     pagerEl.style.display='flex';
-    document.getElementById('memoryPagerLabel').innerText='1 / '+events.length;
+    document.getElementById('memoryPagerLabel').innerText=
+      t('memory.pager',{cur:1,total:events.length});
   }else{window._memoryPagerEvents=[];pagerEl.style.display='none';}
   exitMemoryEditMode();
   document.getElementById('memoryBox').style.display='flex';

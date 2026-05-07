@@ -1,7 +1,9 @@
 /* ===================================================
    explore.js — 探索頁（全屏卡片、swipe、canvas 繪圖）
-   City Walker v1.32.0
+   City Walker v1.33.0
    =================================================== */
+
+import { t } from './i18n/i18n.js';
 
 var exploreDistKm=5, _exploreAllDocs=[], _exploreFiltered=[];
 var _exploreIndex=0, _explorePtsCache={}, _exploreViews=[], _exploreViewIdx=0;
@@ -28,8 +30,18 @@ async function fetchExploreRoutes(){
   var empty=document.getElementById('exploreEmpty');
   var hint=document.getElementById('exploreNoGpsHint');
   var pillBar=document.getElementById('explorePillBar');
-  loading.style.display='block';cardWrap.style.display='none';empty.style.display='none';
-  hint.style.display='none';pillBar.classList.remove('no-gps');
+  loading.style.display='block'; cardWrap.style.display='none';
+  empty.style.display='none'; hint.style.display='none';
+  pillBar.classList.remove('no-gps');
+
+  /* 更新 loading / empty 文字（支援語系切換） */
+  loading.innerText = t('explore.loading');
+  var emptyTitle = empty.querySelector('div');
+  if(emptyTitle) emptyTitle.innerText = t('explore.empty');
+  var emptyHint = empty.querySelector('span');
+  if(emptyHint) emptyHint.innerText = t('explore.emptyHint');
+  document.getElementById('exploreSwipeHint').innerText = t('explore.swipeHint');
+
   _exploreUserPos=window.getUserPosition?window.getUserPosition():null;
   if(!_exploreUserPos){
     try{
@@ -43,7 +55,7 @@ async function fetchExploreRoutes(){
   }
   if(!_exploreUserPos){
     hint.style.display='block';
-    hint.innerHTML='📡 無法取得你的位置，距離篩選暫不可用。<br>以下顯示全部公開路線。';
+    hint.innerHTML=t('explore.noGps').replace('\n','<br>');
     pillBar.classList.add('no-gps');
   }
   try{
@@ -52,7 +64,7 @@ async function fetchExploreRoutes(){
     var uid=window.currentUid||'anonymous';
     _exploreAllDocs=[];
     snap.forEach(function(d){var data=Object.assign({id:d.id},d.data());if(data.userId!==uid)_exploreAllDocs.push(data);});
-    for(var i=_exploreAllDocs.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=_exploreAllDocs[i];_exploreAllDocs[i]=_exploreAllDocs[j];_exploreAllDocs[j]=t;}
+    for(var i=_exploreAllDocs.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=_exploreAllDocs[i];_exploreAllDocs[i]=_exploreAllDocs[j];_exploreAllDocs[j]=tmp;}
   }catch(err){console.error('[explore]',err);_exploreAllDocs=[];}
   loading.style.display='none';
   _buildFilteredAndShow();
@@ -79,12 +91,13 @@ async function showExploreCard(index){
   document.getElementById('exploreCityLabel').innerText=data.city||'';
   if(_exploreUserPos&&data.events&&data.events.length>0&&data.events[0].pos){
     var d=haversineKm(_exploreUserPos,data.events[0].pos);
-    document.getElementById('exploreDistLabel').innerText=d<1?'📍 距你約 '+(d*1000).toFixed(0)+' m':'📍 距你約 '+d.toFixed(1)+' km';
+    document.getElementById('exploreDistLabel').innerText=
+      d<1?t('explore.distM',{m:(d*1000).toFixed(0)}):t('explore.distKm',{km:d.toFixed(1)});
   }else{document.getElementById('exploreDistLabel').innerText='';}
   var seenPlaces={},placeNames=[];
   if(data.events)data.events.forEach(function(ev){if(ev.placeName&&!seenPlaces[ev.placeName]&&placeNames.length<3){seenPlaces[ev.placeName]=true;placeNames.push(ev.placeName);}});
   document.getElementById('exploreCardLandmarks').innerText=placeNames.length>0?'📍 '+placeNames.join('  ·  '):'';
-  document.getElementById('exploreCardName').innerText=data.name||'未命名路線';
+  document.getElementById('exploreCardName').innerText=data.name||'—';
   document.getElementById('exploreCardMeta').innerText='👣 '+(data.distance||0).toFixed(2)+' km'+(data.duration?'   ⏱ '+data.duration:'');
   _exploreViews=[{type:'map'}];
   if(data.events){data.events.forEach(function(ev){
@@ -164,7 +177,7 @@ function cycleExploreView(){
   if(_exploreViews.length<=1)return;
   _exploreViewIdx=(_exploreViewIdx+1)%_exploreViews.length;
   var view=_exploreViews[_exploreViewIdx];
-  if(view.type==='map'){_showExploreMap();_showExploreViewHint('🗺 路線地圖');}
+  if(view.type==='map'){_showExploreMap();_showExploreViewHint(t('explore.viewMap'));}
   else if(view.type==='photo'){
     document.getElementById('explorePhotoImg').src=view.photoUrl;
     document.getElementById('explorePhotoWrap').classList.remove('hidden');
@@ -176,13 +189,13 @@ function cycleExploreView(){
     if(view.placeName){badge.innerText='📍 '+view.placeName;badge.classList.add('show');}else{badge.classList.remove('show');}
     var photoViews=_exploreViews.filter(function(v){return v.type==='photo';});
     var cur=_exploreViews.slice(0,_exploreViewIdx+1).filter(function(v){return v.type==='photo';}).length;
-    _showExploreViewHint('📸 '+cur+' / '+photoViews.length);
+    _showExploreViewHint(t('explore.viewPhoto',{cur:cur,total:photoViews.length}));
   }else if(view.type==='text'){
     document.getElementById('exploreTextIcon').innerText=view.icon||'📝';
     document.getElementById('exploreTextContent').innerText=view.text;
     document.getElementById('exploreTextWrap').classList.remove('hidden');
     document.getElementById('explorePhotoWrap').classList.add('hidden');
-    _showExploreViewHint('💬 事件記錄');
+    _showExploreViewHint(t('explore.viewText'));
   }
 }
 function _showExploreViewHint(text){
@@ -224,31 +237,11 @@ function _initExploreSwipe(){
     if(dy<-50&&!_exploreAnimating)nextExploreCard();
   },{passive:true});
 }
-async function loadExploreRoute(id){
-  var data=_exploreAllDocs.find(function(d){return d.id===id;});if(!data)return;
-  window.switchPage('main');
-  window.pathLine.setPath([]);window.historyMarkers.forEach(function(m){m.setMap(null);});window.historyMarkers.length=0;
-  window.setStatusBar('🔄 載入路線中...','var(--status-locating)');
-  var pts=[];
-  try{
-    var pc=window.api.collection(window.db,'walk_records',id,'path_points');
-    var snap=await window.api.getDocs(pc);var chunks=[];
-    snap.forEach(function(d){chunks.push(d.data());});chunks.sort(function(a,b){return a.index-b.index;});
-    chunks.forEach(function(c){if(c.points)pts=pts.concat(c.points);});
-  }catch(err){console.error('[loadExploreRoute]',err);window.setStatusBar('City Walker','var(--status-idle)');return;}
-  if(pts.length===0){window.setStatusBar('City Walker','var(--status-idle)');return;}
-  window.pathLine.setPath(pts);window.pathLine.setOptions({strokeColor:data.trackColor||'#FEAD89',strokeOpacity:0.85,strokeWeight:6});
-  if(data.events){data.events.forEach(function(ev){window.historyMarkers.push(window.createEventMarker(ev.pos,ev.icon,ev.text,ev.placeName||'',ev.photoUrl||'',ev.createdAt||''));});}
-  window.map.panTo(pts[0]);document.getElementById('btnFocusRouteWrap').classList.remove('hidden');
-  window.setStatusBar('City Walker','var(--status-idle)');
-}
-function escapeHtml(str){return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 window.selectExplorePill  = selectExplorePill;
 window.fetchExploreRoutes = fetchExploreRoutes;
 window.showExploreCard    = showExploreCard;
 window.cycleExploreView   = cycleExploreView;
 window.nextExploreCard    = nextExploreCard;
-window.loadExploreRoute   = loadExploreRoute;
 window._initExploreSwipe  = _initExploreSwipe;
 window.haversineKm        = haversineKm;

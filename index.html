@@ -3,16 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>City Walker - v1.32.2</title>
+<title>City Walker - v1.33.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600&family=Poly&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/lang-toggle.css">
 
 <!-- Firebase（module，最先載入） -->
 <script type="module" src="js/config.js"></script>
+<!-- i18n 核心（第二優先，讓後續模組可以 import t） -->
+<script type="module" src="js/i18n/i18n.js"></script>
 </head>
 <body>
 
-<div id="statusBar">City Walker</div>
+<!-- ===================================================
+     狀態列 + 語系切換按鈕
+     =================================================== -->
+<div id="statusBar" data-i18n="status.appName">City Walker</div>
+
+<!-- [新增 v1.33.0] 語系切換 -->
+<div id="langToggleWrap">
+  <button class="lang-btn active" data-lang="zh-TW" onclick="setLang('zh-TW')">中文</button>
+  <button class="lang-btn" data-lang="en"    onclick="setLang('en')">EN</button>
+</div>
+
 <div id="colorPicker">
   <div id="colorToggleBtn" onclick="toggleColorPicker()"></div>
   <div id="colorOptions">
@@ -41,12 +54,17 @@
 <!-- 照片確認視窗 -->
 <div id="photoConfirmModal">
   <div class="modal-content" style="text-align:center;">
-    <div style="font-weight:bold;font-size:16px;margin-bottom:12px;">確認使用這張照片？</div>
-    <img id="photoConfirmImg" src="" alt="照片預覽" style="width:100%;max-height:280px;object-fit:contain;border-radius:12px;margin-bottom:16px;">
+    <div style="font-weight:bold;font-size:16px;margin-bottom:12px;"
+         data-i18n="modal.photo.title">確認使用這張照片？</div>
+    <img id="photoConfirmImg" src="" alt="照片預覽"
+         style="width:100%;max-height:280px;object-fit:contain;border-radius:12px;margin-bottom:16px;">
     <div style="display:flex;gap:10px;justify-content:center;">
-      <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);font-size:13px;padding:12px;" onclick="retakePhoto()">🔄 重拍</button>
-      <button class="btn-base" style="background:#EEE;color:#666;font-size:13px;padding:12px;" onclick="cancelPhoto()">✕ 取消</button>
-      <button class="btn-base btn-event" style="font-size:13px;padding:12px;" onclick="confirmPhoto()">✓ 使用</button>
+      <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);font-size:13px;padding:12px;"
+        onclick="retakePhoto()" data-i18n="btn.retakePhoto">🔄 重拍</button>
+      <button class="btn-base" style="background:#EEE;color:#666;font-size:13px;padding:12px;"
+        onclick="cancelPhoto()" data-i18n="btn.cancelPhoto">✕ 取消</button>
+      <button class="btn-base btn-event" style="font-size:13px;padding:12px;"
+        onclick="confirmPhoto()" data-i18n="btn.confirmPhoto">✓ 使用</button>
     </div>
   </div>
 </div>
@@ -69,17 +87,24 @@
     </div>
     <div id="memoryTextWrap">
       <div id="memoryText"></div>
-      <textarea id="memoryEditArea" maxlength="100" placeholder="修改心情..."></textarea>
+      <textarea id="memoryEditArea" maxlength="100"
+        data-i18n-placeholder="memory.editPlaceholder"
+        placeholder="修改心情..."></textarea>
     </div>
     <div id="memoryPager" style="display:none;align-items:center;justify-content:center;gap:16px;padding:6px 16px 2px;">
-      <button id="btnMemoryPrev" onclick="navigateMemory(-1)" style="background:none;border:none;font-size:20px;color:var(--text-soft);cursor:pointer;padding:4px 8px;">‹</button>
+      <button id="btnMemoryPrev" onclick="navigateMemory(-1)"
+        style="background:none;border:none;font-size:20px;color:var(--text-soft);cursor:pointer;padding:4px 8px;">‹</button>
       <span id="memoryPagerLabel" style="font-size:12px;color:var(--text-soft);letter-spacing:0.5px;"></span>
-      <button id="btnMemoryNext" onclick="navigateMemory(1)" style="background:none;border:none;font-size:20px;color:var(--text-soft);cursor:pointer;padding:4px 8px;">›</button>
+      <button id="btnMemoryNext" onclick="navigateMemory(1)"
+        style="background:none;border:none;font-size:20px;color:var(--text-soft);cursor:pointer;padding:4px 8px;">›</button>
     </div>
     <div id="memoryActions">
-      <button class="memory-action-btn btn-memory-cancel" id="btnMemoryCancel" onclick="cancelMemoryEdit()">✕ 取消</button>
-      <button class="memory-action-btn btn-memory-save"   id="btnMemorySave"   onclick="saveMemoryEdit()">✓ 儲存</button>
-      <button class="memory-action-btn btn-memory-edit"   id="btnMemoryEdit"   onclick="enterMemoryEdit()">✏️ 編輯</button>
+      <button class="memory-action-btn btn-memory-cancel" id="btnMemoryCancel"
+        onclick="cancelMemoryEdit()" data-i18n="btn.cancelEdit">✕ 取消</button>
+      <button class="memory-action-btn btn-memory-save" id="btnMemorySave"
+        onclick="saveMemoryEdit()" data-i18n="btn.saveMemory">✓ 儲存</button>
+      <button class="memory-action-btn btn-memory-edit" id="btnMemoryEdit"
+        onclick="enterMemoryEdit()" data-i18n="btn.editMemory">✏️ 編輯</button>
     </div>
   </div>
 </div>
@@ -87,21 +112,26 @@
 <!-- 紀錄事件彈窗 -->
 <div id="eventModal">
   <div class="modal-content">
-    <div style="font-weight:bold;font-size:18px;text-align:center;margin-bottom:10px;">紀錄這一刻</div>
+    <div style="font-weight:bold;font-size:18px;text-align:center;margin-bottom:10px;"
+         data-i18n="modal.event.title">紀錄這一刻</div>
     <div id="placeSection">
-      <div id="placeLabel">📍 附近地標</div>
-      <div id="placeTags"><span class="place-detecting">偵測中...</span></div>
+      <div id="placeLabel" data-i18n="modal.event.placeLabel">📍 附近地標</div>
+      <div id="placeTags"><span class="place-detecting" data-i18n="modal.event.detecting">偵測中...</span></div>
       <div id="placeSearchWrap">
-        <input id="placeSearchInput" type="text" placeholder="🔍 搜尋地標..."
+        <input id="placeSearchInput" type="text"
+          data-i18n-placeholder="modal.placeSearch.placeholder"
+          placeholder="🔍 搜尋地標..."
           oninput="onPlaceSearchInput(this.value)"
           autocomplete="off" autocorrect="off" spellcheck="false">
         <span id="placeSearchClear" onclick="clearPlaceSearch()">✕</span>
       </div>
     </div>
-    <textarea id="eventText" placeholder="寫下心情..." maxlength="100"
+    <textarea id="eventText" maxlength="100"
+      data-i18n-placeholder="modal.event.textPlaceholder"
+      placeholder="寫下心情..."
       style="width:100%;height:68px;border:1px solid #EEE;padding:10px;border-radius:12px;margin:8px 0 8px;box-sizing:border-box;outline:none;resize:none;"></textarea>
     <div id="photoSection">
-      <button id="cameraBtn" onclick="openCamera()">📷 加入照片</button>
+      <button id="cameraBtn" onclick="openCamera()" data-i18n="btn.addPhoto">📷 加入照片</button>
       <img id="photoPreviewThumb" src="" alt="照片預覽" onclick="openCamera()">
     </div>
     <div id="iconPickerSection">
@@ -112,8 +142,10 @@
       <div id="iconGrid"></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:10px;">
-      <button class="btn-base" style="background:#EEE;font-size:14px;" onclick="closeEventModal()">取消</button>
-      <button class="btn-base btn-event" style="font-size:14px;" onclick="saveEvent()">確認紀錄</button>
+      <button class="btn-base" style="background:#EEE;font-size:14px;"
+        onclick="closeEventModal()" data-i18n="btn.cancel">取消</button>
+      <button class="btn-base btn-event" style="font-size:14px;"
+        onclick="saveEvent()" data-i18n="btn.confirmRecord">確認紀錄</button>
     </div>
   </div>
 </div>
@@ -121,13 +153,16 @@
 <!-- 儲存路線 Modal -->
 <div id="saveModal">
   <div class="modal-content">
-    <div style="font-weight:bold;font-size:18px;text-align:center;">保存這趟漫遊</div>
-    <input type="text" id="routeName" placeholder="為這條路線命名..."
+    <div style="font-weight:bold;font-size:18px;text-align:center;"
+         data-i18n="modal.save.title">保存這趟漫遊</div>
+    <input type="text" id="routeName"
+      data-i18n-placeholder="modal.save.namePlaceholder"
+      placeholder="為這條路線命名..."
       style="width:100%;border:1px solid #EEE;padding:12px;border-radius:12px;margin:15px 0 10px;box-sizing:border-box;">
     <div id="publicToggleRow">
       <label id="publicToggleLabel" for="publicToggle">
-        🌐 公開到探索頁
-        <span>讓其他使用者在探索頁看見這條路線</span>
+        <span data-i18n="modal.save.publicLabel">🌐 公開到探索頁</span>
+        <span data-i18n="modal.save.publicHint">讓其他使用者在探索頁看見這條路線</span>
       </label>
       <label class="toggle-switch">
         <input type="checkbox" id="publicToggle">
@@ -135,8 +170,11 @@
       </label>
     </div>
     <div style="display:flex;gap:12px;margin-top:14px;">
-      <button class="btn-base" style="background:#EEE;color:#666;" onclick="document.getElementById('saveModal').style.display='none'">取消</button>
-      <button class="btn-base btn-main" id="btnConfirmSave" onclick="executeCloudSave()">確認加入</button>
+      <button class="btn-base" style="background:#EEE;color:#666;"
+        onclick="document.getElementById('saveModal').style.display='none'"
+        data-i18n="btn.cancel">取消</button>
+      <button class="btn-base btn-main" id="btnConfirmSave"
+        onclick="executeCloudSave()" data-i18n="btn.confirmSave">確認加入</button>
     </div>
   </div>
 </div>
@@ -144,31 +182,40 @@
 <!-- 漫遊主頁 -->
 <div id="page-main" class="page">
   <div id="map"></div>
-  <!-- [v1.32.2] 靈感路線距離提示浮層：固定在地圖上方，點任一按鈕後消失 -->
   <div id="inspireRouteHint"></div>
   <div id="functionPanel">
     <div id="state-init">
-      <!-- 一般開始：清除靈感標記後開始 -->
-      <button class="btn-base btn-main" onclick="if(window.clearInspireMarkers)clearInspireMarkers();startWalk();">開始 City Walk！</button>
-      <!-- 靈感路線區塊：有靈感時才顯示 -->
+      <button class="btn-base btn-main"
+        onclick="if(window.clearInspireMarkers)clearInspireMarkers();startWalk();"
+        data-i18n="btn.startWalk">開始 City Walk！</button>
       <div id="inspireStartBlock" style="display:none;margin-top:8px;">
-        <button id="btnStartFromInspire" onclick="startWalkFromInspire()">✦ 以此靈感開始漫遊</button>
-        <button id="btnRerollInspire" onclick="rerollInspireSpots()">🔄 換一組</button>
+        <button id="btnStartFromInspire"
+          onclick="startWalkFromInspire()"
+          data-i18n="btn.startFromInspire">✦ 以此靈感開始漫遊</button>
+        <button id="btnRerollInspire"
+          onclick="rerollInspireSpots()"
+          data-i18n="btn.reroll">🔄 換一組</button>
       </div>
-      <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);margin-top:10px;border:1.5px solid var(--border-light);" onclick="openInspireSheet()">✦ 規劃靈感</button>
+      <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);margin-top:10px;border:1.5px solid var(--border-light);"
+        onclick="openInspireSheet()" data-i18n="btn.planInspire">✦ 規劃靈感</button>
     </div>
     <div id="state-recording" class="hidden">
-      <button class="btn-base btn-event" onclick="openEventCanvas()">紀錄事件！</button>
+      <button class="btn-base btn-event"
+        onclick="openEventCanvas()" data-i18n="btn.recordEvent">紀錄事件！</button>
       <button id="btnResumeWalk" class="btn-base hidden"
         style="background:#FFF3CD;color:#856404;margin-top:10px;border:1.5px solid #FFE5A0;"
-        onclick="window._resumeWatching && window._resumeWatching()">📡 繼續記錄</button>
-      <button class="btn-base" style="background:#f5f5f5;color:#666;margin-top:10px;" onclick="endWalk()">結束本次漫遊</button>
+        onclick="window._resumeWatching && window._resumeWatching()"
+        data-i18n="btn.resumeWalk">📡 繼續記錄</button>
+      <button class="btn-base" style="background:#f5f5f5;color:#666;margin-top:10px;"
+        onclick="endWalk()" data-i18n="btn.endWalk">結束本次漫遊</button>
     </div>
     <div id="state-finished" class="hidden">
       <div id="encourageBox" style="font-style:italic;color:var(--accent-positive);font-size:14px;margin-bottom:12px;line-height:1.6;"></div>
       <div id="summaryBox" style="background:#FCFAF7;border-radius:16px;padding:15px;margin-bottom:15px;text-align:left;font-size:14px;border:1px dashed var(--accent-positive);"></div>
-      <button class="btn-base btn-event" id="btnSaveRoute" onclick="openSaveModal()">加入我的路線清單</button>
-      <button class="btn-base btn-main" style="margin-top:10px;" onclick="location.reload()">重新開始</button>
+      <button class="btn-base btn-event" id="btnSaveRoute"
+        onclick="openSaveModal()" data-i18n="btn.saveRoute">加入我的路線清單</button>
+      <button class="btn-base btn-main" style="margin-top:10px;"
+        onclick="location.reload()" data-i18n="btn.restart">重新開始</button>
     </div>
   </div>
 </div>
@@ -176,10 +223,14 @@
 <!-- 分享卡片 Modal -->
 <div id="shareCardModal" onclick="closeShareCard()">
   <canvas id="shareCardCanvas" onclick="event.stopPropagation();cycleSharePhoto()" style="cursor:pointer;"></canvas>
-  <div id="sharePhotoHint" style="color:rgba(255,255,255,0.7);font-size:13px;letter-spacing:1px;display:none;">點擊照片換一張 &nbsp;<span id="sharePhotoIndex"></span></div>
+  <div id="sharePhotoHint" style="color:rgba(255,255,255,0.7);font-size:13px;letter-spacing:1px;display:none;">
+    點擊照片換一張 &nbsp;<span id="sharePhotoIndex"></span>
+  </div>
   <div id="shareCardBtns" onclick="event.stopPropagation()">
-    <button style="background:#EEE;color:#666;" onclick="closeShareCard()">關閉</button>
-    <button style="background:var(--accent-positive);color:white;" onclick="downloadShareCard()">⬇ 下載圖片</button>
+    <button style="background:#EEE;color:#666;"
+      onclick="closeShareCard()" data-i18n="btn.closeCard">關閉</button>
+    <button style="background:var(--accent-positive);color:white;"
+      onclick="downloadShareCard()" data-i18n="btn.downloadCard">⬇ 下載圖片</button>
   </div>
 </div>
 
@@ -188,32 +239,44 @@
   <div id="inspireBackdrop" onclick="closeInspireSheet()"></div>
   <div id="inspirePanel" onclick="event.stopPropagation()">
     <div class="sheet-handle" style="width:40px;height:4px;border-radius:2px;background:var(--border-light);margin:0 auto 20px;"></div>
-    <div style="font-weight:bold;font-size:18px;margin-bottom:4px;">今天想找什麼？</div>
-    <div style="font-size:12px;color:var(--text-soft);margin-bottom:20px;letter-spacing:0.3px;">選好後幫你標出附近的好去處 ✦</div>
-    <div class="inspire-section-label">想走多遠？</div>
+    <div style="font-weight:bold;font-size:18px;margin-bottom:4px;"
+         data-i18n="inspire.sheetTitle">今天想找什麼？</div>
+    <div style="font-size:12px;color:var(--text-soft);margin-bottom:20px;letter-spacing:0.3px;"
+         data-i18n="inspire.sheetSubtitle">選好後幫你標出附近的好去處 ✦</div>
+    <div class="inspire-section-label" data-i18n="inspire.distLabel">想走多遠？</div>
     <div id="distancePills">
       <div class="dist-pill" data-km="1" onclick="selectInspireDistance(this)">1 km</div>
       <div class="dist-pill active" data-km="2" onclick="selectInspireDistance(this)">2 km</div>
       <div class="dist-pill" data-km="5" onclick="selectInspireDistance(this)">5 km</div>
       <div class="dist-pill" data-km="10" onclick="selectInspireDistance(this)">10 km</div>
     </div>
-    <div class="inspire-section-label" style="margin-top:20px;">今日心情<span style="font-weight:normal;color:var(--text-soft);letter-spacing:0;text-transform:none;">— 點一下 +1 個地點，最多 5 個</span></div>
+    <div class="inspire-section-label" style="margin-top:20px;">
+      <span data-i18n="inspire.moodLabel">今日心情</span><span style="font-weight:normal;color:var(--text-soft);letter-spacing:0;text-transform:none;">— <span data-i18n="inspire.moodHint">點一下 +1 個地點，最多 5 個</span></span>
+    </div>
     <div id="moodTags"></div>
-    <div id="inspireTotalHint" style="font-size:12px;color:var(--accent-warm);margin-top:10px;display:none;line-height:1.6;">✦ 地點太多會少了漫遊的感覺，建議 8 個以內</div>
-    <button class="btn-base btn-event" style="margin-top:20px;" onclick="searchInspireSpots()">✦ 找附近好去處</button>
-    <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);margin-top:10px;" onclick="closeInspireSheet()">取消</button>
+    <div id="inspireTotalHint" style="font-size:12px;color:var(--accent-warm);margin-top:10px;display:none;line-height:1.6;"
+         data-i18n="inspire.tooMany">✦ 地點太多會少了漫遊的感覺，建議 8 個以內</div>
+    <button class="btn-base btn-event" style="margin-top:20px;"
+      onclick="searchInspireSpots()" data-i18n="btn.searchInspire">✦ 找附近好去處</button>
+    <button class="btn-base" style="background:var(--bg-warm);color:var(--text-soft);margin-top:10px;"
+      onclick="closeInspireSheet()" data-i18n="btn.inspireCancel">取消</button>
   </div>
 </div>
 
 <!-- 我的路線頁 -->
 <div id="page-list" class="page hidden">
-  <h2 style="text-align:center;letter-spacing:2px;margin:0 0 16px;padding-top:60px;">MY JOURNEYS</h2>
+  <h2 style="text-align:center;letter-spacing:2px;margin:0 0 16px;padding-top:60px;"
+      data-i18n="list.title">MY JOURNEYS</h2>
+
+  <!-- 帳號橫幅 -->
   <div id="accountBanner">
     <div id="bannerAnon" style="display:none;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <div>
-          <div style="font-size:12px;color:var(--text-soft);letter-spacing:0.3px;">👤 匿名使用者</div>
-          <div style="font-size:13px;color:var(--text-main);margin-top:2px;">綁定帳號，避免資料遺失</div>
+          <div style="font-size:12px;color:var(--text-soft);letter-spacing:0.3px;"
+               data-i18n="account.anonLabel">👤 匿名使用者</div>
+          <div style="font-size:13px;color:var(--text-main);margin-top:2px;"
+               data-i18n="account.anonHint">綁定帳號，避免資料遺失</div>
         </div>
         <button id="btnLinkGoogle" onclick="linkGoogleAccount()">
           <svg width="16" height="16" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -222,7 +285,7 @@
             <path d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
             <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 6.293C4.672 4.166 6.656 3.58 9 3.58z" fill="#EA4335"/>
           </svg>
-          綁定 Google
+          <span data-i18n="btn.linkGoogle">綁定 Google</span>
         </button>
       </div>
     </div>
@@ -230,7 +293,8 @@
       <div style="display:flex;align-items:center;gap:10px;">
         <div id="bannerAvatar" style="width:32px;height:32px;border-radius:50%;background:var(--accent-positive);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;flex-shrink:0;">G</div>
         <div>
-          <div style="font-size:11px;color:var(--text-soft);">✅ 已綁定 Google 帳號</div>
+          <div style="font-size:11px;color:var(--text-soft);"
+               data-i18n="account.linkedLabel">✅ 已綁定 Google 帳號</div>
           <div style="font-size:13px;color:var(--text-main);font-weight:bold;" id="bannerEmail"></div>
         </div>
         <button id="btnAccountSetting" onclick="openAccountSheet()" title="帳號設定">⚙️</button>
@@ -246,63 +310,104 @@
       <div id="sheetUserInfo">
         <div id="sheetAvatar">G</div>
         <div>
-          <div style="font-size:11px;color:var(--text-soft);letter-spacing:0.3px;">登入帳號</div>
+          <div style="font-size:11px;color:var(--text-soft);letter-spacing:0.3px;"
+               data-i18n="account.loginLabel" id="sheetLoginLabel">登入帳號</div>
           <div style="font-size:14px;font-weight:bold;color:var(--text-main);" id="sheetEmail">—</div>
         </div>
       </div>
-      <button class="sheet-btn" onclick="signOutAccount()"><span class="sheet-btn-icon">🚪</span><span>登出帳號</span></button>
+      <button class="sheet-btn" onclick="signOutAccount()">
+        <span class="sheet-btn-icon">🚪</span>
+        <span data-i18n="btn.signOut">登出帳號</span>
+      </button>
       <div class="sheet-divider"></div>
-      <button class="sheet-btn danger" onclick="deleteAccount()"><span class="sheet-btn-icon">🗑️</span><span>刪除帳號與所有資料</span></button>
+      <button class="sheet-btn danger" onclick="deleteAccount()">
+        <span class="sheet-btn-icon">🗑️</span>
+        <span data-i18n="btn.deleteAccount">刪除帳號與所有資料</span>
+      </button>
     </div>
   </div>
 
   <div id="listPageHeader">
-    <button id="btnManage" onclick="toggleSelectMode()">管理</button>
+    <button id="btnManage" onclick="toggleSelectMode()" data-i18n="btn.manage">管理</button>
   </div>
+
+  <!-- 統計面板 -->
   <div id="statsPanel">
-    <div class="stats-title">我的足跡</div>
+    <div class="stats-title" data-i18n="list.statsTitle">我的足跡</div>
     <div class="stats-grid">
-      <div class="stat-item"><div class="stat-value" id="statRoutes">—</div><div class="stat-label">🗺 地圖紀錄</div></div>
-      <div class="stat-item"><div class="stat-value" id="statKm">—</div><div class="stat-label">👣 總里程 km</div></div>
-      <div class="stat-item"><div class="stat-value" id="statCities">—</div><div class="stat-label">🏙 個城市</div></div>
-      <div class="stat-item"><div class="stat-value" id="statEvents">—</div><div class="stat-label">📸 個事件</div></div>
+      <div class="stat-item">
+        <div class="stat-value" id="statRoutes">—</div>
+        <div class="stat-label" data-i18n="list.statRoutes">🗺 地圖紀錄</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statKm">—</div>
+        <div class="stat-label" data-i18n="list.statKm">👣 總里程 km</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statCities">—</div>
+        <div class="stat-label" data-i18n="list.statCities">🏙 個城市</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statEvents">—</div>
+        <div class="stat-label" data-i18n="list.statEvents">📸 個事件</div>
+      </div>
     </div>
   </div>
+
+  <!-- 搜尋框 -->
   <div style="width:92%;max-width:450px;margin:0 auto 12px;box-sizing:border-box;">
-    <input type="text" id="searchInput" placeholder="🔍 搜尋路線名稱..." oninput="applyFilters()"
+    <input type="text" id="searchInput"
+      data-i18n-placeholder="list.searchPlaceholder"
+      placeholder="🔍 搜尋路線名稱..."
+      oninput="applyFilters()"
       style="width:100%;padding:10px 16px;border-radius:20px;border:1.5px solid var(--border-light);font-size:13px;font-family:'Poly','Microsoft JhengHei',sans-serif;background:var(--white);color:var(--text-main);outline:none;box-sizing:border-box;">
   </div>
+
+  <!-- 篩選列 -->
   <div id="filterBar">
-    <select class="filter-select" id="filterCity" onchange="applyFilters()"><option value="">🏙 所有城市</option></select>
+    <select class="filter-select" id="filterCity" onchange="applyFilters()">
+      <option value="" data-i18n="list.filterAllCities">🏙 所有城市</option>
+    </select>
     <select class="filter-select" id="filterKm" onchange="applyFilters()">
       <option value="">👣 所有里程</option>
-      <option value="0-1">0–1 km</option><option value="1-5">1–5 km</option>
-      <option value="5-10">5–10 km</option><option value="10+">10 km 以上</option>
+      <option value="0-1">0–1 km</option>
+      <option value="1-5">1–5 km</option>
+      <option value="5-10">5–10 km</option>
+      <option value="10+">10 km 以上</option>
     </select>
     <select class="filter-select" id="filterDate" onchange="applyFilters()">
       <option value="">📅 所有日期</option>
-      <option value="7">最近 7 天</option><option value="30">最近 30 天</option><option value="90">最近 3 個月</option>
+      <option value="7">最近 7 天</option>
+      <option value="30">最近 30 天</option>
+      <option value="90">最近 3 個月</option>
     </select>
     <span id="filterCount"></span>
-    <button id="clearFilterBtn" onclick="clearFilters()">✕ 清除</button>
+    <button id="clearFilterBtn" onclick="clearFilters()" data-i18n="list.filterClear">✕ 清除</button>
   </div>
+
   <div id="recordsContainer"></div>
 </div>
 
 <!-- 批次刪除浮動列 -->
 <div id="batchDeleteBar">
-  <div id="batchDeleteLabel">已選 0 條</div>
+  <div id="batchDeleteLabel" data-i18n="list.batchSelected" data-i18n-vars='{"n":"0"}'>已選 0 條</div>
   <div>
-    <button id="batchCancelBtn" onclick="exitSelectMode()">取消</button>
-    <button id="batchDeleteBtn" disabled onclick="batchDelete()">刪除選取</button>
+    <button id="batchCancelBtn" onclick="exitSelectMode()" data-i18n="btn.batchCancel">取消</button>
+    <button id="batchDeleteBtn" disabled onclick="batchDelete()" data-i18n="btn.batchDelete">刪除選取</button>
   </div>
 </div>
 
 <!-- 底部導覽列 -->
 <nav id="navBar">
-  <div class="nav-item active" id="nav-main" onclick="switchPage('main')">📍<span>漫遊</span></div>
-  <div class="nav-item" id="nav-list" onclick="switchPage('list')">🗺<span>我的路線</span></div>
-  <div class="nav-item" id="nav-explore" onclick="switchPage('explore')">🔭<span>探索</span></div>
+  <div class="nav-item active" id="nav-main" onclick="switchPage('main')">
+    📍<span data-i18n="nav.walk">漫遊</span>
+  </div>
+  <div class="nav-item" id="nav-list" onclick="switchPage('list')">
+    🗺<span data-i18n="nav.list">我的路線</span>
+  </div>
+  <div class="nav-item" id="nav-explore" onclick="switchPage('explore')">
+    🔭<span data-i18n="nav.explore">探索</span>
+  </div>
 </nav>
 
 <!-- 探索頁 -->
@@ -334,24 +439,18 @@
       <div id="exploreCardName"></div>
       <div id="exploreCardMeta"></div>
     </div>
-    <div id="exploreSwipeHint">↑ 往上滑看下一條</div>
+    <div id="exploreSwipeHint" data-i18n="explore.swipeHint">↑ 往上滑看下一條</div>
     <div id="exploreViewHint"></div>
   </div>
-  <div id="exploreLoading">載入中...</div>
+  <div id="exploreLoading" data-i18n="explore.loading">載入中...</div>
   <div id="exploreEmpty">
     <div style="font-size:40px;margin-bottom:12px;">🔭</div>
-    附近還沒有公開的路線<br>
-    <span style="font-size:12px;">試著拉大範圍，或成為第一個在這裡分享路線的人！</span>
+    <div data-i18n="explore.empty">附近還沒有公開的路線</div>
+    <span style="font-size:12px;" data-i18n="explore.emptyHint">試著拉大範圍，或成為第一個在這裡分享路線的人！</span>
   </div>
 </div>
 
-<!-- ===================================================
-     JS 模組載入順序
-     PSEUDO:
-     - Maps SDK 不用 callback，改用 defer
-     - map.js 內部用 window.addEventListener('load') 自己呼叫 initMap
-     - 避免 module async 與 callback 的 race condition
-     =================================================== -->
+<!-- JS 模組載入 -->
 <script type="module" src="js/auth.js"></script>
 <script type="module" src="js/events.js"></script>
 <script type="module" src="js/records.js"></script>

@@ -1,0 +1,43 @@
+/* ===================================================
+   [新增 v1.33.0] 語系切換按鈕
+   PSEUDO:
+   - 固定在右上角，statusBar 旁邊
+   - 兩個 pill 按鈕：zh-TW / EN
+   - active 狀態 = 深色填滿，非 active = 透明框
+   - 放在 statusBar 右側，不遮到主標題
+   =================================================== */
+#langToggleWrap {
+  position: fixed;
+  top: 0;
+  right: 12px;
+  height: 50px;               /* 與 statusBar 同高 */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 1001;              /* 比 statusBar(1000) 高一層 */
+}
+.lang-btn {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: bold;
+  font-family: 'Poly', 'Microsoft JhengHei', sans-serif;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border: 1.5px solid var(--border-light);
+  background: transparent;
+  color: var(--text-soft);
+  transition: all 0.18s ease;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.lang-btn:active {
+  transform: scale(0.92);
+}
+.lang-btn.active {
+  background: var(--text-main);
+  color: var(--white);
+  border-color: var(--text-main);
+}

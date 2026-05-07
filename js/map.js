@@ -1,8 +1,9 @@
 /* ===================================================
    map.js — 地圖初始化、GPS、走路核心
-   City Walker v1.32.0
-   新增：UserWalkOverlay 走路動畫（v1.32.0）
+   City Walker v1.33.0
    =================================================== */
+
+import { t } from './i18n/i18n.js';
 
 var map, userMarker, pathLine, watchId, geocoder;
 var walkPath=[], eventsData=[], totalDistance=0;
@@ -12,7 +13,6 @@ var rawGpsBuffer=[], ROADS_API_KEY='AIzaSyD-7BNyEDGdFlK_-gyFlAN86r0ECjO3z40';
 var pauseWindowPoints=[], pauseWindowStart=null;
 var isGpsLost=false, lostTimer=null;
 
-/* 暴露給其他模組使用 */
 window.walkPath      = walkPath;
 window.eventsData    = eventsData;
 window.selectedIcon  = selectedIcon;
@@ -50,7 +50,7 @@ var MINT_MAP_STYLE = [
 ];
 
 /* ===================================================
-   initMap — Google Maps 初始化
+   initMap
    =================================================== */
 async function initMap(){
   var {Map} = await google.maps.importLibrary('maps');
@@ -65,13 +65,9 @@ async function initMap(){
 
   /* ===================================================
      [v1.32.0] UserWalkOverlay — 走路腳步動畫
-     PSEUDO: 定義在 initMap 內部，確保 google 物件已載入
-     google.maps.OverlayView 在 Maps SDK ready 後才能繼承
      =================================================== */
   function UserWalkOverlay(mapInstance){
-    this._pos = null;
-    this._div = null;
-    this.setMap(mapInstance);
+    this._pos = null; this._div = null; this.setMap(mapInstance);
   }
   UserWalkOverlay.prototype = Object.create(google.maps.OverlayView.prototype);
   UserWalkOverlay.prototype.onAdd = function(){
@@ -93,8 +89,7 @@ async function initMap(){
   UserWalkOverlay.prototype.setPosition = function(latlng){
     if(!latlng) return;
     this._pos = (typeof latlng.lat === 'function')
-      ? latlng
-      : new google.maps.LatLng(latlng.lat, latlng.lng);
+      ? latlng : new google.maps.LatLng(latlng.lat, latlng.lng);
     this.draw();
   };
   UserWalkOverlay.prototype.getPosition = function(){ return this._pos; };
@@ -109,13 +104,11 @@ async function initMap(){
     }
   };
 
-  /* [v1.32.0] 使用 UserWalkOverlay 取代原本 Marker */
   userMarker = new UserWalkOverlay(map);
   window.userMarker = userMarker;
 
   pathLine = new google.maps.Polyline({
-    map, strokeColor:selectedTrackColor,
-    strokeWeight:6, strokeOpacity:0.85
+    map, strokeColor:selectedTrackColor, strokeWeight:6, strokeOpacity:0.85
   });
   window.pathLine = pathLine;
 
@@ -124,31 +117,38 @@ async function initMap(){
   window.map = map;
 
   document.getElementById('colorToggleBtn').style.backgroundColor = selectedTrackColor;
-
   if(window.buildIconPicker) window.buildIconPicker();
 
-  setStatusBar('📡 取得位置中...','var(--status-locating)');
+  setStatusBar(t('status.locating'), 'var(--status-locating)');
   navigator.geolocation.getCurrentPosition(
     function(pos){
       var p={lat:pos.coords.latitude,lng:pos.coords.longitude};
       map.setCenter(p); userMarker.setPosition(p);
-      setStatusBar('City Walker','var(--status-idle)');
+      setStatusBar(t('status.appName'), 'var(--status-idle)');
     },
-    function(){ setStatusBar('City Walker','var(--status-idle)'); },
-    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
+    function(){ setStatusBar(t('status.appName'), 'var(--status-idle)'); },
+    {enableHighAccuracy:true, timeout:10000, maximumAge:0}
   );
 
   window._authReadyCallback = function(){};
   if(window.currentUid) window._authReadyCallback();
 
-  /* tooltip dismiss（靈感規劃用） */
   if(window._attachTooltipDismiss) window._attachTooltipDismiss();
-
-  /* 解鎖地標（走路頁初始化後載入） */
   if(window.loadUnlockedLandmarks) window.loadUnlockedLandmarks();
-
-  /* 探索頁 swipe 初始化 */
   if(window._initExploreSwipe) window._initExploreSwipe();
+
+  /* PSEUDO: 語系切換時重新刷新狀態列 appName（若正在 idle 狀態） */
+  document.addEventListener('langchange', function(){
+    var bar = document.getElementById('statusBar');
+    if(bar && bar.innerText === t('status.appName', null) ){
+      /* 已是 idle，不強制覆蓋走路中狀態 */
+    }
+    /* 重新套用 resumeWalk 按鈕文字 */
+    var resumeBtn = document.getElementById('btnResumeWalk');
+    if(resumeBtn && !resumeBtn.classList.contains('hidden')){
+      resumeBtn.innerText = t('btn.resumeWalk');
+    }
+  });
 }
 
 /* ===================================================
@@ -161,9 +161,9 @@ function getUserPosition(){
   return {lat:pos.lat, lng:pos.lng};
 }
 
-function setStatusBar(t, bg){
+function setStatusBar(text, bg){
   var b = document.getElementById('statusBar');
-  b.innerText = t;
+  b.innerText = text;
   b.style.backgroundColor = bg || 'var(--status-idle)';
 }
 
@@ -174,7 +174,7 @@ function focusOnMe(){
       userMarker.setPosition(p); map.panTo(p);
     },
     function(){ var p=getUserPosition(); if(p) map.panTo(p); },
-    {enableHighAccuracy:true,timeout:8000,maximumAge:3000}
+    {enableHighAccuracy:true, timeout:8000, maximumAge:3000}
   );
 }
 
@@ -213,7 +213,7 @@ async function snapToRoads(points){
     var data = await res.json();
     if(data.snappedPoints && data.snappedPoints.length > 0){
       data.snappedPoints.forEach(function(sp){
-        walkPath.push({lat:sp.location.latitude,lng:sp.location.longitude});
+        walkPath.push({lat:sp.location.latitude, lng:sp.location.longitude});
       });
       pathLine.setPath(walkPath);
       var last = walkPath[walkPath.length-1];
@@ -240,26 +240,26 @@ function startWalk(){
   startTime = new Date();
   document.getElementById('state-init').classList.add('hidden');
   document.getElementById('state-recording').classList.remove('hidden');
-  setStatusBar('📡 取得定位狀態中','var(--status-locating)');
+  setStatusBar(t('status.locatingWalk'), 'var(--status-locating)');
   document.getElementById('colorPicker').style.display = 'none';
   pathLine.setOptions({strokeColor:selectedTrackColor, strokeOpacity:0.85});
   pauseWindowPoints = []; pauseWindowStart = new Date();
 
   locatingTimer = setTimeout(function(){
     navigator.geolocation.clearWatch(watchId);
-    setStatusBar('⚠️ 定位失敗','var(--status-ended)');
+    setStatusBar(t('status.gpsFail'), 'var(--status-ended)');
     document.getElementById('state-recording').classList.add('hidden');
     document.getElementById('state-finished').classList.remove('hidden');
-    document.getElementById('summaryBox').innerHTML='<div style="text-align:center;color:var(--text-soft);padding:10px;">📡 請確認定位狀態後重新開始</div>';
+    document.getElementById('summaryBox').innerHTML =
+      '<div style="text-align:center;color:var(--text-soft);padding:10px;">' +
+      t('summary.gpsFail') + '</div>';
   }, 60000);
 
-  /* [v1.23.0] GPS 中斷恢復 */
   function _startWatching(){
     watchId = navigator.geolocation.watchPosition(function(pos){
       var newPoint = {lat:pos.coords.latitude, lng:pos.coords.longitude};
       if(pos.coords.accuracy > 40) return;
 
-      /* GPS 恢復 */
       if(isGpsLost){
         isGpsLost = false;
         if(lostTimer){clearTimeout(lostTimer);lostTimer=null;}
@@ -301,28 +301,29 @@ function startWalk(){
       var currentKm = walkPath.length>1
         ? google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000 : 0;
 
-      /* [v1.32.0] 依走路/暫停狀態切換腳步動畫 */
       if(windowDist > 7){
-        setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');
+        setStatusBar(t('status.walking', {km: currentKm.toFixed(2)}), 'var(--status-walking)');
         userMarker.startWalkAnim();
         pauseWindowPoints = [{point:newPoint,time:now}]; pauseWindowStart = now;
       } else if((now-pauseWindowStart) >= 15000){
-        setStatusBar('☕ 暫停一下...','var(--status-paused)');
+        setStatusBar(t('status.paused'), 'var(--status-paused)');
         userMarker.stopWalkAnim('paused');
       } else if(currentKm > 0){
-        setStatusBar('🚶 漫步中・'+currentKm.toFixed(2)+' km','var(--status-walking)');
+        setStatusBar(t('status.walking', {km: currentKm.toFixed(2)}), 'var(--status-walking)');
         userMarker.startWalkAnim();
       }
 
     }, function(err){
       console.error('[GPS]', err);
-      setStatusBar('📡 取得定位狀態中','var(--status-locating)');
-      /* [v1.23.0] GPS 中斷處理 */
+      setStatusBar(t('status.locatingWalk'), 'var(--status-locating)');
       if(!isGpsLost){
         isGpsLost = true;
         lostTimer = setTimeout(function(){
           navigator.geolocation.clearWatch(watchId);
-          setStatusBar('📡 定位中斷，點「繼續記錄」恢復','var(--status-paused)');
+          setStatusBar(
+            t('status.gpsLost', {btn: t('btn.resumeWalk')}),
+            'var(--status-paused)'
+          );
           document.getElementById('btnResumeWalk').classList.remove('hidden');
         }, 180000);
       }
@@ -330,12 +331,11 @@ function startWalk(){
   }
 
   _startWatching();
-  /* [v1.23.0] 恢復監聽函式，供「繼續記錄」按鈕呼叫 */
   window._resumeWatching = function(){
     isGpsLost = false;
     if(lostTimer){clearTimeout(lostTimer);lostTimer=null;}
     document.getElementById('btnResumeWalk').classList.add('hidden');
-    setStatusBar('📡 重新取得定位...','var(--status-locating)');
+    setStatusBar(t('status.gpsResuming'), 'var(--status-locating)');
     _startWatching();
   };
 }
@@ -346,17 +346,17 @@ async function endWalk(){
   if(lostTimer){clearTimeout(lostTimer);lostTimer=null;}
   isGpsLost = false;
   document.getElementById('btnResumeWalk').classList.add('hidden');
-  setStatusBar('✅ 漫遊結束','var(--status-ended)');
-  /* [v1.32.0] 結束時停止動畫 */
+  setStatusBar(t('status.ended'), 'var(--status-ended)');
   userMarker.stopWalkAnim('idle');
   document.getElementById('state-recording').classList.add('hidden');
   document.getElementById('state-finished').classList.remove('hidden');
-  document.getElementById('encourageBox').innerText = '「'+getDailyEncouragement()+'」';
+  document.getElementById('encourageBox').innerText = '「' + getDailyEncouragement() + '」';
   await flushRawBuffer();
   totalDistance = walkPath.length>1
     ? google.maps.geometry.spherical.computeLength(pathLine.getPath())/1000 : 0;
   window.totalDistance = totalDistance;
-  durationStr = Math.floor(Math.abs(new Date()-startTime)/60000)+' 分鐘';
+  durationStr = Math.floor(Math.abs(new Date()-startTime)/60000) + ' ' +
+    (window._lang === 'en' ? 'min' : '分鐘');
   window.durationStr = durationStr;
 
   if(walkPath.length > 0){
@@ -365,7 +365,7 @@ async function endWalk(){
         var cityObj = results[0].address_components.find(function(c){
           return c.types.includes('administrative_area_level_1')||c.types.includes('locality');
         });
-        cityName = cityObj ? cityObj.long_name : '未知城市';
+        cityName = cityObj ? cityObj.long_name : (window._lang==='en'?'Unknown City':'未知城市');
         window.cityName = cityName;
         var seenPlaces={}, placeNames=[];
         eventsData.forEach(function(ev){
@@ -375,12 +375,14 @@ async function endWalk(){
             placeNames.push(s);
           }
         });
-        var placeLine = placeNames.length>0 ? '<br>📍 停留地標：'+placeNames.join(' / '):'';
-        document.getElementById('summaryBox').innerHTML=
-          '<strong>漫遊結算</strong><br>🏙️ 城市：'+cityName+
-          '<br>👣 里程：'+totalDistance.toFixed(2)+' KM'+
-          '<br>⏱️ 時長：'+durationStr+
-          '<br>📸 事件：'+eventsData.length+' 個'+placeLine;
+        var placeLine = placeNames.length>0
+          ? '<br>' + t('summary.landmarks', {names: placeNames.join(' / ')}) : '';
+        document.getElementById('summaryBox').innerHTML =
+          '<strong>' + t('summary.title') + '</strong><br>' +
+          t('summary.city',     {city:     cityName}) + '<br>' +
+          t('summary.distance', {km:       totalDistance.toFixed(2)}) + '<br>' +
+          t('summary.duration', {duration: durationStr}) + '<br>' +
+          t('summary.events',   {n:        eventsData.length}) + placeLine;
       }
     });
   }
@@ -388,7 +390,7 @@ async function endWalk(){
 
 function clearLoadedRoute(){
   pathLine.setPath([]);
-  pathLine.setOptions({strokeColor:selectedTrackColor,strokeOpacity:0.85,strokeWeight:6});
+  pathLine.setOptions({strokeColor:selectedTrackColor, strokeOpacity:0.85, strokeWeight:6});
   historyMarkers.forEach(function(m){m.setMap(null);});
   historyMarkers.length = 0;
   window._loadedRouteId = ''; window._loadedRouteEvents = [];
@@ -396,7 +398,7 @@ function clearLoadedRoute(){
 }
 
 /* 激勵語句 */
-var ENCOURAGE_LIST=[
+var ENCOURAGE_LIST_ZH=[
   '每一步都是在和這座城市說你好。','你走過的路，都成為了你的一部分。',
   '不趕時間的移動，才看得見風景。','今天的漫遊，是送給未來的你的禮物。',
   '走路是最誠實的旅行方式。','迷路也是一種探索。',
@@ -408,42 +410,50 @@ var ENCOURAGE_LIST=[
   '城市不大，只要你願意用腳丈量。','今天走過的路，明天會變成想念。',
   '每次 City Walk，都是一次小小的冒險。','謝謝你今天也好好走路了。'
 ];
+var ENCOURAGE_LIST_EN=[
+  'Every step is a hello to this city.','The roads you walk become part of who you are.',
+  'Slow down — that\'s when you see the world.','Today\'s walk is a gift to your future self.',
+  'Walking is the most honest way to travel.','Getting lost is just another kind of exploring.',
+  'The city\'s story hides in every pause you take.','Slow your pace, and the world grows bigger.',
+  'You\'re not rushing — you\'re collecting memories.','Keep walking, and the answer will come.',
+  'Every road deserves to be walked with care.','Today you know this city a little better.',
+  'A slow walk takes quiet courage.','Your footsteps are the best map of this city.',
+  'Walking is the kindest thing you can do for yourself.','Go slowly. Everything will arrive.',
+  'The city isn\'t small — just walk it.','The roads of today become the nostalgia of tomorrow.',
+  'Every City Walk is a small adventure.','Thank you for walking well today.'
+];
 function getDailyEncouragement(){
-  var t=new Date();
-  var s=t.getFullYear()*10000+(t.getMonth()+1)*100+t.getDate();
-  return ENCOURAGE_LIST[s%ENCOURAGE_LIST.length];
+  var list = (window._lang === 'en') ? ENCOURAGE_LIST_EN : ENCOURAGE_LIST_ZH;
+  var t2=new Date();
+  var s=t2.getFullYear()*10000+(t2.getMonth()+1)*100+t2.getDate();
+  return list[s % list.length];
 }
 
 /* ===================================================
    暴露全域
    =================================================== */
-window.initMap          = initMap;
-window.getUserPosition  = getUserPosition;
-window.setStatusBar     = setStatusBar;
-window.focusOnMe        = focusOnMe;
-window.focusOnRouteStart= focusOnRouteStart;
-window.toggleColorPicker= toggleColorPicker;
-window.selectColor      = selectColor;
-window.startWalk        = startWalk;
-window.endWalk          = endWalk;
-window.clearLoadedRoute = clearLoadedRoute;
-window.flushRawBuffer   = flushRawBuffer;
+window.initMap           = initMap;
+window.getUserPosition   = getUserPosition;
+window.setStatusBar      = setStatusBar;
+window.focusOnMe         = focusOnMe;
+window.focusOnRouteStart = focusOnRouteStart;
+window.toggleColorPicker = toggleColorPicker;
+window.selectColor       = selectColor;
+window.startWalk         = startWalk;
+window.endWalk           = endWalk;
+window.clearLoadedRoute  = clearLoadedRoute;
+window.flushRawBuffer    = flushRawBuffer;
 window.getDailyEncouragement = getDailyEncouragement;
 
 /* ===================================================
-   PSEUDO: 自動初始化
-   - type="module" 是 defer，保證 HTML 解析完才執行
-   - Maps SDK 也是 defer，但誰先誰後不確定
-   - 用 polling 每 100ms 檢查 google 是否就緒
-   - 最多等 10 秒，避免無限等待
+   自動初始化（polling Google Maps SDK）
    =================================================== */
 (function waitForGoogle(){
   var attempts = 0;
   var timer = setInterval(function(){
     attempts++;
     if(window.google && window.google.maps && window.google.maps.Map){
-      clearInterval(timer);
-      initMap();
+      clearInterval(timer); initMap();
     } else if(attempts > 100){
       clearInterval(timer);
       console.error('[map.js] Google Maps 載入逾時');
